@@ -1,32 +1,45 @@
 # NCAA BCS Ranking Calculator
 
-A transparent college-football ranking calculator based on the spreadsheet system I used previously.
+A transparent, auditable ranking system for **NCAA FBS college-football teams**.
 
-The goal is not to make the formula complicated. The goal is to make a small number of understandable scoring rules work well across an entire season, while keeping every team's ranking auditable game by game.
+The repository keeps the historical `BCS` name because that is the name of the original project, but the modern ranking pool is the current **Football Bowl Subdivision (FBS)**. This is not an FCS ranking project.
+
+## Primary goal
+
+The main objective is not to imitate the AP Poll, Coaches Poll, CFP committee, betting markets, or another power rating.
+
+The objective is:
+
+> **At the end of the pre-bowl portion of the FBS season, the higher-ranked FBS team should win postseason head-to-head matchups as often as possible.**
+
+Every ranking should still be explainable game by game.
 
 ## Project status
 
-**Version: 0.1.1 — Legacy model reconstruction**
+**Version: 0.2.0 — Executable FBS legacy engine + modern research candidate**
 
-Three historical workbooks have now been reviewed:
+Three historical workbooks were used to recover the original system:
 
-- `NCAA FCS Rankings.xlsx`
 - `NCAA FBS Rankings 2011.xlsx`
 - `NCAA FBS Rankings.xlsx`
+- `NCAA FCS Rankings.xlsx`
 
-The FBS workbooks are actually built around the 2012 season. The `2011 Season` data serves as an initial ranking seed/reference.
+The FBS workbooks are the primary formula source. The FCS workbook is retained only as historical evidence and as useful context for how the old system handled teams outside the active ranking pool.
 
-The historical files show that the FCS and FBS calculators were related but not identical. The project will therefore preserve the recovered rules as separate ranking profiles before choosing a modern default.
+### Scope rule
+
+- **Published ranking target:** FBS teams.
+- **Primary validation target:** FBS bowls and College Football Playoff games.
+- **FCS role:** opponent context when an FBS team plays an FCS team.
+- **No separate FCS production ranking is required.**
 
 ## Core philosophy
 
-The old system worked because every team's score could be explained from a small number of game-level values:
+The historical system worked because every team's score could be explained from a small number of game-level values:
 
 1. **Opponent Rank Score** — reward or penalty based on opponent quality.
-2. **Win Score** — a flat reward for winning.
+2. **Win Score** — reward for winning.
 3. **Spread Score** — reward or penalty based on scoring margin.
-
-The central relationship is:
 
 ```text
 Game Score = Opponent Rank Score + Win Score + Spread Score
@@ -34,41 +47,25 @@ Game Score = Opponent Rank Score + Win Score + Spread Score
 
 Those game scores accumulate into the team's season score.
 
-## Recovered FCS model
+## Primary legacy FBS baseline
 
-The 2012 FCS workbook uses bracketed opponent-rank bonuses on wins:
+The later 2012 FBS model is the reference baseline.
 
-| Opponent Rank | Points |
-|---:|---:|
-| 1–5 | 30 |
-| 6–10 | 24 |
-| 11–15 | 18 |
-| 16–20 | 12 |
-| 21–30 | 6 |
-| 31–40 | 3 |
-| 41–50 | 2 |
-| 51+ | 1 |
-| Unranked / unavailable | 0 |
-
-A loss receives no opponent-rank bonus.
-
-The FCS workbook also uses historical weekly rankings: each new week values opponents using the ranking snapshot from the previous completed ranking period.
-
-## Recovered FBS model
-
-The FBS workbooks reveal a more granular system.
-
-For a 124-team FBS ranking, the later version uses:
+For an FBS ranking pool containing `N` teams and an opponent ranked `R`:
 
 ```text
-Win against opponent ranked R:
-    opponent_rank_score = 125 - R
+Win:
+    opponent_rank_score = (N + 1) - R
+    win_score = 10
 
-Loss to opponent ranked R:
+Loss:
     opponent_rank_score = -R
+    win_score = 0
 ```
 
-Examples:
+For the original 124-team workbook, `(N + 1) - R` is exactly the historical `125 - R` rule.
+
+Examples from the old 124-team scale:
 
 ```text
 beat #1   = +124 rank points
@@ -80,166 +77,214 @@ lose to #25  =  -25 rank points
 lose to #124 = -124 rank points
 ```
 
-That creates a simple symmetry: elite wins matter greatly, elite losses hurt little, weak wins are worth little, and bad losses hurt greatly.
+This creates a simple symmetry: elite wins matter greatly, elite losses hurt little, weak wins add little opponent credit, and bad losses hurt greatly.
 
-The older FBS version used the same win scale but gave zero rank points on losses.
+## Margin of victory
 
-### Win bonus
-
-Both FBS and FCS models use:
-
-- Win: **+10**
-- Loss: **0**
-
-### Scoring margin
-
-Against an opponent with a usable rank:
+Against an FBS opponent in the active ranking pool:
 
 ```text
 spread_score = points_for - points_against
 ```
 
-When the opponent is outside the active ranking pool, the historical spreadsheets halve the margin:
+The historical FBS workbook gives an opponent outside the ranking pool zero opponent-rank points and scales the margin by one-half:
 
 ```text
 spread_score = (points_for - points_against) / 2
 ```
 
-In the FBS workbook this appears to be the treatment for FCS opponents.
+Historically, this appears to be how FBS-vs-FCS games were handled.
 
-There is no recovered margin-of-victory cap.
+FCS treatment is therefore part of the FBS scoring problem, not a second ranking product.
 
 ## Dynamic opponent strength
 
-The FBS model contains an especially useful idea.
-
-Instead of permanently freezing a game's value to the opponent's rank on game day, the FBS team sheets use the opponent's **current overall rank**. That means an earlier win can become more valuable later if the opponent proves to be strong.
+The later FBS model recursively revalues games using an opponent's current overall FBS rank.
 
 Conceptually:
 
-1. Rank every team.
-2. Score every game using those opponent ranks.
+1. Rank every FBS team.
+2. Score every completed eligible game using those opponent ranks.
 3. Recalculate season totals.
 4. Re-rank the teams.
-5. Repeat until the ordering settles or the configured iteration limit is reached.
+5. Repeat until the order settles, a cycle is detected, or the iteration limit is reached.
 
-The old spreadsheet required manual ranking/sorting steps. The new calculator can perform this automatically.
+This lets a September win become more valuable if that opponent proves strong by December.
 
-## Conference-strength experiment
+## Conference adjustment
 
-The older FBS workbook added a conference-strength bonus based on the average rank of each conference's opponents.
+The older FBS workbook experimented with a conference-strength bonus.
 
-The later FBS workbook sets every conference bonus to **zero**, effectively disabling the feature while keeping the formulas in place.
+The later workbook sets every conference bonus to **zero**. The modern project therefore begins with no conference reputation adjustment. A conference term can return only if historical out-of-sample testing shows repeatable predictive value.
 
-That later simplification is important. It suggests the ranking system evolved toward letting actual game results and opponent strength do the work rather than adding a separate conference reputation adjustment.
+## Modern research candidate
 
-## Historical data sources
-
-The FBS files preserve an Excel web connection to the Sports Illustrated AP poll:
+The first modern challenger keeps the same three-part idea:
 
 ```text
-http://sportsillustrated.cnn.com/football/ncaa/polls/ap
+Game Score = Opponent Quality + Win Bonus + Adjusted Margin
 ```
 
-No StatSheet URL or live StatSheet connection survives in the saved XLSX files. The raw schedule/result tables are present, however, and StatSheet may still have been the source used to populate them originally.
+The main research changes are:
 
-The modern project will not depend on a single provider. Schedule/result ingestion should use a replaceable data-source adapter.
+1. Normalize opponent quality for the number of active FBS teams.
+2. Test saturated margin-of-victory functions so extreme blowouts do not dominate the season score.
+3. Test home/away adjustment.
+4. Improve FBS-vs-FCS treatment only if doing so improves FBS postseason prediction.
 
-## What will change in the new calculator
+Recency, conference strength, preseason carryover, efficiency statistics, Elo-like components, and ensembles are challengers that must earn their place through testing.
 
-The scoring philosophy can stay simple while the implementation becomes much cleaner.
+The modern formula is **not** promoted merely because it looks better mathematically.
 
-The historical spreadsheets use one worksheet per team, repeated formulas, manually maintained ranking tables, fixed dates, and obsolete conference membership. The new version should instead use normalized game/team data and calculate every team through one ranking engine.
+## Postseason research contract
 
-The new calculator should:
+Every postseason test uses one frozen pre-postseason ranking.
 
-- Support current FBS and FCS teams without hard-coded conference membership.
-- Keep historical seasons reproducible even when teams change conferences or subdivisions.
-- Import schedules/results through replaceable data-source adapters.
-- Produce weekly and final rankings automatically.
-- Preserve every scoring component for auditing.
-- Support multiple legacy ranking profiles.
-- Make preseason seeding configurable.
-- Automate recursive/dynamic rank recalculation.
-- Avoid one-sheet-per-team logic.
-- Keep the ranking formula understandable enough to calculate by hand.
+For each season:
 
-## Proposed ranking profiles
+1. Use only games completed by the freeze point.
+2. Calculate the final pre-bowl FBS ranking.
+3. Freeze it.
+4. Predict every bowl and CFP matchup from that same ranking.
+5. Never feed a bowl, first-round, quarterfinal, semifinal, or championship result back into the ranking used for later predictions.
 
-The first implementation should keep the recovered systems separate:
+That prevents postseason result leakage.
+
+### Primary ten-season sample
 
 ```text
-legacy_fcs_2012
+2014 2015 2016 2017 2018 2019 2022 2023 2024 2025
+```
+
+- 2020 and 2021 are excluded from the primary comparable sample.
+- 2021 remains a sensitivity test.
+- 2025 is the locked final holdout.
+- 2026 is not part of the historical backtest because the season is in progress.
+
+## Model-selection rule
+
+A modern rule becomes the default only if it:
+
+- beats `legacy_fbs_2012_later` on out-of-sample postseason accuracy;
+- does not materially worsen probability quality;
+- improves results across seasons rather than because of one unusual year;
+- does not collapse on CFP games; and
+- remains easy to explain from a team's schedule.
+
+A practical target is at least a **2 percentage-point absolute improvement** in postseason accuracy, but that is a target rather than a promised result.
+
+## Ranking profiles
+
+Current and planned profiles:
+
+```text
 legacy_fbs_2012_original
 legacy_fbs_2012_later
+modern_legacy_candidate_v1
 ```
 
-The later FBS model is currently the strongest candidate for the default legacy profile because it rewards strong wins, distinguishes good and bad losses, and removes the separate conference bonus while remaining extremely simple.
+The historical FCS rules remain documented for archival purposes but are not a production ranking target.
+
+## Data direction
+
+The modern data layer should use normalized season-specific records rather than one worksheet per team.
+
+CollegeFootballData is the preferred primary automated source for:
+
+- FBS teams by season;
+- schedules and scores;
+- home/away/neutral status;
+- historical conference membership;
+- classification changes;
+- polls and CFP metadata;
+- optional rating benchmarks.
+
+NCAA, school, and conference records should be used to reconcile disputed or missing records.
+
+Betting data may be used as an external benchmark but **never as an input to the core ranking formula**.
 
 ## Proposed data model
 
-The calculator will eventually work from normalized records instead of hundreds of worksheet formulas.
-
 ### Teams
+
+- stable team ID
+- school name
+- aliases
+
+### Team seasons
 
 - season
 - team ID
-- team name
-- subdivision
-- conference
+- FBS/FCS classification for that season
+- conference for that season
+- optional preseason seed
 
 ### Games
 
 - season
 - week
-- date
+- date/time
 - home team
 - away team
 - neutral-site flag
-- home score
-- away score
-- game status
+- classifications for both teams
+- scores
+- season type
+- completed status
 
-### Weekly rankings
+### Ranking snapshots
 
+- model/version
 - season
-- week
-- team
-- wins
-- losses
-- cumulative points
+- cutoff timestamp
+- FBS team
+- score
 - rank
+- wins/losses
 
 ### Game scoring audit
 
 - team
 - opponent
-- opponent rank used
-- opponent-rank points
+- opponent rank/quality used
+- opponent points
 - win points
-- spread points
+- margin points
+- location adjustment
+- recency weight if enabled
 - game total
-- cumulative total
+
+### Postseason predictions
+
+- frozen ranking run
+- postseason game
+- two FBS ranks/scores
+- predicted winner
+- actual winner
+- optional calibrated win probability
+- CFP/bowl round
 
 ## Development plan
 
-1. **Finish reverse-engineering the historical workbooks.** Preserve every confirmed rule and variant.
-2. **Build legacy-compatible calculation profiles.** Reproduce historical results from normalized game data.
-3. **Automate iterative FBS recalculation.** Replace manual ranking/sorting with a deterministic ranking loop.
-4. **Replace the spreadsheet data plumbing.** Import current schedules, scores, teams, and conferences from a replaceable provider.
-5. **Generate weekly and final rankings automatically.**
-6. **Validate the models.** Compare historical output with the original workbooks and major national ranking systems.
-7. **Choose a modern default formula.** Only change legacy rules when testing shows a clear improvement.
-8. **Add a usable interface.** Expose rankings, team breakdowns, game-level scoring, and season history.
+1. **Preserve the recovered FBS formulas exactly.**
+2. **Build and test the recursive FBS ranking engine.**
+3. **Ingest normalized historical FBS schedules/results.**
+4. **Backtest the legacy FBS baseline across the ten-season research sample.**
+5. **Test one transparent rule family at a time.**
+6. **Use walk-forward validation and keep 2025 locked until the model is frozen.**
+7. **Promote the simplest formula that materially improves FBS postseason prediction.**
+8. **Add the current-season ranking interface and full game-level audit trail.**
 
 ## Documentation
 
-- [`docs/LEGACY_FCS_2012.md`](docs/LEGACY_FCS_2012.md) — reverse-engineering notes from the FCS workbook.
-- [`docs/LEGACY_FBS_2012.md`](docs/LEGACY_FBS_2012.md) — comparison and reconstruction of both FBS workbooks.
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — phased plan for turning the spreadsheet model into a maintainable ranking calculator.
+- [`docs/LEGACY_FBS_2012.md`](docs/LEGACY_FBS_2012.md) — reconstruction of the two historical FBS workbooks.
+- [`docs/LEGACY_FCS_2012.md`](docs/LEGACY_FCS_2012.md) — archival reference only; useful for historical cross-subdivision behavior.
+- [`docs/MODERN_V1_RESEARCH.md`](docs/MODERN_V1_RESEARCH.md) — postseason-prediction research contract and acceptance rules.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — phased implementation and validation plan.
+- [`configs/modern_v1_search.yaml`](configs/modern_v1_search.yaml) — versioned search space for transparent formula testing.
 
 ## Guiding rule
 
-**Do not make the ranking formula more complicated unless testing shows that the added complexity materially improves the rankings.**
+**Rank FBS teams using the simplest transparent formula that best predicts future FBS postseason winners.**
 
-The old system's strongest feature was transparency. The new version should keep that strength.
+Added complexity has to prove that it helps.
