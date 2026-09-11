@@ -1,0 +1,62 @@
+# Research search space. This is NOT a declaration of the winning formula.
+model: modern_legacy_candidate_v1
+version: 1
+scope:
+  ranking_pool: FBS
+  publish_fcs_rankings: false
+  fcs_role: opponent_context_only
+
+objective:
+  primary: postseason_accuracy
+  freeze: pre_postseason
+  include_conference_championships: true
+  never_update_during_postseason: true
+  holdout_season: 2025
+
+primary_seasons: [2014, 2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
+sensitivity_seasons: [2021]
+excluded_seasons: [2020, 2021]
+
+search:
+  opponent_rank_mode: [final_recursive, prior_week, blend]
+  final_rank_blend_alpha: [0.0, 0.25, 0.50, 0.75, 1.0]
+  win_rank_gamma: [0.50, 0.75, 1.00, 1.25, 1.50]
+  loss_rank_gamma: [0.50, 0.75, 1.00, 1.25, 1.50]
+  rank_weight: [0.50, 0.75, 1.00, 1.25, 1.50]
+  loss_weight: [0.50, 0.75, 1.00, 1.25]
+  win_bonus: [0, 5, 10, 15, 20]
+  margin_transform: [linear, cap, sqrt, log1p, tanh]
+  margin_cap: [14, 21, 28, 35, 42]
+  margin_weight: [0.25, 0.50, 0.75, 1.00, 1.25]
+  home_field_points: [0, 1, 2, 3, 4]
+  recency_half_life: [null, 4, 6, 8, 12]
+  out_of_pool_margin_scale: [0.0, 0.25, 0.5, 0.75, 1.0]
+
+# These remain OFF in the first transparent challenger and should only be
+# introduced after single-family ablation shows repeatable improvement.
+defaults:
+  opponent_rank_mode: final_recursive
+  final_rank_blend_alpha: 1.0
+  win_rank_gamma: 1.0
+  loss_rank_gamma: 1.0
+  rank_weight: 1.0
+  loss_weight: 1.0
+  win_bonus: 10
+  margin_transform: tanh
+  margin_cap: 28
+  margin_weight: 1.0
+  home_field_points: 0
+  recency_half_life: null
+  out_of_pool_margin_scale: 0.5
+  conference_weight: 0
+  preseason_final_weight: 0
+  betting_data_as_feature: false
+  box_score_features: false
+
+acceptance_gate:
+  must_beat_legacy_postseason_accuracy: true
+  practical_accuracy_gain_percentage_points: 2.0
+  brier_must_not_materially_worsen: true
+  gain_must_not_be_one_season_only: true
+  cfp_must_not_collapse: true
+  prefer_simpler_near_tie: true
