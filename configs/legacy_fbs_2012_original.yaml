@@ -1,0 +1,8 @@
+model: legacy_fbs_2012_original
+version: 1
+ranking_pool: FBS
+loss_rank_penalty: false
+win_bonus: 10
+out_of_pool_margin_scale: 0.5
+opponent_rank_mode: final_recursive
+conference_bonus: 0
