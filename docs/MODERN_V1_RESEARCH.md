@@ -2,9 +2,7 @@
 
 ## Project scope
 
-This project ranks **FBS teams**. The repository keeps the historical name "NCAA BCS Ranking Calculator," but the modern ranking pool is the current NCAA Football Bowl Subdivision (FBS).
-
-FCS teams are **not** a second production ranking target. FCS data is used only when it helps evaluate an FBS team's schedule, especially FBS-vs-FCS games. The historical FCS workbook remains archival evidence about the earlier spreadsheet system.
+This project ranks **FBS teams**. FCS teams are opponent context only.
 
 ## Primary objective
 
@@ -12,31 +10,66 @@ The calculator is optimized for one question:
 
 > At the end of the pre-bowl portion of the FBS season, how often does the higher-ranked FBS team win a postseason matchup?
 
-The ranking must remain explainable game by game. A complicated feature is not accepted merely because it sounds sophisticated.
+The ranking must remain explainable game by game.
 
-## Baseline
+## Fixed season structure
 
-The main baseline is `legacy_fbs_2012_later`:
+The research program is not allowed to change these production rules:
+
+- every season starts from zero;
+- no previous-season rankings carry forward;
+- no previous-season team statistics carry forward;
+- no preseason poll or power-rating seed is used;
+- conference identity has no mathematical strength value;
+- no ranking is published before current-season games exist;
+- Week 1 creates the first ranking from Week 1 results only;
+- Week 1 has zero opponent-rank points because no current-season ranking exists yet;
+- Week 2 uses Week 1 ranks;
+- each later week uses the immediately preceding completed current-season ranking.
+
+Historical data is used to improve scoring rules, not to seed teams in a future season.
+
+## Baseline game formula
+
+The recovered later FBS scoring relationship remains the reference scoring baseline:
+
+```text
+Game Score = Opponent Rank Score + Win Bonus + Margin
+```
+
+For an FBS pool of `N` teams and a prior-week opponent ranked `R`:
 
 ```text
 win over FBS rank R = (N + 1 - R) + 10 + margin
 loss to FBS rank R  = -R + margin
-out-of-pool game     = 0 rank points + win bonus + scaled margin
 ```
 
-`N` is the active FBS ranking pool for that season. This replaces the historical hard-coded `125` while reproducing the 124-team 2012 formula exactly.
+For Week 1:
 
-Opponent rank is recursively recalculated from the current end-of-regular-season FBS ordering.
+```text
+opponent-rank points = 0
+```
+
+because there is no previous current-season ranking.
+
+For an out-of-pool opponent:
+
+```text
+opponent-rank points = 0
+margin = raw margin * out_of_pool_margin_scale
+```
+
+The recovered default out-of-pool margin scale is `0.5`.
 
 ## Modern candidate family
 
-The first research candidate keeps the same three ideas:
+The modern candidate keeps the same three ideas:
 
 ```text
 Game Score = Opponent Quality + Win Bonus + Adjusted Margin
 ```
 
-For an FBS opponent:
+For a ranked FBS opponent from the previous completed week:
 
 ```text
 q_win  = (N + 1 - opponent_rank) / N
@@ -46,41 +79,45 @@ win opponent points  = rank_weight * N * q_win^win_rank_gamma
 loss opponent points = -loss_weight * N * q_loss^loss_rank_gamma
 ```
 
-This is exactly equivalent to the later legacy rank rule when both gamma values and both weights equal `1.0`.
-
-Margin is then optionally neutralized for venue and transformed:
-
-```text
-neutralized_margin = raw_margin - home_field_points * site_sign
-
-site_sign = +1 home
-            -1 away
-             0 neutral
-```
-
-Supported margin transforms are `linear`, `cap`, `sqrt`, `log1p`, and `tanh`.
-
-The first serious challenger uses `tanh` margin saturation because huge blowouts should keep adding information without dominating a season score. This is a hypothesis to test, not a predetermined winner.
+Margin may be transformed with `linear`, `cap`, `sqrt`, `log1p`, or `tanh`.
 
 ## FCS and other out-of-pool opponents
 
 FCS teams are outside the published FBS ranking pool.
 
-The legacy FBS model gives an out-of-pool opponent zero rank points and scales scoring margin by `0.5`. Modern research may test better FCS-opponent treatment, including mapping FCS strength or a joint network calculation, but those methods exist only to improve the accuracy of the **FBS ranking**.
+The legacy FBS default gives an out-of-pool opponent zero rank points and scales scoring margin by `0.5`. Modern research may test the out-of-pool scale or another transparent FCS treatment, but only to improve the **FBS ranking**.
 
-No public FCS ranking product is required by this project.
+## Conference policy
+
+Conference strength is permanently excluded from the live ranking.
+
+Conference membership may be retained as metadata for display, schedule grouping, and historical analysis. It cannot contribute points, penalties, priors, or seeds.
+
+## Previous-season policy
+
+Previous-season information is permanently excluded from the live ranking.
+
+This includes:
+
+- previous final rank;
+- prior record;
+- prior scoring margin;
+- prior schedule strength;
+- preseason polls;
+- preseason power ratings.
+
+Research may use older seasons as training/backtest samples, but every simulated season must start independently at zero.
 
 ## No-leakage postseason rule
 
 For each season:
 
-1. Use only games completed by the pre-postseason freeze point.
-2. Calculate one final FBS regular-season ranking.
-3. Freeze it.
-4. Predict every bowl and CFP game from that same snapshot.
-5. Never feed a bowl, first-round, quarterfinal, semifinal, or championship result back into the ranking used for later postseason predictions.
-
-This rule is enforced by `frozen_postseason_backtest()`.
+1. Start every team at zero.
+2. Build Week 1 from Week 1 results only.
+3. Build each later week using the preceding current-season ranking.
+4. Freeze the final pre-postseason ranking.
+5. Predict every bowl and CFP game from that same snapshot.
+6. Never feed a postseason result into a later postseason prediction.
 
 ## Seasons
 
@@ -90,9 +127,7 @@ Primary ten-season sample:
 2014 2015 2016 2017 2018 2019 2022 2023 2024 2025
 ```
 
-Primary research excludes 2020 and 2021. The 2021 season is retained as a sensitivity test. The 2026 season is excluded because it is incomplete.
-
-The sample begins with the first CFP season and includes the expanded CFP era beginning in 2024. Results should therefore be reported both overall and by playoff format.
+Primary research excludes 2020 and 2021. The 2021 season remains a sensitivity test. The 2026 season is the live season and is not part of historical tuning.
 
 ## Validation
 
@@ -105,42 +140,62 @@ Selection order:
 3. Better calibration among near-ties.
 4. Simpler formula among near-ties.
 
-A single frozen pre-postseason FBS ranking predicts the entire postseason.
-
 ## Acceptance gate
 
-A modern rule is not promoted merely because it looks better on the development sample. It must:
+A modern scoring rule is promoted only if it:
 
-- beat `legacy_fbs_2012_later` on out-of-sample FBS postseason accuracy;
-- target at least a 2 percentage-point absolute improvement as a practical benchmark;
-- avoid a material decline in probability quality;
-- show improvement across seasons rather than one exceptional year;
-- avoid a major collapse in CFP games; and
-- remain explainable from an FBS team's schedule one game at a time.
+- improves out-of-sample FBS postseason accuracy;
+- targets at least a 2 percentage-point absolute improvement as a practical benchmark;
+- avoids a material decline in probability quality;
+- improves results across seasons rather than one exceptional year;
+- avoids a major collapse in CFP games; and
+- remains explainable game by game.
 
-## First ablations
+## Allowed ablations
 
-Test one family at a time before combining them:
+The weekly causal structure is fixed. Research may test scoring inside it:
 
 1. FBS team-count normalization.
-2. Margin saturation.
-3. Home-field adjustment.
-4. End-of-season opponent rank versus prior-week rank.
-5. FBS-vs-FCS / out-of-pool treatment.
-6. Recency.
+2. Opponent-rank curve and weight.
+3. Bad-loss curve and weight.
+4. Win bonus.
+5. Margin saturation.
+6. Home-field adjustment.
+7. FBS-vs-FCS/out-of-pool treatment.
+8. Current-season recency.
 
-Conference reputation bonuses, preseason carryover, box-score features, Elo-like models, and ensembles are challengers. They stay out of the first production candidate until data shows repeatable predictive value.
+## Forbidden ablations
+
+These are not research candidates:
+
+```text
+conference-strength adjustment
+previous-season carryover
+preseason ranking seed
+final/current recursive opponent-rank rewriting
+```
+
+The live ranking uses the opponent rank that existed after the previous completed week.
+
+## Historical engine distinction
+
+`RecursiveRankingEngine` is retained only for reconstructing the old workbook and measuring historical differences.
+
+`WeeklySeasonRankingEngine` is the production structure and the structure used for modern formula research.
 
 ## Data source direction
 
-CollegeFootballData is the preferred primary automated source for historical FBS schedules, scores, team identity, classification, historical conference membership, rankings, and CFP metadata. NCAA and school/conference records should be reconciliation sources when data conflicts.
+Historical and live data ingestion should provide:
 
-Raw provider responses should be cached before normalization so a research run can be reproduced even if a provider later corrects historical data.
+- FBS membership by season;
+- week number;
+- completed game scores;
+- FBS/FCS opponent classification;
+- home/away/neutral site;
+- postseason identification.
 
-## Important distinction
+Conference may be stored for display, but no conference-strength field should enter scoring.
 
-`modern_legacy_candidate_v1` is a research candidate, not the production champion. Until the ten-season backtest is run and the acceptance gate is passed, `legacy_fbs_2012_later` remains the reference model.
+## Central design principle
 
-The central design principle remains:
-
-> Rank FBS teams using the simplest transparent formula that best predicts future FBS postseason winners.
+> **Every season begins at zero, and every team earns its place only through games played in that season.**
