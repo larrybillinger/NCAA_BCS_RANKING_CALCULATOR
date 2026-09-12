@@ -32,6 +32,23 @@ def test_legacy_alabama_texas_am_loss_example():
     assert score.total == -13
 
 
+def test_week_one_fbs_game_uses_full_margin_without_prior_rank():
+    model = LegacyFBSModel(loss_rank_penalty=True)
+    game = TeamGame(
+        team="A",
+        opponent="B",
+        points_for=31,
+        points_against=17,
+        opponent_in_rank_pool=True,
+        week=1,
+    )
+    score = model.score_game(game, opponent_rank=None, team_count=138)
+    assert score.opponent_points == 0
+    assert score.win_points == 10
+    assert score.margin_points == 14
+    assert score.total == 24
+
+
 def test_legacy_out_of_pool_opponent_halves_margin():
     model = LegacyFBSModel(loss_rank_penalty=True)
     game = TeamGame(
