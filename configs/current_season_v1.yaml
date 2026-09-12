@@ -1,0 +1,33 @@
+model: legacy_fbs_2012_later
+engine: WeeklySeasonRankingEngine
+version: 1
+scope:
+  ranking_pool: FBS
+  publish_fcs_rankings: false
+  fcs_role: opponent_context_only
+
+season_reset:
+  previous_season_rankings: forbidden
+  previous_season_statistics: forbidden
+  preseason_poll_seed: forbidden
+  preseason_power_rating_seed: forbidden
+  conference_strength: forbidden
+
+weekly_flow:
+  publish_preseason_ranking: false
+  first_published_ranking: week_1_complete
+  week_1_opponent_rank_points: 0
+  week_2_and_later_opponent_rank_source: previous_completed_week_current_season
+  retroactive_revalue_old_games: false
+  same_week_recursive_recalculation: false
+
+scoring:
+  win_bonus: 10
+  fbs_margin_scale: 1.0
+  out_of_pool_margin_scale: 0.5
+  loss_rank_penalty: true
+  opponent_win_rule: N_plus_1_minus_R
+  opponent_loss_rule: negative_R
+  conference_weight: 0
+  previous_season_weight: 0
+  preseason_weight: 0
