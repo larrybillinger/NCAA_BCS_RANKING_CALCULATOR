@@ -1,10 +1,22 @@
 # Research search space. This is NOT a declaration of the winning formula.
 model: modern_legacy_candidate_v1
-version: 1
+version: 2
 scope:
   ranking_pool: FBS
   publish_fcs_rankings: false
   fcs_role: opponent_context_only
+
+season_bootstrap:
+  previous_season_rankings: forbidden
+  previous_season_statistics: forbidden
+  preseason_poll_seed: forbidden
+  preseason_power_rating_seed: forbidden
+  conference_strength: forbidden
+  first_published_ranking: week_1_complete
+  week_1_opponent_rank_points: 0
+  week_1_fbs_margin_scale: 1.0
+  week_1_out_of_pool_margin_scale: 0.5
+  week_2_and_later_opponent_rank_source: previous_completed_week_current_season
 
 objective:
   primary: postseason_accuracy
@@ -17,9 +29,9 @@ primary_seasons: [2014, 2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
 sensitivity_seasons: [2021]
 excluded_seasons: [2020, 2021]
 
+# These parameters may be tested, but the weekly causal structure above is
+# fixed project policy rather than a search dimension.
 search:
-  opponent_rank_mode: [final_recursive, prior_week, blend]
-  final_rank_blend_alpha: [0.0, 0.25, 0.50, 0.75, 1.0]
   win_rank_gamma: [0.50, 0.75, 1.00, 1.25, 1.50]
   loss_rank_gamma: [0.50, 0.75, 1.00, 1.25, 1.50]
   rank_weight: [0.50, 0.75, 1.00, 1.25, 1.50]
@@ -32,11 +44,8 @@ search:
   recency_half_life: [null, 4, 6, 8, 12]
   out_of_pool_margin_scale: [0.0, 0.25, 0.5, 0.75, 1.0]
 
-# These remain OFF in the first transparent challenger and should only be
-# introduced after single-family ablation shows repeatable improvement.
 defaults:
-  opponent_rank_mode: final_recursive
-  final_rank_blend_alpha: 1.0
+  opponent_rank_mode: prior_week_current_season
   win_rank_gamma: 1.0
   loss_rank_gamma: 1.0
   rank_weight: 1.0
@@ -49,7 +58,8 @@ defaults:
   recency_half_life: null
   out_of_pool_margin_scale: 0.5
   conference_weight: 0
-  preseason_final_weight: 0
+  previous_season_weight: 0
+  preseason_weight: 0
   betting_data_as_feature: false
   box_score_features: false
 
