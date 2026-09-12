@@ -5,7 +5,9 @@ from datetime import date
 from typing import Iterable, Mapping
 
 from ncaa_rankings.models.base import RankingResult, TeamGame
-from ncaa_rankings.ranking.engine import RecursiveRankingEngine
+from ncaa_rankings.ranking import RecursiveRankingEngine, WeeklySeasonRankingEngine
+
+RankingEngine = RecursiveRankingEngine | WeeklySeasonRankingEngine
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +32,7 @@ class Prediction:
 
 
 def frozen_postseason_backtest(
-    engine: RecursiveRankingEngine,
+    engine: RankingEngine,
     regular_season_games: Iterable[TeamGame],
     postseason_games: Iterable[PostseasonMatchup],
     *,
@@ -40,9 +42,13 @@ def frozen_postseason_backtest(
 ) -> tuple[RankingResult, tuple[Prediction, ...]]:
     """Rank FBS teams once at the freeze point, then predict the postseason.
 
-    Postseason results are intentionally never supplied to the ranking engine.
-    This prevents a bowl or playoff result from leaking into later postseason
-    predictions. Every postseason pick for a season uses the same FBS snapshot.
+    Production research should use ``WeeklySeasonRankingEngine`` and games with
+    current-season week numbers. ``RecursiveRankingEngine`` remains accepted so
+    the recovered historical workbook behavior can still be benchmarked.
+
+    Postseason results are intentionally never supplied to either ranking
+    engine. Every postseason pick for a season uses the same frozen FBS
+    snapshot.
     """
 
     ranking = engine.rank(
