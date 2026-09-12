@@ -7,11 +7,14 @@ from .base import GameScore, TeamGame
 
 @dataclass(frozen=True, slots=True)
 class LegacyFBSModel:
-    """Recovered 2012 FBS formula.
+    """Recovered 2012 FBS game-scoring formula.
 
     The later profile adds the rank-based loss penalty. The original profile
-    gives zero opponent-rank points on losses. Opponents outside the FBS rank
-    pool receive no opponent-rank points and use the configured margin scale.
+    gives zero opponent-rank points on losses.
+
+    An FBS opponent with no prior-week rank (the Week 1 bootstrap case) still
+    uses the full scoring margin. Only an opponent outside the active FBS rank
+    pool receives the historical half-margin treatment.
     """
 
     loss_rank_penalty: bool = True
@@ -52,7 +55,7 @@ class LegacyFBSModel:
 
         win_points = self.win_bonus if game.won else 0.0
         margin_points = float(game.margin)
-        if not usable_rank:
+        if not game.opponent_in_rank_pool:
             margin_points *= self.out_of_pool_margin_scale
 
         return GameScore(
