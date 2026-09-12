@@ -24,6 +24,10 @@ class Site(str, Enum):
 class TeamGame:
     """One completed game from one FBS team's point of view.
 
+    ``week`` is the current-season ranking week. Production rankings are built
+    only from the current season: Week 1 creates the first ranking, and each
+    later week uses the immediately preceding current-season ranking.
+
     ``opponent_in_rank_pool`` should be True for FBS opponents in the active
     season ranking pool and False for FCS or other out-of-pool opponents.
     """
@@ -36,6 +40,7 @@ class TeamGame:
     played_on: date | None = None
     opponent_in_rank_pool: bool = True
     season_type: str = "regular"
+    week: int | None = None
 
     @property
     def won(self) -> bool:
