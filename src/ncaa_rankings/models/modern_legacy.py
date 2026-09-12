@@ -12,6 +12,11 @@ class ModernLegacyModel:
 
     This class is intentionally parameterized. It is a candidate family, not
     a claim that any one parameter set has already beaten the legacy model.
+
+    Production season logic supplies only current-season prior-week ranks.
+    Week 1 therefore has no opponent-rank component, but FBS opponents still
+    use the full scoring margin. Only out-of-pool opponents use the configured
+    reduced margin scale.
     """
 
     rank_weight: float = 1.0
@@ -72,7 +77,7 @@ class ModernLegacyModel:
         margin_points = self.margin_weight * self._transform_margin(
             neutralized_margin
         )
-        if not usable_rank:
+        if not game.opponent_in_rank_pool:
             margin_points *= self.out_of_pool_margin_scale
 
         recency_weight = 1.0
