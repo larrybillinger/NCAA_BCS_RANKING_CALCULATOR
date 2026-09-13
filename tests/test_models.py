@@ -32,37 +32,46 @@ def test_legacy_alabama_texas_am_loss_example():
     assert score.total == -13
 
 
-def test_week_one_fbs_game_uses_full_margin_without_prior_rank():
-    model = LegacyFBSModel(loss_rank_penalty=True)
-    game = TeamGame(
-        team="A",
-        opponent="B",
-        points_for=31,
-        points_against=17,
-        opponent_in_rank_pool=True,
-        week=1,
-    )
-    score = model.score_game(game, opponent_rank=None, team_count=138)
-    assert score.opponent_points == 0
-    assert score.win_points == 10
-    assert score.margin_points == 14
-    assert score.total == 24
-
-
-def test_legacy_out_of_pool_opponent_halves_margin():
+def test_true_out_of_pool_opponent_halves_margin():
     model = LegacyFBSModel(loss_rank_penalty=True)
     game = TeamGame(
         team="Alabama",
-        opponent="Western Carolina",
+        opponent="Division II Opponent",
         points_for=49,
         points_against=0,
         opponent_in_rank_pool=False,
     )
-    score = model.score_game(game, opponent_rank=None, team_count=124)
+    score = model.score_game(game, opponent_rank=None, team_count=267)
     assert score.opponent_points == 0
     assert score.win_points == 10
     assert score.margin_points == 24.5
     assert score.total == 34.5
+
+
+def test_week1_in_pool_opponent_keeps_full_margin_without_rank():
+    model = LegacyFBSModel(loss_rank_penalty=True)
+    game = TeamGame(
+        team="Kansas State",
+        opponent="Nicholls",
+        points_for=71,
+        points_against=3,
+        opponent_in_rank_pool=True,
+        week=1,
+    )
+    score = model.score_game(game, opponent_rank=None, team_count=267)
+    assert score.opponent_points == 0
+    assert score.win_points == 10
+    assert score.margin_points == 68
+    assert score.total == 78
+
+
+def test_fbs_and_fcs_are_identical_when_both_are_in_pool():
+    model = LegacyFBSModel(loss_rank_penalty=True)
+    fbs_game = TeamGame("FBS Team", "FCS Team", 31, 17, opponent_in_rank_pool=True)
+    fcs_game = TeamGame("FCS Team", "FBS Team", 31, 17, opponent_in_rank_pool=True)
+    fbs_score = model.score_game(fbs_game, opponent_rank=40, team_count=267)
+    fcs_score = model.score_game(fcs_game, opponent_rank=40, team_count=267)
+    assert fbs_score == fcs_score
 
 
 def test_modern_linear_defaults_reproduce_legacy_rank_math():
@@ -73,8 +82,8 @@ def test_modern_linear_defaults_reproduce_legacy_rank_math():
         TeamGame("A", "B", 17, 31),
     ]
     for game in games:
-        modern_score = modern.score_game(game, opponent_rank=7, team_count=134)
-        legacy_score = legacy.score_game(game, opponent_rank=7, team_count=134)
+        modern_score = modern.score_game(game, opponent_rank=7, team_count=267)
+        legacy_score = legacy.score_game(game, opponent_rank=7, team_count=267)
         assert modern_score.total == legacy_score.total
 
 
@@ -85,6 +94,6 @@ def test_home_field_neutralization_rewards_same_margin_more_on_road():
     )
     home = TeamGame("A", "B", 27, 20, site=Site.HOME)
     road = TeamGame("A", "B", 27, 20, site=Site.AWAY)
-    h = model.score_game(home, 20, 134)
-    r = model.score_game(road, 20, 134)
+    h = model.score_game(home, 20, 267)
+    r = model.score_game(road, 20, 267)
     assert r.margin_points - h.margin_points == 6
