@@ -1,267 +1,267 @@
-Rank,Team,Subdivision,Record,Score,Win Points,Margin Points,Games
-1,Montana State,FCS,2-0,101.0,20.0,81.0,2
-2,Illinois State,FCS,2-0,89.0,20.0,69.0,2
-3,Mercer,FCS,2-0,87.0,20.0,67.0,2
-4,North Dakota State,FBS,2-0,84.0,20.0,64.0,2
-5,Louisiana Tech,FBS,1-0,84.0,10.0,74.0,1
-6,South Carolina State,FCS,2-0,81.5,20.0,61.5,2
-7,Virginia Tech,FBS,1-0,80.0,10.0,70.0,1
-8,Kansas State,FBS,1-0,78.0,10.0,68.0,1
-9,North Dakota,FCS,2-0,77.0,20.0,57.0,2
-10,UCF,FBS,1-0,77.0,10.0,67.0,1
-11,Lehigh,FCS,2-0,76.0,20.0,56.0,2
-12,Elon,FCS,2-0,75.5,20.0,55.5,2
-13,USC,FBS,2-0,75.0,20.0,55.0,2
-14,South Dakota,FCS,2-0,74.0,20.0,54.0,2
-15,Arizona State,FBS,1-0,73.0,10.0,63.0,1
-16,Syracuse,FBS,1-0,73.0,10.0,63.0,1
-17,Maryland,FBS,1-0,72.0,10.0,62.0,1
-18,Georgia,FBS,1-0,70.0,10.0,60.0,1
-19,Stephen F. Austin,FCS,2-0,68.0,20.0,48.0,2
-20,South Carolina,FBS,1-0,67.0,10.0,57.0,1
-21,Army,FBS,1-0,66.0,10.0,56.0,1
-22,BYU,FBS,1-0,66.0,10.0,56.0,1
-23,Ohio State,FBS,1-0,63.0,10.0,53.0,1
-24,Montana,FCS,2-0,62.0,20.0,42.0,2
-25,App State,FBS,1-0,62.0,10.0,52.0,1
-26,Minnesota,FBS,1-0,62.0,10.0,52.0,1
-27,Texas,FBS,1-0,62.0,10.0,52.0,1
-28,Utah,FBS,1-0,62.0,10.0,52.0,1
-29,Oklahoma,FBS,1-0,61.0,10.0,51.0,1
-30,Idaho State,FCS,2-0,60.0,20.0,40.0,2
-31,Texas A&M,FBS,1-0,60.0,10.0,50.0,1
-32,Tennessee Tech,FCS,2-0,59.0,20.0,39.0,2
-33,UC Davis,FCS,2-0,59.0,20.0,39.0,2
-34,Georgia State,FBS,1-0,59.0,10.0,49.0,1
-35,Mississippi State,FBS,1-0,59.0,10.0,49.0,1
-36,UConn,FBS,1-0,59.0,10.0,49.0,1
-37,Kennesaw State,FBS,1-0,57.0,10.0,47.0,1
-38,South Dakota State,FCS,1-1,57.0,10.0,47.0,2
-39,Tennessee,FBS,1-0,57.0,10.0,47.0,1
-40,Southern Miss,FBS,1-0,56.0,10.0,46.0,1
-41,Colgate,FCS,2-0,55.0,20.0,35.0,2
-42,Florida,FBS,1-0,55.0,10.0,45.0,1
-43,Kansas,FBS,1-0,55.0,10.0,45.0,1
-44,Penn State,FBS,1-0,55.0,10.0,45.0,1
-45,Pittsburgh,FBS,1-0,55.0,10.0,45.0,1
-46,Grambling,FCS,2-0,52.0,20.0,32.0,2
-47,Wofford,FCS,2-0,52.0,20.0,32.0,2
-48,West Florida,FCS,2-0,51.0,20.0,31.0,2
-49,LSU,FBS,1-0,51.0,10.0,41.0,1
-50,Sacramento State,FBS,1-1,51.0,10.0,41.0,2
-51,Alabama State,FCS,2-0,50.0,20.0,30.0,2
-52,Iowa,FBS,1-0,50.0,10.0,40.0,1
-53,Missouri,FBS,1-0,50.0,10.0,40.0,1
-54,Miami,FBS,1-0,49.0,10.0,39.0,1
-55,Jackson State,FCS,2-0,48.0,20.0,28.0,2
-56,Richmond,FCS,2-0,48.0,20.0,28.0,2
-57,Alabama,FBS,1-0,48.0,10.0,38.0,1
-58,Tarleton State,FCS,2-0,46.0,20.0,26.0,2
-59,Indiana,FBS,1-0,46.0,10.0,36.0,1
-60,Delaware,FBS,1-0,45.0,10.0,35.0,1
-61,Nevada,FBS,1-0,45.0,10.0,35.0,1
-62,Memphis,FBS,2-0,44.0,20.0,24.0,2
-63,Air Force,FBS,1-0,44.0,10.0,34.0,1
-64,San Diego State,FBS,1-0,43.0,10.0,33.0,1
-65,Kentucky,FBS,1-0,42.0,10.0,32.0,1
-66,Campbell,FCS,2-0,41.0,20.0,21.0,2
-67,Georgia Southern,FBS,1-0,41.0,10.0,31.0,1
-68,Incarnate Word,FCS,1-0,41.0,10.0,31.0,1
-69,Louisiana,FBS,1-0,41.0,10.0,31.0,1
-70,New Mexico,FBS,1-0,41.0,10.0,31.0,1
-71,UTSA,FBS,1-0,39.0,10.0,29.0,1
-72,Arizona,FBS,1-0,38.0,10.0,28.0,1
-73,Iowa State,FBS,1-0,38.0,10.0,28.0,1
-74,Nebraska,FBS,1-0,38.0,10.0,28.0,1
-75,Notre Dame,FBS,1-0,38.0,10.0,28.0,1
-76,Rice,FBS,1-0,38.0,10.0,28.0,1
-77,Navy,FBS,1-0,37.0,10.0,27.0,1
-78,Virginia,FBS,1-0,36.0,10.0,26.0,1
-79,Purdue,FBS,1-0,35.0,10.0,25.0,1
-80,South Alabama,FBS,1-0,35.0,10.0,25.0,1
-81,Morehead State,FCS,1-1,34.5,10.0,24.5,2
-82,Middle Tennessee,FBS,1-0,34.0,10.0,24.0,1
-83,Temple,FBS,1-0,34.0,10.0,24.0,1
-84,Texas Tech,FBS,1-0,33.0,10.0,23.0,1
-85,UT Martin,FCS,1-1,33.0,10.0,23.0,2
-86,Valparaiso,FCS,1-0,33.0,10.0,23.0,1
-87,Colorado State,FBS,1-0,32.0,10.0,22.0,1
-88,Wake Forest,FBS,1-0,32.0,10.0,22.0,1
-89,Old Dominion,FBS,1-0,31.0,10.0,21.0,1
-90,UCLA,FBS,1-0,31.0,10.0,21.0,1
-91,William & Mary,FCS,2-0,30.0,20.0,10.0,2
-92,New Mexico State,FBS,1-1,30.0,10.0,20.0,2
-93,Cincinnati,FBS,1-0,29.0,10.0,19.0,1
-94,Illinois,FBS,1-0,29.0,10.0,19.0,1
-95,Prairie View A&M,FCS,1-1,29.0,10.0,19.0,2
-96,Vanderbilt,FBS,1-0,29.0,10.0,19.0,1
-97,Cal Poly,FCS,2-0,27.5,20.0,7.5,2
-98,Arkansas,FBS,1-0,27.0,10.0,17.0,1
-99,Jacksonville State,FBS,1-1,26.0,10.0,16.0,2
-100,Massachusetts,FBS,1-0,26.0,10.0,16.0,1
-101,Northwestern,FBS,1-0,26.0,10.0,16.0,1
-102,McNeese,FCS,1-1,25.0,10.0,15.0,2
-103,Western Carolina,FCS,1-1,25.0,10.0,15.0,2
-104,Duke,FBS,1-0,24.0,10.0,14.0,1
-105,Florida State,FBS,1-1,24.0,10.0,14.0,2
-106,Tulsa,FBS,1-0,24.0,10.0,14.0,1
-107,Washington,FBS,1-0,24.0,10.0,14.0,1
-108,Houston,FBS,1-0,23.0,10.0,13.0,1
-109,Wagner,FCS,1-0,22.0,10.0,12.0,1
-110,Dayton,FCS,1-0,21.5,10.0,11.5,1
-111,Michigan State,FBS,1-0,20.0,10.0,10.0,1
-112,Robert Morris,FCS,1-0,20.0,10.0,10.0,1
-113,South Florida,FBS,1-0,20.0,10.0,10.0,1
-114,UAlbany,FCS,1-1,20.0,10.0,10.0,2
-115,UNLV,FBS,1-1,19.0,10.0,9.0,2
-116,James Madison,FBS,1-0,17.0,10.0,7.0,1
-117,Norfolk State,FCS,1-1,17.0,10.0,7.0,2
-118,Oregon,FBS,1-0,17.0,10.0,7.0,1
-119,West Virginia,FBS,1-0,17.0,10.0,7.0,1
-120,Eastern Michigan,FBS,1-1,15.0,10.0,5.0,2
-121,North Carolina,FBS,1-0,15.0,10.0,5.0,1
-122,Buffalo,FBS,1-0,14.0,10.0,4.0,1
-123,Marist,FCS,1-1,13.5,10.0,3.5,2
-124,Eastern Washington,FCS,1-1,13.0,10.0,3.0,2
-125,Ole Miss,FBS,1-0,13.0,10.0,3.0,1
-126,Rhode Island,FCS,1-1,13.0,10.0,3.0,2
-127,SMU,FBS,1-0,13.0,10.0,3.0,1
-128,Troy,FBS,1-0,13.0,10.0,3.0,1
-129,Auburn,FBS,1-0,11.0,10.0,1.0,1
-130,Colorado,FBS,1-0,11.0,10.0,1.0,1
-131,Michigan,FBS,1-0,11.0,10.0,1.0,1
-132,Southern Illinois,FCS,1-1,11.0,10.0,1.0,2
-133,Youngstown State,FCS,1-1,11.0,10.0,1.0,2
-134,Alabama A&M,FCS,1-1,10.5,10.0,0.5,2
-135,Delaware State,FCS,1-1,10.0,10.0,0.0,2
-136,Howard,FCS,1-1,10.0,10.0,0.0,2
-137,Stonehill,FCS,1-1,10.0,10.0,0.0,2
-138,Austin Peay,FCS,1-1,9.0,10.0,-1.0,2
-139,Chattanooga,FCS,1-1,9.0,10.0,-1.0,2
-140,Lindenwood,FCS,1-1,9.0,10.0,-1.0,2
-141,North Carolina Central,FCS,1-1,8.5,10.0,-1.5,2
-142,Southern Utah,FCS,1-1,8.0,10.0,-2.0,2
-143,Villanova,FCS,1-1,8.0,10.0,-2.0,2
-144,Stony Brook,FCS,1-1,7.0,10.0,-3.0,2
-145,Southern,FCS,1-1,6.5,10.0,-3.5,2
-146,Weber State,FCS,1-1,6.0,10.0,-4.0,2
-147,North Alabama,FCS,1-1,5.0,10.0,-5.0,2
-148,Western Illinois,FCS,1-1,4.5,10.0,-5.5,2
-149,UT Rio Grande Valley,FCS,1-1,3.0,10.0,-7.0,2
-150,San José State,FBS,1-1,0.0,10.0,-10.0,2
-151,Brown,FCS,0-0,0.0,0.0,0.0,0
-152,Columbia,FCS,0-0,0.0,0.0,0.0,0
-153,Cornell,FCS,0-0,0.0,0.0,0.0,0
-154,Dartmouth,FCS,0-0,0.0,0.0,0.0,0
-155,Harvard,FCS,0-0,0.0,0.0,0.0,0
-156,Penn,FCS,0-0,0.0,0.0,0.0,0
-157,Princeton,FCS,0-0,0.0,0.0,0.0,0
-158,Yale,FCS,0-0,0.0,0.0,0.0,0
-159,Baylor,FBS,0-1,-1.0,0.0,-1.0,1
-160,Georgia Tech,FBS,0-1,-1.0,0.0,-1.0,1
-161,Western Michigan,FBS,0-1,-1.0,0.0,-1.0,1
-162,Florida A&M,FCS,1-1,-1.5,10.0,-11.5,2
-163,Charlotte,FBS,0-1,-2.0,0.0,-2.0,1
-164,Louisville,FBS,0-1,-3.0,0.0,-3.0,1
-165,Sam Houston,FBS,0-1,-3.0,0.0,-3.0,1
-166,TCU,FBS,0-1,-5.0,0.0,-5.0,1
-167,Central Arkansas,FCS,1-1,-6.0,10.0,-16.0,2
-168,Monmouth,FCS,1-1,-7.0,10.0,-17.0,2
-169,New Haven,FCS,1-1,-7.0,10.0,-17.0,2
-170,Boise State,FBS,0-1,-7.0,0.0,-7.0,1
-171,Bowling Green,FBS,0-1,-7.0,0.0,-7.0,1
-172,Coastal Carolina,FBS,0-1,-7.0,0.0,-7.0,1
-173,Liberty,FBS,0-1,-7.0,0.0,-7.0,1
-174,Sacred Heart,FCS,0-1,-7.0,0.0,-7.0,1
-175,Florida International,FBS,0-1,-10.0,0.0,-10.0,1
-176,Northern Iowa,FCS,0-1,-10.0,0.0,-10.0,1
-177,Toledo,FBS,0-1,-10.0,0.0,-10.0,1
-178,Northern Arizona,FCS,1-1,-11.0,10.0,-21.0,2
-179,Alcorn State,FCS,1-1,-11.5,10.0,-21.5,2
-180,Houston Christian,FCS,1-1,-12.0,10.0,-22.0,2
-181,East Tennessee State,FCS,0-1,-12.0,0.0,-12.0,1
-182,Utah State,FBS,0-1,-12.0,0.0,-12.0,1
-183,Oregon State,FBS,0-1,-13.0,0.0,-13.0,1
-184,Lamar,FCS,1-1,-14.0,10.0,-24.0,2
-185,Oklahoma State,FBS,0-1,-14.0,0.0,-14.0,1
-186,Tulane,FBS,0-1,-14.0,0.0,-14.0,1
-187,Washington State,FBS,0-1,-14.0,0.0,-14.0,1
-188,Butler,FCS,1-1,-15.0,10.0,-25.0,2
-189,Southeast Missouri State,FCS,1-1,-16.0,10.0,-26.0,2
-190,Texas Southern,FCS,1-1,-16.0,10.0,-26.0,2
-191,The Citadel,FCS,1-1,-16.0,10.0,-26.0,2
-192,Northern Colorado,FCS,0-2,-16.0,0.0,-16.0,2
-193,Rutgers,FBS,0-1,-16.0,0.0,-16.0,1
-194,Samford,FCS,0-2,-16.0,0.0,-16.0,2
-195,Arkansas State,FBS,0-1,-18.0,0.0,-18.0,1
-196,Stanford,FBS,1-1,-19.0,10.0,-29.0,2
-197,Boston College,FBS,0-1,-19.0,0.0,-19.0,1
-198,UAB,FBS,0-1,-19.0,0.0,-19.0,1
-199,Arkansas-Pine Bluff,FCS,1-1,-20.0,10.0,-30.0,2
-200,California,FBS,0-1,-21.0,0.0,-21.0,1
-201,Akron,FBS,0-1,-22.0,0.0,-22.0,1
-202,Bucknell,FCS,0-2,-22.0,0.0,-22.0,2
-203,Gardner-Webb,FCS,0-2,-22.0,0.0,-22.0,2
-204,Wyoming,FBS,0-1,-22.0,0.0,-22.0,1
-205,St. Thomas (MN),FCS,1-1,-23.0,10.0,-33.0,2
-206,Nicholls,FCS,1-1,-24.0,10.0,-34.0,2
-207,Hawai'i,FBS,0-2,-25.0,0.0,-25.0,2
-208,NC State,FBS,0-1,-26.0,0.0,-26.0,1
-209,Indiana State,FCS,0-2,-27.0,0.0,-27.0,2
-210,Bryant,FCS,1-1,-28.0,10.0,-38.0,2
-211,Eastern Illinois,FCS,1-1,-28.0,10.0,-38.0,2
-212,Ohio,FBS,0-1,-28.0,0.0,-28.0,1
-213,Wisconsin,FBS,0-1,-28.0,0.0,-28.0,1
-214,Furman,FCS,1-1,-28.5,10.0,-38.5,2
-215,Hampton,FCS,1-1,-29.5,10.0,-39.5,2
-216,Abilene Christian,FCS,0-2,-30.0,0.0,-30.0,2
-217,Towson,FCS,0-2,-30.0,0.0,-30.0,2
-218,Central Michigan,FBS,0-1,-31.0,0.0,-31.0,1
-219,Georgetown,FCS,0-1,-31.0,0.0,-31.0,1
-220,SE Louisiana,FCS,0-2,-31.0,0.0,-31.0,2
-221,San Diego,FCS,0-1,-32.0,0.0,-32.0,1
-222,Charleston Southern,FCS,0-2,-34.0,0.0,-34.0,2
-223,Duquesne,FCS,0-1,-34.0,0.0,-34.0,1
-224,Western Kentucky,FBS,0-1,-35.0,0.0,-35.0,1
-225,Stetson,FCS,1-1,-35.5,10.0,-45.5,2
-226,North Texas,FBS,0-1,-36.0,0.0,-36.0,1
-227,Drake,FCS,0-2,-36.5,0.0,-36.5,2
-228,East Carolina,FBS,0-1,-38.0,0.0,-38.0,1
-229,Murray State,FCS,0-2,-38.0,0.0,-38.0,2
-230,Maine,FCS,1-1,-39.0,10.0,-49.0,2
-231,Central Connecticut,FCS,0-1,-39.0,0.0,-39.0,1
-232,Fresno State,FBS,0-1,-39.0,0.0,-39.0,1
-233,Northern Illinois,FBS,0-1,-40.0,0.0,-40.0,1
-234,Portland State,FCS,0-2,-40.0,0.0,-40.0,2
-235,Clemson,FBS,0-1,-41.0,0.0,-41.0,1
-236,Davidson,FCS,0-2,-41.0,0.0,-41.0,2
-237,Morgan State,FCS,1-1,-43.0,10.0,-53.0,2
-238,Chicago State,FCS,0-2,-43.0,0.0,-43.0,2
-239,Presbyterian,FCS,1-1,-44.0,10.0,-54.0,2
-240,East Texas A&M,FCS,0-2,-45.0,0.0,-45.0,2
-241,Florida Atlantic,FBS,0-1,-45.0,0.0,-45.0,1
-242,Marshall,FBS,0-1,-45.0,0.0,-45.0,1
-243,Miami (OH),FBS,0-1,-45.0,0.0,-45.0,1
-244,Fordham,FCS,0-2,-48.0,0.0,-48.0,2
-245,Lafayette,FCS,0-1,-49.0,0.0,-49.0,1
-246,UL Monroe,FBS,0-1,-49.0,0.0,-49.0,1
-247,Holy Cross,FCS,0-2,-50.0,0.0,-50.0,2
-248,Missouri State,FBS,0-1,-50.0,0.0,-50.0,1
-249,UTEP,FBS,0-1,-51.0,0.0,-51.0,1
-250,Texas State,FBS,0-1,-52.0,0.0,-52.0,1
-251,Ball State,FBS,0-1,-53.0,0.0,-53.0,1
-252,Idaho,FCS,0-2,-56.0,0.0,-56.0,2
-253,Kent State,FBS,0-1,-57.0,0.0,-57.0,1
-254,North Carolina A&T,FCS,0-2,-59.0,0.0,-59.0,2
-255,West Georgia,FCS,0-2,-61.0,0.0,-61.0,2
-256,Merrimack,FCS,0-2,-62.0,0.0,-62.0,2
-257,Tennessee State,FCS,0-2,-62.0,0.0,-62.0,2
-258,Eastern Kentucky,FCS,0-2,-66.0,0.0,-66.0,2
-259,Long Island University,FCS,0-2,-66.0,0.0,-66.0,2
-260,Bethune-Cookman,FCS,0-1,-67.0,0.0,-67.0,1
-261,Mercyhurst,FCS,0-2,-70.0,0.0,-70.0,2
-262,Northwestern State,FCS,0-2,-76.5,0.0,-76.5,2
-263,New Hampshire,FCS,0-2,-77.0,0.0,-77.0,2
-264,Mississippi Valley State,FCS,0-2,-86.0,0.0,-86.0,2
-265,VMI,FCS,0-2,-98.0,0.0,-98.0,2
-266,Utah Tech,FCS,0-2,-110.0,0.0,-110.0,2
+Rank,Team,Subdivision,Record,Score,Opponent Rank Points,Win Points,Margin Points,Games
+1,North Dakota State,FBS,2-0,84.0,0.0,20.0,64.0,2
+2,Louisiana Tech,FBS,1-0,84.0,0.0,10.0,74.0,1
+3,Virginia Tech,FBS,1-0,80.0,0.0,10.0,70.0,1
+4,Kansas State,FBS,1-0,78.0,0.0,10.0,68.0,1
+5,UCF,FBS,1-0,77.0,0.0,10.0,67.0,1
+6,USC,FBS,2-0,75.0,0.0,20.0,55.0,2
+7,Arizona State,FBS,1-0,73.0,0.0,10.0,63.0,1
+8,Syracuse,FBS,1-0,73.0,0.0,10.0,63.0,1
+9,Maryland,FBS,1-0,72.0,0.0,10.0,62.0,1
+10,Georgia,FBS,1-0,70.0,0.0,10.0,60.0,1
+11,Illinois State,FCS,2-0,68.5,0.0,15.0,53.5,2
+12,South Carolina State,FCS,2-0,67.5,0.0,15.0,52.5,2
+13,South Carolina,FBS,1-0,67.0,0.0,10.0,57.0,1
+14,Army,FBS,1-0,66.0,0.0,10.0,56.0,1
+15,BYU,FBS,1-0,66.0,0.0,10.0,56.0,1
+16,Ohio State,FBS,1-0,63.0,0.0,10.0,53.0,1
+17,App State,FBS,1-0,62.0,0.0,10.0,52.0,1
+18,Minnesota,FBS,1-0,62.0,0.0,10.0,52.0,1
+19,Texas,FBS,1-0,62.0,0.0,10.0,52.0,1
+20,Utah,FBS,1-0,62.0,0.0,10.0,52.0,1
+21,Oklahoma,FBS,1-0,61.0,0.0,10.0,51.0,1
+22,Texas A&M,FBS,1-0,60.0,0.0,10.0,50.0,1
+23,Georgia State,FBS,1-0,59.0,0.0,10.0,49.0,1
+24,Mississippi State,FBS,1-0,59.0,0.0,10.0,49.0,1
+25,UConn,FBS,1-0,59.0,0.0,10.0,49.0,1
+26,Kennesaw State,FBS,1-0,57.0,0.0,10.0,47.0,1
+27,Tennessee,FBS,1-0,57.0,0.0,10.0,47.0,1
+28,Southern Miss,FBS,1-0,56.0,0.0,10.0,46.0,1
+29,Florida,FBS,1-0,55.0,0.0,10.0,45.0,1
+30,Kansas,FBS,1-0,55.0,0.0,10.0,45.0,1
+31,Penn State,FBS,1-0,55.0,0.0,10.0,45.0,1
+32,Pittsburgh,FBS,1-0,55.0,0.0,10.0,45.0,1
+33,Grambling,FCS,2-0,52.0,0.0,20.0,32.0,2
+34,Elon,FCS,2-0,51.5,0.0,15.0,36.5,2
+35,LSU,FBS,1-0,51.0,0.0,10.0,41.0,1
+36,Sacramento State,FBS,1-1,51.0,0.0,10.0,41.0,2
+37,Montana State,FCS,2-0,50.5,0.0,10.0,40.5,2
+38,Iowa,FBS,1-0,50.0,0.0,10.0,40.0,1
+39,Missouri,FBS,1-0,50.0,0.0,10.0,40.0,1
+40,Miami,FBS,1-0,49.0,0.0,10.0,39.0,1
+41,Alabama,FBS,1-0,48.0,0.0,10.0,38.0,1
+42,Indiana,FBS,1-0,46.0,0.0,10.0,36.0,1
+43,Delaware,FBS,1-0,45.0,0.0,10.0,35.0,1
+44,Nevada,FBS,1-0,45.0,0.0,10.0,35.0,1
+45,Memphis,FBS,2-0,44.0,0.0,20.0,24.0,2
+46,Air Force,FBS,1-0,44.0,0.0,10.0,34.0,1
+47,Mercer,FCS,2-0,43.5,0.0,10.0,33.5,2
+48,San Diego State,FBS,1-0,43.0,0.0,10.0,33.0,1
+49,Jackson State,FCS,2-0,42.0,0.0,15.0,27.0,2
+50,Kentucky,FBS,1-0,42.0,0.0,10.0,32.0,1
+51,Idaho State,FCS,2-0,41.0,0.0,15.0,26.0,2
+52,Georgia Southern,FBS,1-0,41.0,0.0,10.0,31.0,1
+53,Incarnate Word,FCS,1-0,41.0,0.0,10.0,31.0,1
+54,Louisiana,FBS,1-0,41.0,0.0,10.0,31.0,1
+55,New Mexico,FBS,1-0,41.0,0.0,10.0,31.0,1
+56,UTSA,FBS,1-0,39.0,0.0,10.0,29.0,1
+57,Alabama State,FCS,2-0,38.5,0.0,15.0,23.5,2
+58,North Dakota,FCS,2-0,38.5,0.0,10.0,28.5,2
+59,Lehigh,FCS,2-0,38.0,0.0,10.0,28.0,2
+60,Arizona,FBS,1-0,38.0,0.0,10.0,28.0,1
+61,Iowa State,FBS,1-0,38.0,0.0,10.0,28.0,1
+62,Nebraska,FBS,1-0,38.0,0.0,10.0,28.0,1
+63,Notre Dame,FBS,1-0,38.0,0.0,10.0,28.0,1
+64,Rice,FBS,1-0,38.0,0.0,10.0,28.0,1
+65,South Dakota,FCS,2-0,37.0,0.0,10.0,27.0,2
+66,Navy,FBS,1-0,37.0,0.0,10.0,27.0,1
+67,Virginia,FBS,1-0,36.0,0.0,10.0,26.0,1
+68,Purdue,FBS,1-0,35.0,0.0,10.0,25.0,1
+69,South Alabama,FBS,1-0,35.0,0.0,10.0,25.0,1
+70,Morehead State,FCS,1-1,34.5,0.0,10.0,24.5,2
+71,Stephen F. Austin,FCS,2-0,34.0,0.0,10.0,24.0,2
+72,Middle Tennessee,FBS,1-0,34.0,0.0,10.0,24.0,1
+73,Temple,FBS,1-0,34.0,0.0,10.0,24.0,1
+74,Texas Tech,FBS,1-0,33.0,0.0,10.0,23.0,1
+75,Valparaiso,FCS,1-0,33.0,0.0,10.0,23.0,1
+76,Wagner,FCS,1-0,32.5,0.0,10.0,22.5,1
+77,Colorado State,FBS,1-0,32.0,0.0,10.0,22.0,1
+78,Wake Forest,FBS,1-0,32.0,0.0,10.0,22.0,1
+79,Tarleton State,FCS,2-0,31.5,0.0,15.0,16.5,2
+80,Montana,FCS,2-0,31.0,0.0,10.0,21.0,2
+81,Old Dominion,FBS,1-0,31.0,0.0,10.0,21.0,1
+82,UCLA,FBS,1-0,31.0,0.0,10.0,21.0,1
+83,McNeese,FCS,1-1,30.5,0.0,10.0,20.5,2
+84,New Mexico State,FBS,1-1,30.0,0.0,10.0,20.0,2
+85,Tennessee Tech,FCS,2-0,29.5,0.0,10.0,19.5,2
+86,UC Davis,FCS,2-0,29.5,0.0,10.0,19.5,2
+87,Cincinnati,FBS,1-0,29.0,0.0,10.0,19.0,1
+88,Illinois,FBS,1-0,29.0,0.0,10.0,19.0,1
+89,Vanderbilt,FBS,1-0,29.0,0.0,10.0,19.0,1
+90,South Dakota State,FCS,1-1,28.5,0.0,5.0,23.5,2
+91,Colgate,FCS,2-0,27.5,0.0,10.0,17.5,2
+92,Norfolk State,FCS,1-1,27.5,0.0,10.0,17.5,2
+93,Arkansas,FBS,1-0,27.0,0.0,10.0,17.0,1
+94,Wofford,FCS,2-0,26.0,0.0,10.0,16.0,2
+95,Jacksonville State,FBS,1-1,26.0,0.0,10.0,16.0,2
+96,Massachusetts,FBS,1-0,26.0,0.0,10.0,16.0,1
+97,Northwestern,FBS,1-0,26.0,0.0,10.0,16.0,1
+98,West Florida,FCS,2-0,25.5,0.0,10.0,15.5,2
+99,Richmond,FCS,2-0,24.0,0.0,10.0,14.0,2
+100,Duke,FBS,1-0,24.0,0.0,10.0,14.0,1
+101,Florida State,FBS,1-1,24.0,0.0,10.0,14.0,2
+102,Tulsa,FBS,1-0,24.0,0.0,10.0,14.0,1
+103,Washington,FBS,1-0,24.0,0.0,10.0,14.0,1
+104,Houston,FBS,1-0,23.0,0.0,10.0,13.0,1
+105,Dayton,FCS,1-0,21.5,0.0,10.0,11.5,1
+106,Cal Poly,FCS,2-0,20.5,0.0,15.0,5.5,2
+107,Campbell,FCS,2-0,20.5,0.0,10.0,10.5,2
+108,Michigan State,FBS,1-0,20.0,0.0,10.0,10.0,1
+109,South Florida,FBS,1-0,20.0,0.0,10.0,10.0,1
+110,Western Illinois,FCS,1-1,20.0,0.0,10.0,10.0,2
+111,UNLV,FBS,1-1,19.0,0.0,10.0,9.0,2
+112,UT Rio Grande Valley,FCS,1-1,17.5,0.0,10.0,7.5,2
+113,James Madison,FBS,1-0,17.0,0.0,10.0,7.0,1
+114,Oregon,FBS,1-0,17.0,0.0,10.0,7.0,1
+115,West Virginia,FBS,1-0,17.0,0.0,10.0,7.0,1
+116,UT Martin,FCS,1-1,16.5,0.0,5.0,11.5,2
+117,William & Mary,FCS,2-0,15.0,0.0,10.0,5.0,2
+118,Eastern Michigan,FBS,1-1,15.0,0.0,10.0,5.0,2
+119,North Carolina,FBS,1-0,15.0,0.0,10.0,5.0,1
+120,North Carolina Central,FCS,1-1,14.5,0.0,10.0,4.5,2
+121,Prairie View A&M,FCS,1-1,14.5,0.0,5.0,9.5,2
+122,Alabama A&M,FCS,1-1,14.0,0.0,10.0,4.0,2
+123,Buffalo,FBS,1-0,14.0,0.0,10.0,4.0,1
+124,Marist,FCS,1-1,14.0,0.0,10.0,4.0,2
+125,Ole Miss,FBS,1-0,13.0,0.0,10.0,3.0,1
+126,SMU,FBS,1-0,13.0,0.0,10.0,3.0,1
+127,Southern,FCS,1-1,13.0,0.0,10.0,3.0,2
+128,Troy,FBS,1-0,13.0,0.0,10.0,3.0,1
+129,Western Carolina,FCS,1-1,12.5,0.0,5.0,7.5,2
+130,Alcorn State,FCS,1-1,11.5,0.0,10.0,1.5,2
+131,Auburn,FBS,1-0,11.0,0.0,10.0,1.0,1
+132,Colorado,FBS,1-0,11.0,0.0,10.0,1.0,1
+133,Michigan,FBS,1-0,11.0,0.0,10.0,1.0,1
+134,UAlbany,FCS,1-1,10.0,0.0,5.0,5.0,2
+135,Florida A&M,FCS,1-1,7.5,0.0,10.0,-2.5,2
+136,Eastern Washington,FCS,1-1,6.5,0.0,5.0,1.5,2
+137,Rhode Island,FCS,1-1,6.5,0.0,5.0,1.5,2
+138,Southern Illinois,FCS,1-1,5.5,0.0,5.0,0.5,2
+139,Youngstown State,FCS,1-1,5.5,0.0,5.0,0.5,2
+140,Delaware State,FCS,1-1,5.0,0.0,5.0,0.0,2
+141,Howard,FCS,1-1,5.0,0.0,5.0,0.0,2
+142,Stonehill,FCS,1-1,5.0,0.0,5.0,0.0,2
+143,Austin Peay,FCS,1-1,4.5,0.0,5.0,-0.5,2
+144,Chattanooga,FCS,1-1,4.5,0.0,5.0,-0.5,2
+145,Lindenwood,FCS,1-1,4.5,0.0,5.0,-0.5,2
+146,Robert Morris,FCS,1-0,4.5,0.0,5.0,-0.5,1
+147,Southern Utah,FCS,1-1,4.0,0.0,5.0,-1.0,2
+148,Villanova,FCS,1-1,4.0,0.0,5.0,-1.0,2
+149,Stony Brook,FCS,1-1,3.5,0.0,5.0,-1.5,2
+150,Weber State,FCS,1-1,3.0,0.0,5.0,-2.0,2
+151,North Alabama,FCS,1-1,2.5,0.0,5.0,-2.5,2
+152,Hampton,FCS,1-1,1.5,0.0,10.0,-8.5,2
+153,Arkansas-Pine Bluff,FCS,1-1,0.0,0.0,10.0,-10.0,2
+154,San José State,FBS,1-1,0.0,0.0,10.0,-10.0,2
+155,Brown,FCS,0-0,0.0,0.0,0.0,0.0,0
+156,Columbia,FCS,0-0,0.0,0.0,0.0,0.0,0
+157,Cornell,FCS,0-0,0.0,0.0,0.0,0.0,0
+158,Dartmouth,FCS,0-0,0.0,0.0,0.0,0.0,0
+159,Harvard,FCS,0-0,0.0,0.0,0.0,0.0,0
+160,Penn,FCS,0-0,0.0,0.0,0.0,0.0,0
+161,Princeton,FCS,0-0,0.0,0.0,0.0,0.0,0
+162,Yale,FCS,0-0,0.0,0.0,0.0,0.0,0
+163,Baylor,FBS,0-1,-1.0,0.0,0.0,-1.0,1
+164,Georgia Tech,FBS,0-1,-1.0,0.0,0.0,-1.0,1
+165,Western Michigan,FBS,0-1,-1.0,0.0,0.0,-1.0,1
+166,Butler,FCS,1-1,-1.5,0.0,10.0,-11.5,2
+167,The Citadel,FCS,1-1,-2.0,0.0,10.0,-12.0,2
+168,Charlotte,FBS,0-1,-2.0,0.0,0.0,-2.0,1
+169,Central Arkansas,FCS,1-1,-3.0,0.0,5.0,-8.0,2
+170,Louisville,FBS,0-1,-3.0,0.0,0.0,-3.0,1
+171,Sam Houston,FBS,0-1,-3.0,0.0,0.0,-3.0,1
+172,Monmouth,FCS,1-1,-3.5,0.0,5.0,-8.5,2
+173,New Haven,FCS,1-1,-3.5,0.0,5.0,-8.5,2
+174,Sacred Heart,FCS,0-1,-3.5,0.0,0.0,-3.5,1
+175,Stetson,FCS,1-1,-4.0,0.0,10.0,-14.0,2
+176,Furman,FCS,1-1,-5.0,0.0,10.0,-15.0,2
+177,St. Thomas (MN),FCS,1-1,-5.0,0.0,10.0,-15.0,2
+178,Northern Iowa,FCS,0-1,-5.0,0.0,0.0,-5.0,1
+179,TCU,FBS,0-1,-5.0,0.0,0.0,-5.0,1
+180,Northern Arizona,FCS,1-1,-5.5,0.0,5.0,-10.5,2
+181,Houston Christian,FCS,1-1,-6.0,0.0,5.0,-11.0,2
+182,East Tennessee State,FCS,0-1,-6.0,0.0,0.0,-6.0,1
+183,Lamar,FCS,1-1,-7.0,0.0,5.0,-12.0,2
+184,Boise State,FBS,0-1,-7.0,0.0,0.0,-7.0,1
+185,Bowling Green,FBS,0-1,-7.0,0.0,0.0,-7.0,1
+186,Coastal Carolina,FBS,0-1,-7.0,0.0,0.0,-7.0,1
+187,Liberty,FBS,0-1,-7.0,0.0,0.0,-7.0,1
+188,Southeast Missouri State,FCS,1-1,-8.0,0.0,5.0,-13.0,2
+189,Texas Southern,FCS,1-1,-8.0,0.0,5.0,-13.0,2
+190,Northern Colorado,FCS,0-2,-8.0,0.0,0.0,-8.0,2
+191,Samford,FCS,0-2,-8.0,0.0,0.0,-8.0,2
+192,Florida International,FBS,0-1,-10.0,0.0,0.0,-10.0,1
+193,Toledo,FBS,0-1,-10.0,0.0,0.0,-10.0,1
+194,Bucknell,FCS,0-2,-11.0,0.0,0.0,-11.0,2
+195,Gardner-Webb,FCS,0-2,-11.0,0.0,0.0,-11.0,2
+196,Nicholls,FCS,1-1,-12.0,0.0,5.0,-17.0,2
+197,Utah State,FBS,0-1,-12.0,0.0,0.0,-12.0,1
+198,Oregon State,FBS,0-1,-13.0,0.0,0.0,-13.0,1
+199,Indiana State,FCS,0-2,-13.5,0.0,0.0,-13.5,2
+200,Bryant,FCS,1-1,-14.0,0.0,5.0,-19.0,2
+201,Eastern Illinois,FCS,1-1,-14.0,0.0,5.0,-19.0,2
+202,Oklahoma State,FBS,0-1,-14.0,0.0,0.0,-14.0,1
+203,Tulane,FBS,0-1,-14.0,0.0,0.0,-14.0,1
+204,Washington State,FBS,0-1,-14.0,0.0,0.0,-14.0,1
+205,Presbyterian,FCS,1-1,-14.5,0.0,10.0,-24.5,2
+206,Abilene Christian,FCS,0-2,-15.0,0.0,0.0,-15.0,2
+207,Towson,FCS,0-2,-15.0,0.0,0.0,-15.0,2
+208,Georgetown,FCS,0-1,-15.5,0.0,0.0,-15.5,1
+209,SE Louisiana,FCS,0-2,-15.5,0.0,0.0,-15.5,2
+210,Rutgers,FBS,0-1,-16.0,0.0,0.0,-16.0,1
+211,San Diego,FCS,0-1,-16.0,0.0,0.0,-16.0,1
+212,Charleston Southern,FCS,0-2,-17.0,0.0,0.0,-17.0,2
+213,Duquesne,FCS,0-1,-17.0,0.0,0.0,-17.0,1
+214,Arkansas State,FBS,0-1,-18.0,0.0,0.0,-18.0,1
+215,Stanford,FBS,1-1,-19.0,0.0,10.0,-29.0,2
+216,Boston College,FBS,0-1,-19.0,0.0,0.0,-19.0,1
+217,Drake,FCS,0-2,-19.0,0.0,0.0,-19.0,2
+218,Murray State,FCS,0-2,-19.0,0.0,0.0,-19.0,2
+219,UAB,FBS,0-1,-19.0,0.0,0.0,-19.0,1
+220,Maine,FCS,1-1,-19.5,0.0,5.0,-24.5,2
+221,Central Connecticut,FCS,0-1,-19.5,0.0,0.0,-19.5,1
+222,Portland State,FCS,0-2,-20.0,0.0,0.0,-20.0,2
+223,California,FBS,0-1,-21.0,0.0,0.0,-21.0,1
+224,Morgan State,FCS,1-1,-21.5,0.0,5.0,-26.5,2
+225,Akron,FBS,0-1,-22.0,0.0,0.0,-22.0,1
+226,Davidson,FCS,0-2,-22.0,0.0,0.0,-22.0,2
+227,Wyoming,FBS,0-1,-22.0,0.0,0.0,-22.0,1
+228,East Texas A&M,FCS,0-2,-22.5,0.0,0.0,-22.5,2
+229,Fordham,FCS,0-2,-24.0,0.0,0.0,-24.0,2
+230,Lafayette,FCS,0-1,-24.5,0.0,0.0,-24.5,1
+231,Hawai'i,FBS,0-2,-25.0,0.0,0.0,-25.0,2
+232,Holy Cross,FCS,0-2,-25.0,0.0,0.0,-25.0,2
+233,Chicago State,FCS,0-2,-25.5,0.0,0.0,-25.5,2
+234,NC State,FBS,0-1,-26.0,0.0,0.0,-26.0,1
+235,Idaho,FCS,0-2,-28.0,0.0,0.0,-28.0,2
+236,Ohio,FBS,0-1,-28.0,0.0,0.0,-28.0,1
+237,Wisconsin,FBS,0-1,-28.0,0.0,0.0,-28.0,1
+238,North Carolina A&T,FCS,0-2,-29.5,0.0,0.0,-29.5,2
+239,West Georgia,FCS,0-2,-30.5,0.0,0.0,-30.5,2
+240,Central Michigan,FBS,0-1,-31.0,0.0,0.0,-31.0,1
+241,Merrimack,FCS,0-2,-31.0,0.0,0.0,-31.0,2
+242,Tennessee State,FCS,0-2,-31.0,0.0,0.0,-31.0,2
+243,Eastern Kentucky,FCS,0-2,-33.0,0.0,0.0,-33.0,2
+244,Long Island University,FCS,0-2,-33.0,0.0,0.0,-33.0,2
+245,Bethune-Cookman,FCS,0-1,-33.5,0.0,0.0,-33.5,1
+246,Mercyhurst,FCS,0-2,-35.0,0.0,0.0,-35.0,2
+247,Western Kentucky,FBS,0-1,-35.0,0.0,0.0,-35.0,1
+248,North Texas,FBS,0-1,-36.0,0.0,0.0,-36.0,1
+249,East Carolina,FBS,0-1,-38.0,0.0,0.0,-38.0,1
+250,New Hampshire,FCS,0-2,-38.5,0.0,0.0,-38.5,2
+251,Fresno State,FBS,0-1,-39.0,0.0,0.0,-39.0,1
+252,Northwestern State,FCS,0-2,-39.5,0.0,0.0,-39.5,2
+253,Northern Illinois,FBS,0-1,-40.0,0.0,0.0,-40.0,1
+254,Clemson,FBS,0-1,-41.0,0.0,0.0,-41.0,1
+255,Mississippi Valley State,FCS,0-2,-43.0,0.0,0.0,-43.0,2
+256,Florida Atlantic,FBS,0-1,-45.0,0.0,0.0,-45.0,1
+257,Marshall,FBS,0-1,-45.0,0.0,0.0,-45.0,1
+258,Miami (OH),FBS,0-1,-45.0,0.0,0.0,-45.0,1
+259,UL Monroe,FBS,0-1,-49.0,0.0,0.0,-49.0,1
+260,VMI,FCS,0-2,-49.0,0.0,0.0,-49.0,2
+261,Missouri State,FBS,0-1,-50.0,0.0,0.0,-50.0,1
+262,UTEP,FBS,0-1,-51.0,0.0,0.0,-51.0,1
+263,Texas State,FBS,0-1,-52.0,0.0,0.0,-52.0,1
+264,Ball State,FBS,0-1,-53.0,0.0,0.0,-53.0,1
+265,Utah Tech,FCS,0-2,-55.0,0.0,0.0,-55.0,2
+266,Kent State,FBS,0-1,-57.0,0.0,0.0,-57.0,1
