@@ -1,3 +1,3 @@
-"""NCAA BCS Ranking Calculator for FBS teams."""
+"""NCAA Division I football ranking calculator (FBS + FCS)."""
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
