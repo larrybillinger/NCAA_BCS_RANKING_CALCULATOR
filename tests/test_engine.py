@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from ncaa_rankings.evaluation import PostseasonMatchup, accuracy, frozen_postseason_backtest
-from ncaa_rankings.models import LegacyFBSModel, TeamGame
+from ncaa_rankings.models import DivisionIWeightedModel, LegacyFBSModel, TeamGame
 from ncaa_rankings.ranking import RecursiveRankingEngine, WeeklySeasonRankingEngine
 
 
@@ -23,54 +23,95 @@ def test_legacy_recursive_engine_ranks_simple_round_robin():
     assert result.ranks["C"] == 3
 
 
-def test_week_one_creates_first_ranking_from_current_season_only():
+def test_week_one_creates_first_ranking_with_fcs_modifier():
     games = [
-        TeamGame("A", "B", 21, 14, week=1),
-        TeamGame("B", "A", 14, 21, week=1),
         TeamGame(
-            "C",
-            "FCS Opponent",
-            40,
-            0,
-            opponent_in_rank_pool=False,
+            "A", "B", 21, 14,
             week=1,
+            team_subdivision="FBS",
+            opponent_subdivision="FBS",
+        ),
+        TeamGame(
+            "B", "A", 14, 21,
+            week=1,
+            team_subdivision="FBS",
+            opponent_subdivision="FBS",
+        ),
+        TeamGame(
+            "C", "D", 40, 0,
+            week=1,
+            team_subdivision="FCS",
+            opponent_subdivision="FCS",
+        ),
+        TeamGame(
+            "D", "C", 0, 40,
+            week=1,
+            team_subdivision="FCS",
+            opponent_subdivision="FCS",
         ),
     ]
-    engine = WeeklySeasonRankingEngine(LegacyFBSModel())
-    result = engine.rank(games, teams=["A", "B", "C"])
+    engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
+    result = engine.rank(games, teams=["A", "B", "C", "D"])
 
-    # Week 1 has no opponent-rank points. C receives +10 plus half of its
-    # 40-point margin because the opponent is outside the FBS ranking pool.
-    assert result.scores["C"] == 30
+    # Week 1 has no opponent-rank points. A's FBS win scores normally:
+    # +10 win +7 margin = 17. C's FCS-vs-FCS win is halved:
+    # (+10 win +40 margin) * 0.5 = 25.
+    assert result.scores["C"] == 25
     assert result.scores["A"] == 17
     assert result.scores["B"] == -7
-    assert result.ranks == {"C": 1, "A": 2, "B": 3}
+    assert result.scores["D"] == -20
+    assert result.ranks == {"C": 1, "A": 2, "B": 3, "D": 4}
 
 
-def test_week_two_uses_week_one_current_season_ranks():
+def test_week_two_uses_week_one_ranks_and_full_fcs_upset_points():
     games = [
-        TeamGame("A", "B", 21, 14, week=1),
-        TeamGame("B", "A", 14, 21, week=1),
         TeamGame(
-            "C",
-            "FCS Opponent",
-            40,
-            0,
-            opponent_in_rank_pool=False,
+            "A", "B", 21, 14,
             week=1,
+            team_subdivision="FBS",
+            opponent_subdivision="FBS",
         ),
-        TeamGame("A", "C", 20, 17, week=2),
-        TeamGame("C", "A", 17, 20, week=2),
+        TeamGame(
+            "B", "A", 14, 21,
+            week=1,
+            team_subdivision="FBS",
+            opponent_subdivision="FBS",
+        ),
+        TeamGame(
+            "C", "D", 40, 0,
+            week=1,
+            team_subdivision="FCS",
+            opponent_subdivision="FCS",
+        ),
+        TeamGame(
+            "D", "C", 0, 40,
+            week=1,
+            team_subdivision="FCS",
+            opponent_subdivision="FCS",
+        ),
+        TeamGame(
+            "D", "A", 20, 17,
+            week=2,
+            team_subdivision="FCS",
+            opponent_subdivision="FBS",
+        ),
+        TeamGame(
+            "A", "D", 17, 20,
+            week=2,
+            team_subdivision="FBS",
+            opponent_subdivision="FCS",
+        ),
     ]
-    engine = WeeklySeasonRankingEngine(LegacyFBSModel())
-    snapshots = engine.rank_by_week(games, teams=["A", "B", "C"])
+    engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
+    snapshots = engine.rank_by_week(games, teams=["A", "B", "C", "D"])
 
-    assert snapshots[1].ranks == {"C": 1, "A": 2, "B": 3}
+    assert snapshots[1].ranks == {"C": 1, "A": 2, "B": 3, "D": 4}
 
-    # A beats the Week 1 #1 team C: +3 opponent points, +10 win, +3 margin.
-    # A had 17 Week 1 points, so it reaches 33 and moves to #1.
-    assert snapshots[2].scores["A"] == 33
-    assert snapshots[2].ranks["A"] == 1
+    # D is FCS and beats the Week 1 #2 FBS team A. With N=4:
+    # opponent points = 5 - 2 = 3, win = 10, margin = 3, total = 16.
+    # FCS-over-FBS wins are not halved, so D rises from -20 to -4.
+    assert snapshots[2].scores["D"] == -4
+    assert snapshots[2].ranks["D"] == 3
 
 
 def test_weekly_engine_rejects_previous_season_seed():
@@ -78,13 +119,13 @@ def test_weekly_engine_rejects_previous_season_seed():
         TeamGame("A", "B", 21, 14, week=1),
         TeamGame("B", "A", 14, 21, week=1),
     ]
-    engine = WeeklySeasonRankingEngine(LegacyFBSModel())
+    engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
     with pytest.raises(ValueError, match="Previous-season or preseason rankings"):
         engine.rank(games, initial_ranks={"A": 1, "B": 2})
 
 
 def test_weekly_engine_has_no_ranking_before_current_season_games():
-    engine = WeeklySeasonRankingEngine(LegacyFBSModel())
+    engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
     result = engine.rank([], teams=["A", "B", "C"])
     assert result.standings == ()
 
