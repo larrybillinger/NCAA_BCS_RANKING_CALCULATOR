@@ -1,27 +1,27 @@
-# Research search space. This is NOT a declaration of the winning formula.
+# Transparent research search space. This is NOT a declaration of a winning formula.
 model: modern_legacy_candidate_v1
 version: 2
-scope:
-  ranking_pool: FBS
-  publish_fcs_rankings: false
-  fcs_role: opponent_context_only
 
-season_bootstrap:
+scope:
+  ranking_pool: NCAA_Division_I
+  subdivisions: [FBS, FCS]
+  fbs_fcs_same_scoring: true
+
+fixed_production_principles:
+  conference_strength: forbidden
   previous_season_rankings: forbidden
   previous_season_statistics: forbidden
-  preseason_poll_seed: forbidden
-  preseason_power_rating_seed: forbidden
-  conference_strength: forbidden
-  first_published_ranking: week_1_complete
+  preseason_seed: forbidden
   week_1_opponent_rank_points: 0
-  week_1_fbs_margin_scale: 1.0
-  week_1_out_of_pool_margin_scale: 0.5
-  week_2_and_later_opponent_rank_source: previous_completed_week_current_season
+  week_2_and_later_rank_source: previous_completed_week_current_season
+  same_week_recursive_recalculation: false
+  retroactive_revalue_old_games: false
 
 objective:
   primary: postseason_accuracy
+  primary_evaluation: FBS_postseason
+  secondary_evaluation: FCS_playoffs
   freeze: pre_postseason
-  include_conference_championships: true
   never_update_during_postseason: true
   holdout_season: 2025
 
@@ -29,8 +29,7 @@ primary_seasons: [2014, 2015, 2016, 2017, 2018, 2019, 2022, 2023, 2024, 2025]
 sensitivity_seasons: [2021]
 excluded_seasons: [2020, 2021]
 
-# These parameters may be tested, but the weekly causal structure above is
-# fixed project policy rather than a search dimension.
+# These are research knobs that preserve the season-only weekly philosophy.
 search:
   win_rank_gamma: [0.50, 0.75, 1.00, 1.25, 1.50]
   loss_rank_gamma: [0.50, 0.75, 1.00, 1.25, 1.50]
@@ -45,13 +44,12 @@ search:
   out_of_pool_margin_scale: [0.0, 0.25, 0.5, 0.75, 1.0]
 
 defaults:
-  opponent_rank_mode: prior_week_current_season
   win_rank_gamma: 1.0
   loss_rank_gamma: 1.0
   rank_weight: 1.0
   loss_weight: 1.0
   win_bonus: 10
-  margin_transform: tanh
+  margin_transform: linear
   margin_cap: 28
   margin_weight: 1.0
   home_field_points: 0
@@ -64,7 +62,7 @@ defaults:
   box_score_features: false
 
 acceptance_gate:
-  must_beat_legacy_postseason_accuracy: true
+  must_beat_current_baseline_postseason_accuracy: true
   practical_accuracy_gain_percentage_points: 2.0
   brier_must_not_materially_worsen: true
   gain_must_not_be_one_season_only: true
