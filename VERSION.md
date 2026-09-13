@@ -1,13 +1,25 @@
 # Version history
 
+## 0.3.1 — FCS scoring modifier
+
+- Keep FBS and FCS together in one NCAA Division I ranking pool.
+- FBS teams always receive 100% of their normal Division I game score.
+- FCS-vs-FCS game scores are multiplied by 0.5 for the FCS team.
+- An FCS loss to an FBS team is multiplied by 0.5.
+- An FCS win over an FBS team receives 100% of the normal score.
+- The multiplier applies to opponent-rank points, win points, and margin points.
+- Keep conferences at zero ranking strength.
+- Keep all prior-season and preseason carryover forbidden.
+- Preserve the historical legacy models unchanged for reproducibility.
+
 ## 0.3.0 — Unified Division I pool
 
 - Rank FBS and FCS together in one NCAA Division I field.
-- Score FBS and FCS identically.
-- Remove the historical FCS half-margin treatment from Division I games.
-- Keep no conference-strength value.
-- Keep no previous-season or preseason carryover.
-- Week 1 starts with zero opponent-rank points and full margin for all Division I games.
+- Initially scored FBS and FCS identically.
+- Removed the historical FCS half-margin treatment from Division I games.
+- Kept no conference-strength value.
+- Kept no previous-season or preseason carryover.
+- Week 1 starts with zero opponent-rank points.
 - Week 2 and later use the immediately preceding completed week's current-season Division I ranking.
 - Keep lower-division opponents outside the active pool.
 
