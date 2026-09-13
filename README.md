@@ -174,6 +174,7 @@ legacy_fbs_2012_original        # historical reproduction
 legacy_fbs_2012_later           # historical formula source / current scoring base
 modern_legacy_candidate_v1      # research candidate family
 current_season_v1               # production weekly Division I rules
+division_i_current_v1           # clearly named production alias
 ```
 
 ## Data model
@@ -247,6 +248,7 @@ current_season_v1               # production weekly Division I rules
 - [`docs/MODERN_V1_RESEARCH.md`](docs/MODERN_V1_RESEARCH.md) — model-research contract.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — implementation and validation plan.
 - [`configs/current_season_v1.yaml`](configs/current_season_v1.yaml) — authoritative production configuration.
+- [`configs/division_i_current_v1.yaml`](configs/division_i_current_v1.yaml) — scope-first production alias.
 
 ## Guiding rule
 
