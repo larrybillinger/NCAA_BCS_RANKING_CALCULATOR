@@ -1,194 +1,141 @@
-# Current-Season FBS Ranking Rules
+# Current-Season Ranking Rules
 
-This document is the authoritative policy for the live NCAA BCS Ranking Calculator.
+## Production scope
 
-Historical workbook behavior may differ. When legacy behavior conflicts with this document, the live/current-season calculator follows this document.
+The live calculator ranks **all NCAA Division I football teams together**.
 
-## 1. Ranking pool
+The active ranking pool contains:
 
-Only FBS teams are ranked.
+- FBS teams
+- FCS teams
 
-FCS and other out-of-pool teams may appear as opponents on an FBS schedule, but they do not receive a published ranking in this project.
+FBS and FCS are subdivisions for identification and display only. They do not receive different ranking formulas.
 
-## 2. Every season starts from zero
+## New season reset
 
-At the start of a new season:
+Every season begins with a blank slate.
 
-```text
-team ranking points = 0
-team wins = 0
-team losses = 0
-team opponent strength = 0
-```
+The production ranking does not import:
 
-No information from a previous season is loaded into the live ranking calculation.
+- previous-season rankings;
+- previous-season statistics;
+- previous-season records;
+- preseason polls;
+- preseason power ratings;
+- conference-strength values.
 
-Forbidden carryover includes:
+No ranking is published before current-season games are played.
 
-- final ranking;
-- wins/losses;
-- scoring margin;
-- strength of schedule;
-- conference performance;
-- AP/Coaches/CFP ranking;
-- external power rating;
-- any preseason seed derived from prior performance.
+## Conference rule
 
-Historical seasons may be analyzed to improve formula coefficients, but they cannot give a team points or rank position in a new season.
+Conferences have no mathematical strength value.
 
-## 3. Conferences have no strength
+Conference membership may be displayed, filtered, or used for reporting, but it contributes zero ranking points.
 
-Conference membership is metadata only.
+## Week 1
+
+Week 1 establishes the first ranking.
+
+There is no previous current-season rank to use yet, so every in-pool Division I opponent receives:
 
 ```text
-conference bonus = 0
-conference penalty = 0
-conference prior = 0
+Opponent Rank Points = 0
 ```
 
-A team's conference can be displayed, filtered, or used for schedule context. It cannot directly change the team's ranking score.
-
-## 4. No preseason ranking
-
-Before current-season games have been completed, the calculator publishes no ranking.
-
-There is no artificial #1 through #N ordering before Week 1 provides evidence.
-
-## 5. Week 1 establishes the first ranking
-
-There is no prior current-season opponent ranking available in Week 1.
-
-Therefore:
+Every Division I game is then scored as:
 
 ```text
-Week 1 Opponent Rank Score = 0
+Game Score = Win Bonus + Full Margin
 ```
 
-The first ranking is determined entirely by Week 1 current-season game totals.
-
-With the recovered default scoring rules:
-
-### FBS-vs-FBS
+where:
 
 ```text
-win bonus = 10 on a win
-margin = points_for - points_against
-opponent-rank points = 0
+Win Bonus = 10 for a win, 0 for a loss
+Full Margin = points_for - points_against
 ```
 
-### FBS-vs-FCS/out-of-pool
+This is identical for:
+
+- FBS vs FBS
+- FBS vs FCS
+- FCS vs FBS
+- FCS vs FCS
+
+Example:
 
 ```text
-win bonus = 10 on a win
-margin = (points_for - points_against) * 0.5
-opponent-rank points = 0
+Kansas State 71, Nicholls 3
+Opponent Rank Points = 0
+Win Bonus = 10
+Margin = 68
+Game Score = 78
 ```
 
-A loss receives no win bonus. Margin remains negative when the FBS team loses.
+Nicholls being FCS does not reduce the score because Nicholls is part of the same Division I ranking pool.
 
-Once all eligible Week 1 results are entered, cumulative Week 1 totals are sorted to create the first ranking.
+## Week 2 and later
 
-## 6. Week 2 begins full opponent-rank scoring
+Beginning in Week 2, each game uses the opponent's rank from the immediately preceding completed week of the same season.
 
-Week 2 uses the ranking produced after Week 1.
-
-For an FBS pool of `N` teams and a Week 1 opponent rank `R`:
+For a Division I pool of `N` teams and an opponent ranked `R`:
 
 ```text
 Win opponent points  = (N + 1) - R
 Loss opponent points = -R
 ```
 
-The normal win bonus and scoring-margin rules are then added.
-
-Example with 138 FBS teams:
+The complete game score is:
 
 ```text
-beat Week 1 #1   -> +138 opponent points
-beat Week 1 #25  -> +114 opponent points
-beat Week 1 #138 ->   +1 opponent point
-
-lose to Week 1 #1   ->   -1 opponent point
-lose to Week 1 #25  ->  -25 opponent points
-lose to Week 1 #138 -> -138 opponent points
+Game Score = Opponent Rank Points + Win Bonus + Margin
 ```
 
-## 7. Each week uses the previous completed week
+The same equations apply to FBS and FCS teams.
 
-The live ranking is causal and sequential:
+## Cumulative season score
 
-```text
-Week 1 results -> Week 1 ranking
-Week 2 uses Week 1 ranks -> Week 2 ranking
-Week 3 uses Week 2 ranks -> Week 3 ranking
-...
-```
+A team's ranking score is the sum of the game scores it has earned so far in the current season.
 
-A later week does not rewrite the opponent rank used to score an earlier game.
+Earlier games are not retroactively rescored when an opponent moves up or down later.
 
-This means the audit record for every game can permanently state exactly which opponent rank was known and used at the time.
+Week 2 uses Week 1 ranks. Week 3 uses Week 2 ranks. This continues through the season.
 
-## 8. Scores accumulate only within the current season
+## Teams that have not played yet
 
-Each game adds to the same current-season cumulative total.
+Before a team completes its first current-season game, it has zero current-season points.
 
-```text
-Season Score after Week K
-    = sum of Game Scores from Weeks 1 through K
-```
+It may appear at the bottom of the full pool for completeness, but that placement is not a preseason opinion or inherited ranking.
 
-At no point is a prior-season score added.
+## Outside-Division-I games
 
-## 9. Ties in ranking points
+Division II, Division III, NAIA, and other opponents outside the active Division I pool do not receive an opponent rank.
 
-When teams have identical cumulative ranking points, the engine uses current-season information only, in this order:
+The active profile may apply its configured out-of-pool margin scale to those games. This is the only remaining classification-based scoring distinction.
+
+## Tie handling
+
+If teams have identical season scores, deterministic tiebreaking is used so the same inputs always produce the same order.
+
+The engine can consider, in order:
 
 1. head-to-head wins among the tied teams;
-2. current-season wins;
-3. accumulated current-season opponent-strength value;
-4. school name as a final deterministic ordering rule.
+2. number of wins;
+3. prior-week opponent-strength information accumulated during the current season;
+4. deterministic team name/ID fallback.
 
-The final alphabetical fallback has no strength meaning; it only ensures reproducible output when all football-based tiebreakers are identical.
+No conference reputation or prior-season result is used as a tiebreaker.
 
-## 10. Historical recursive engine
+## Production engine
 
-The repository retains `RecursiveRankingEngine` because it is useful for reconstructing and comparing the old workbook.
-
-It is not the production live-season engine.
-
-The production engine is:
+The live current-season engine is:
 
 ```text
 WeeklySeasonRankingEngine
 ```
 
-## 11. Postseason freeze
+The older recursive engine remains only for reproducing and studying historical spreadsheets.
 
-At the end of the pre-postseason schedule, the final current-season ranking is frozen.
+## Guiding rule
 
-That one frozen ranking predicts all bowl and CFP games for research purposes. Postseason outcomes are not fed back into the ranking used to predict later postseason games.
-
-## 12. Formula research boundary
-
-Historical backtesting may tune transparent current-season scoring terms such as:
-
-- opponent-rank weighting;
-- bad-loss weighting;
-- win bonus;
-- margin treatment;
-- home/away adjustment;
-- FCS/out-of-pool treatment;
-- current-season recency.
-
-The following remain forbidden regardless of backtest results:
-
-```text
-conference-strength bonuses
-previous-season ranking carryover
-previous-season statistical carryover
-preseason poll/power-rating seeds
-```
-
-## Guiding principle
-
-> **A team starts every season with nothing and earns its ranking only through games played that season.**
+**All NCAA Division I football teams are ranked together, and FBS and FCS are scored exactly the same.**
