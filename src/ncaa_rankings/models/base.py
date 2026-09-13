@@ -28,6 +28,10 @@ class TeamGame:
     opponent in the active season ranking pool, whether that opponent is FBS
     or FCS. It should be False only for opponents outside the active Division I
     pool, such as Division II, Division III, NAIA, or other classifications.
+
+    ``team_subdivision`` and ``opponent_subdivision`` are season-specific labels
+    used by the live Division I scoring model. The historical legacy models are
+    preserved and do not depend on these fields.
     """
 
     team: str
@@ -39,6 +43,8 @@ class TeamGame:
     opponent_in_rank_pool: bool = True
     season_type: str = "regular"
     week: int | None = None
+    team_subdivision: str = "FBS"
+    opponent_subdivision: str = "FBS"
 
     @property
     def won(self) -> bool:
