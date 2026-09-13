@@ -10,13 +10,12 @@ from .base import GameScore, TeamGame
 class ModernLegacyModel:
     """Research candidate derived from the recovered FBS model.
 
+    The historical source was FBS, but this candidate can be applied to the
+    unified NCAA Division I ranking pool. FBS and FCS are not distinguished by
+    the scoring formula when both are in the active pool.
+
     This class is intentionally parameterized. It is a candidate family, not
     a claim that any one parameter set has already beaten the legacy model.
-
-    Production season logic supplies only current-season prior-week ranks.
-    Week 1 therefore has no opponent-rank component, but FBS opponents still
-    use the full scoring margin. Only out-of-pool opponents use the configured
-    reduced margin scale.
     """
 
     rank_weight: float = 1.0
@@ -77,6 +76,10 @@ class ModernLegacyModel:
         margin_points = self.margin_weight * self._transform_margin(
             neutralized_margin
         )
+
+        # No prior rank exists in Week 1, but an FBS or FCS opponent is still
+        # in the Division I pool and therefore keeps the full margin value.
+        # Only true out-of-pool opponents receive the reduced scale.
         if not game.opponent_in_rank_pool:
             margin_points *= self.out_of_pool_margin_scale
 
