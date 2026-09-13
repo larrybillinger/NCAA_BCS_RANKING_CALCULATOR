@@ -1,13 +1,12 @@
-# Authoritative production alias for v0.3.0.
+# Authoritative production alias for v0.3.1.
 # This file mirrors the live policy in current_season_v1.yaml with a scope-first name.
-model: legacy_fbs_2012_later
+model: division_i_weighted_v1
 engine: WeeklySeasonRankingEngine
-version: 1
+version: 2
 
 scope:
   ranking_pool: NCAA_Division_I
   subdivisions: [FBS, FCS]
-  identical_subdivision_scoring: true
 
 season_reset:
   prior_season_carryover: false
@@ -27,3 +26,11 @@ scoring:
   out_of_pool_margin_scale: 0.5
   win_opponent_rule: N_plus_1_minus_R
   loss_opponent_rule: negative_R
+
+fcs_scoring_modifier:
+  fbs_team_any_division_i_opponent: 1.0
+  fcs_vs_fcs: 0.5
+  fcs_loss_to_fbs: 0.5
+  fcs_win_over_fbs: 1.0
+  fcs_tie_with_fbs: 0.5
+  applies_to_components: [opponent_rank_points, win_points, margin_points]
