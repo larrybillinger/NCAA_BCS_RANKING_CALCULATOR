@@ -1,10 +1,9 @@
-model: legacy_fbs_2012_later
+model: division_i_weighted_v1
 engine: WeeklySeasonRankingEngine
-version: 2
+version: 3
 scope:
   ranking_pool: NCAA_Division_I
   subdivisions: [FBS, FCS]
-  fbs_fcs_same_scoring: true
   publish_fbs_rankings: true
   publish_fcs_rankings: true
 
@@ -33,6 +32,14 @@ scoring:
   conference_weight: 0
   previous_season_weight: 0
   preseason_weight: 0
+
+fcs_scoring_modifier:
+  fbs_team_any_division_i_opponent: 1.0
+  fcs_vs_fcs: 0.5
+  fcs_loss_to_fbs: 0.5
+  fcs_win_over_fbs: 1.0
+  fcs_tie_with_fbs: 0.5
+  applies_to_components: [opponent_rank_points, win_points, margin_points]
 
 classification_rule:
   in_rank_pool: [FBS, FCS]
