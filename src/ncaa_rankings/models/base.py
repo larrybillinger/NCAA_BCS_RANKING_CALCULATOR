@@ -22,14 +22,12 @@ class Site(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class TeamGame:
-    """One completed game from one FBS team's point of view.
+    """One completed game from one ranked Division I team's point of view.
 
-    ``week`` is the current-season ranking week. Production rankings are built
-    only from the current season: Week 1 creates the first ranking, and each
-    later week uses the immediately preceding current-season ranking.
-
-    ``opponent_in_rank_pool`` should be True for FBS opponents in the active
-    season ranking pool and False for FCS or other out-of-pool opponents.
+    ``opponent_in_rank_pool`` should be True for any NCAA Division I football
+    opponent in the active season ranking pool, whether that opponent is FBS
+    or FCS. It should be False only for opponents outside the active Division I
+    pool, such as Division II, Division III, NAIA, or other classifications.
     """
 
     team: str
