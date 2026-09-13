@@ -13,13 +13,16 @@ from ncaa_rankings.models.base import (
 
 
 class WeeklySeasonRankingEngine:
-    """Rank FBS teams using only information from the current season.
+    """Rank NCAA Division I football using only the current season.
 
-    There is no preseason ranking, previous-season carryover, or conference
-    strength. Week 1 creates the first ranking from Week 1 game totals alone.
-    Beginning in Week 2, each game uses the opponent's rank from the immediately
-    preceding completed week. Published weekly rankings are never recursively
-    re-written by later weeks.
+    The production pool contains FBS and FCS teams together. Subdivision does
+    not affect scoring. There is no preseason ranking, previous-season
+    carryover, or conference strength.
+
+    Week 1 creates the first ranking from Week 1 game totals alone. Beginning
+    in Week 2, each game uses the opponent's rank from the immediately preceding
+    completed week. Published weekly rankings are never recursively rewritten
+    by later weeks.
     """
 
     def __init__(self, model: RankingModel) -> None:
