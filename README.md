@@ -1,46 +1,38 @@
 # NCAA BCS Ranking Calculator
 
-A transparent, auditable ranking system for **NCAA FBS college-football teams**.
+A transparent, auditable ranking system for **all NCAA Division I college-football teams**.
 
-The repository keeps the historical `BCS` name because that is the name of the original project, but the modern ranking pool is the current **Football Bowl Subdivision (FBS)**. This is not an FCS ranking project.
+The repository keeps the historical `BCS` name because that is the name of the original project, but the modern production ranking pool now combines **FBS and FCS in one Division I ranking**.
 
 ## Primary goal
 
-The objective is:
+The main objective is not to imitate the AP Poll, Coaches Poll, CFP committee, betting markets, or another power rating.
 
-> **At the end of the pre-bowl portion of the FBS season, the higher-ranked FBS team should win postseason head-to-head matchups as often as possible.**
-
-Every ranking must remain explainable game by game.
+The objective is to build a simple, season-only ranking in which every Division I team's position can be explained game by game and tested against postseason results.
 
 ## Project status
 
-**Version: 0.2.1 — Current-season-only weekly ranking engine**
+**Version: 0.3.0 — Unified Division I ranking pool**
 
-The recovered historical workbooks remain valuable for formula reconstruction, but the live calculator now has explicit season-reset rules:
+The live production rules now use one ranking pool containing both FBS and FCS teams.
 
-- No previous-season ranking carries forward.
-- No previous-season statistics carry forward.
-- No preseason AP, Coaches, CFP, power-rating, or other seed is used.
-- Conferences have **zero ranking strength** and never receive bonus points.
-- There is no preseason ranking.
-- Week 1 creates the first ranking using only Week 1 results.
-- Beginning in Week 2, games use the opponent's rank from the immediately preceding completed week of the same season.
+### Scope rule
 
-This makes every published ranking a product of the current season only.
+- **Published ranking target:** all NCAA Division I football teams.
+- **FBS and FCS are scored identically.**
+- **Conference affiliation has no ranking strength.**
+- **No previous-season ranking or statistics carry into a new season.**
+- **There is no preseason ranking.**
+- **Week 1 creates the first current-season ranking.**
+- **Week 2 and later use the immediately preceding completed week's ranking for opponent-rank points.**
 
-## Scope rule
+Teams below Division I remain outside the active ranking pool.
 
-- **Published ranking target:** FBS teams.
-- **Primary validation target:** FBS bowls and College Football Playoff games.
-- **FCS role:** opponent context when an FBS team plays an FCS team.
-- **Conference:** metadata only; conference identity contributes no ranking points.
-- **No separate FCS production ranking is required.**
+## Core philosophy
 
-## Core scoring philosophy
+Every team's score is built from a small number of game-level values:
 
-Every team's score is built from three game-level values:
-
-1. **Opponent Rank Score** — reward or penalty based on current-season opponent quality.
+1. **Opponent Rank Score** — beginning in Week 2, reward or penalty based on the opponent's prior-week Division I rank.
 2. **Win Score** — reward for winning.
 3. **Spread Score** — reward or penalty based on scoring margin.
 
@@ -48,56 +40,61 @@ Every team's score is built from three game-level values:
 Game Score = Opponent Rank Score + Win Score + Spread Score
 ```
 
-Game scores accumulate into the team's current-season score.
+Those game scores accumulate into the team's season score.
 
-## Season bootstrap
+## Season reset
 
-### Before Week 1
+Every season starts completely from zero.
 
-There is **no ranking**.
+The live calculator does **not** use:
 
-All FBS teams begin the season with:
+- previous-season rankings;
+- previous-season win/loss records;
+- previous-season statistics;
+- preseason polls;
+- preseason power ratings;
+- conference-strength bonuses or penalties.
 
-```text
-ranking points = 0
-previous-season rank influence = 0
-previous-season statistical influence = 0
-conference-strength influence = 0
-```
+There is no published preseason ranking.
 
-### Week 1
+## Week 1
 
-Because no current-season opponent rankings exist yet, Week 1 has:
+Week 1 establishes the first ranking of the season.
+
+Because there is no prior current-season ranking yet:
 
 ```text
 Opponent Rank Score = 0
 ```
 
-The Week 1 ranking is therefore established from current-season game results only:
+for every Division I opponent.
+
+For any FBS-vs-FBS, FBS-vs-FCS, FCS-vs-FBS, or FCS-vs-FCS game:
 
 ```text
-FBS opponent:
-    Game Score = Win Score + full scoring margin
-
-FCS / out-of-pool opponent:
-    Game Score = Win Score + scaled scoring margin
+Win Score = 10 on a win
+Spread Score = points_for - points_against
 ```
 
-With the recovered legacy defaults:
+Subdivision membership does not alter the score.
+
+Example:
 
 ```text
-win bonus = 10
-FBS margin scale = 1.0
-FCS/out-of-pool margin scale = 0.5
+Kansas State 71, Nicholls 3
+Opponent Rank Score = 0
+Win Score           = 10
+Spread Score        = 68
+Game Score          = 78
 ```
 
-Once Week 1 is complete, those totals create the first actual ranking of the season.
+Nicholls is FCS, but FCS is now part of the same active Division I ranking pool, so the margin is not halved.
 
-### Week 2 and later
+## Week 2 and later
 
-The ranking published after the previous completed week becomes the opponent-rank input for the next week.
+Beginning in Week 2, games use the opponent's ranking from the immediately preceding completed week of the same season.
 
-For an FBS ranking pool containing `N` teams and an opponent ranked `R` in the previous completed week:
+For a Division I ranking pool containing `N` teams and an opponent ranked `R`:
 
 ```text
 Win:
@@ -107,168 +104,77 @@ Win:
 Loss:
     opponent_rank_score = -R
     win_score = 0
-```
 
-The new week's game scores are added to the existing current-season totals, then the teams are re-ranked.
-
-Conceptually:
-
-```text
-Week 1 games
-    -> Week 1 totals
-    -> Week 1 ranking
-
-Week 2 games use Week 1 opponent ranks
-    -> cumulative Week 2 totals
-    -> Week 2 ranking
-
-Week 3 games use Week 2 opponent ranks
-    -> cumulative Week 3 totals
-    -> Week 3 ranking
-
-...and so on through the season.
-```
-
-Later weeks do not import information from a prior season and do not retroactively rewrite older weekly opponent ranks.
-
-## Why the weekly structure matters
-
-The original later FBS workbook used recursive current rankings and could revalue older games. That historical behavior remains available for legacy research, but it is no longer the live-season ranking policy.
-
-The production approach is now **causal by week**:
-
-- only information available in the current season is used;
-- Week 1 establishes the first current-season order;
-- Week 2 begins full opponent-rank scoring;
-- each later week uses the immediately preceding current-season ranking;
-- no recursive same-week cycle is required.
-
-This also removes the early-season two-ordering cycle observed when the 2026 Week 1 data was run through the recursive engine.
-
-## Margin of victory
-
-Against an FBS opponent in the active ranking pool:
-
-```text
 spread_score = points_for - points_against
 ```
 
-Against an opponent outside the active FBS ranking pool:
+FBS and FCS use exactly the same formula.
+
+Earlier games are not retroactively rescored when an opponent moves later in the season.
+
+## Outside-Division-I opponents
+
+Division II, Division III, NAIA, and other opponents outside the active Division I ranking pool receive no opponent-rank points.
+
+The current legacy-derived profile may use a reduced margin scale for true out-of-pool games. That distinction is based on whether the opponent is in NCAA Division I, not whether the opponent is FBS or FCS.
+
+## Conference rule
+
+Conference membership is metadata only.
+
+No SEC, Big Ten, Big 12, ACC, Sun Belt, Missouri Valley Football Conference, Big Sky, CAA, or other conference receives any ranking bonus, penalty, multiplier, inherited prestige, or strength adjustment.
+
+## Why the formula still resembles the old FBS workbook
+
+The original FBS spreadsheet supplied the most useful recovered opponent-rank formula:
 
 ```text
-spread_score = (points_for - points_against) / 2
+Win over rank R  = (N + 1) - R
+Loss to rank R   = -R
+Win bonus        = 10
 ```
 
-The one-half treatment is the recovered historical default for FBS-vs-FCS/out-of-pool games. It remains testable in the modern research model because FCS treatment is part of evaluating an FBS team's schedule.
+Version 0.3.0 keeps that transparent math but applies it to the complete active Division I ranking pool rather than FBS alone.
 
-## Conference policy
+The old FCS workbook remains historical evidence, not a separate production scoring system.
 
-Conference identity may be stored for display and historical records, but it has **no mathematical strength value**.
+## Weekly ranking behavior
 
-The calculator must never award or subtract points because a team belongs to the SEC, Big Ten, Big 12, ACC, Mountain West, Conference USA, or any other conference.
+The production engine is `WeeklySeasonRankingEngine`.
 
-Conference strength is not a research parameter in the production model.
+Conceptually:
 
-## Previous-season policy
+1. Start the new season with no rankings.
+2. Score Week 1 only from current-season results, with zero opponent-rank points.
+3. Publish the Week 1 Division I ranking.
+4. Score Week 2 games using Week 1 opponent ranks.
+5. Publish Week 2.
+6. Continue week by week through the season.
 
-Previous-season information is not an input to the live ranking.
+The live ranking does not use same-week recursive recalculation and does not import a previous-season seed.
 
-The calculator must not use:
+## Historical research
 
-- previous-season final rank;
-- previous-season wins/losses;
-- previous-season scoring margin;
-- previous-season strength of schedule;
-- preseason polls derived from the previous season;
-- external preseason power ratings.
+The repository still preserves historical FBS and FCS workbook reconstructions so the old formulas remain reproducible and testable.
 
-Historical seasons may be used to **test and tune the formula itself**, but never to seed a team's ranking in a new season.
+The legacy recursive FBS engine is retained for historical parity research only. It is not the live current-season ranking method.
 
-## Historical FBS baseline
+## Postseason research direction
 
-The later 2012 FBS model remains preserved as a historical benchmark.
+The ranking can be evaluated against postseason head-to-head results while preserving the no-leakage rule: a postseason evaluation must use a ranking frozen before those postseason games are played.
 
-For the original 124-team workbook:
-
-```text
-beat #1   = +124 rank points
-beat #25  = +100 rank points
-beat #124 =   +1 rank point
-
-lose to #1   =   -1 rank point
-lose to #25  =  -25 rank points
-lose to #124 = -124 rank points
-```
-
-The modern generalized form uses `(N + 1) - R` so the rule automatically follows the current FBS team count.
-
-## Modern research candidate
-
-The research formula still keeps the same three-part structure:
-
-```text
-Game Score = Opponent Quality + Win Bonus + Adjusted Margin
-```
-
-Parameters such as margin saturation, home-field adjustment, FCS treatment, recency, and opponent-strength weighting may be tested historically.
-
-The following are **not** allowed research dimensions for the live ranking:
-
-```text
-conference strength
-previous-season carryover
-preseason ranking seeds
-```
-
-Historical testing may improve the formula, but every season must still begin from zero.
-
-## Postseason research contract
-
-Every postseason test uses one frozen pre-postseason ranking.
-
-For each season:
-
-1. Start the season from zero.
-2. Build Week 1 from Week 1 results only.
-3. Build every later week from the preceding current-season ranking.
-4. Freeze the final pre-postseason FBS ranking.
-5. Predict every bowl and CFP matchup from that same frozen ranking.
-6. Never feed a postseason result back into the ranking used to predict later postseason games.
-
-## Primary ten-season research sample
-
-```text
-2014 2015 2016 2017 2018 2019 2022 2023 2024 2025
-```
-
-- 2020 and 2021 are excluded from the primary comparable sample.
-- 2021 remains a sensitivity test.
-- 2025 is the locked final holdout.
-- 2026 is the live season, not part of the historical tuning sample.
-
-## Ranking engines
-
-The repository preserves two different purposes:
-
-```text
-RecursiveRankingEngine
-    Historical parity/research for the recovered legacy FBS behavior.
-
-WeeklySeasonRankingEngine
-    Production current-season ranking path.
-```
-
-The live ranking should use `WeeklySeasonRankingEngine`.
+Historical FBS bowl/CFP prediction remains an important benchmark because the original project's purpose was BCS/FBS ranking. With the unified Division I pool, future research can also evaluate FCS playoff prediction without changing the live scoring rules.
 
 ## Ranking profiles
 
-```text
-legacy_fbs_2012_original
-legacy_fbs_2012_later
-modern_legacy_candidate_v1
-```
+Current profiles include:
 
-The historical FCS rules remain archival reference material only.
+```text
+legacy_fbs_2012_original        # historical reproduction
+legacy_fbs_2012_later           # historical formula source / current scoring base
+modern_legacy_candidate_v1      # research candidate family
+current_season_v1               # production weekly Division I rules
+```
 
 ## Data model
 
@@ -277,13 +183,15 @@ The historical FCS rules remain archival reference material only.
 - stable team ID
 - school name
 - aliases
+- Division I subdivision for that season (`FBS` or `FCS`)
 
 ### Team seasons
 
 - season
 - team ID
-- FBS/FCS classification for that season
-- conference for display/history only
+- Division I classification
+- FBS/FCS subdivision
+- conference for display/metadata only
 
 ### Games
 
@@ -293,7 +201,7 @@ The historical FCS rules remain archival reference material only.
 - home team
 - away team
 - neutral-site flag
-- classifications for both teams
+- classification for both teams
 - scores
 - season type
 - completed status
@@ -302,8 +210,8 @@ The historical FCS rules remain archival reference material only.
 
 - model/version
 - season
-- completed week
-- FBS team
+- week/cutoff
+- Division I team
 - score
 - rank
 - wins/losses
@@ -312,37 +220,36 @@ The historical FCS rules remain archival reference material only.
 
 - team
 - opponent
-- week
-- prior-week opponent rank used, or `none` for Week 1/out-of-pool
-- opponent points
+- prior-week opponent rank used
+- opponent-rank points
 - win points
 - margin points
 - game total
-- cumulative season total
 
 ## Development plan
 
-1. **Preserve the recovered FBS formulas for historical comparison.**
-2. **Use the season-only weekly engine for live rankings.**
-3. **Ingest normalized historical and current FBS schedules/results.**
-4. **Backtest the season-only system across the ten-season research sample.**
-5. **Test one transparent scoring change at a time.**
-6. **Keep conference strength and previous-season carryover permanently at zero.**
-7. **Use walk-forward validation and keep 2025 locked until the model is frozen.**
-8. **Promote the simplest scoring formula that materially improves FBS postseason prediction.**
-9. **Add the current-season ranking interface and full game-level audit trail.**
+1. Preserve the recovered historical formulas for reproducibility.
+2. Maintain the live week-by-week, season-only Division I engine.
+3. Ingest complete FBS and FCS team/schedule/result data by season.
+4. Publish Week 1 only after the first current-season games establish the order.
+5. Use prior-week current-season rankings beginning with Week 2.
+6. Keep conference strength and previous-season carryover permanently out of production scoring.
+7. Backtest transparent scoring changes before promoting them.
+8. Keep every ranking auditable down to the individual game.
 
 ## Documentation
 
-- [`docs/CURRENT_SEASON_RULES.md`](docs/CURRENT_SEASON_RULES.md) — authoritative live-ranking season-reset and weekly-flow rules.
-- [`docs/LEGACY_FBS_2012.md`](docs/LEGACY_FBS_2012.md) — reconstruction of the two historical FBS workbooks.
-- [`docs/LEGACY_FCS_2012.md`](docs/LEGACY_FCS_2012.md) — archival cross-subdivision reference only.
-- [`docs/MODERN_V1_RESEARCH.md`](docs/MODERN_V1_RESEARCH.md) — postseason-prediction research contract.
+- [`docs/DIVISION_I_SCOPE.md`](docs/DIVISION_I_SCOPE.md) — authoritative FBS + FCS production scope.
+- [`docs/CURRENT_SEASON_RULES.md`](docs/CURRENT_SEASON_RULES.md) — weekly season-only ranking rules.
+- [`docs/SCORING_EXAMPLES.md`](docs/SCORING_EXAMPLES.md) — worked scoring examples.
+- [`docs/LEGACY_FBS_2012.md`](docs/LEGACY_FBS_2012.md) — reconstruction of the historical FBS workbooks.
+- [`docs/LEGACY_FCS_2012.md`](docs/LEGACY_FCS_2012.md) — reconstruction of the historical FCS workbook.
+- [`docs/MODERN_V1_RESEARCH.md`](docs/MODERN_V1_RESEARCH.md) — model-research contract.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — implementation and validation plan.
-- [`configs/modern_v1_search.yaml`](configs/modern_v1_search.yaml) — versioned scoring search space with season-reset rules locked.
+- [`configs/current_season_v1.yaml`](configs/current_season_v1.yaml) — authoritative production configuration.
 
 ## Guiding rule
 
-**Rank FBS teams only on what they have earned during the current season.**
+**If a team is NCAA Division I football, rank it in the same pool and score it by the same rules.**
 
-Historical data is for improving the formula, not for giving a team a head start in a new season.
+Added complexity has to prove that it helps.
