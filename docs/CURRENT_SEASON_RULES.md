@@ -9,7 +9,7 @@ The active ranking pool contains:
 - FBS teams
 - FCS teams
 
-FBS and FCS are subdivisions for identification and display only. They do not receive different ranking formulas.
+Both subdivisions share one ranking table and one opponent-rank scale. FCS teams use a limited scoring modifier described below.
 
 ## New season reset
 
@@ -32,6 +32,42 @@ Conferences have no mathematical strength value.
 
 Conference membership may be displayed, filtered, or used for reporting, but it contributes zero ranking points.
 
+## Core game formula
+
+Before any FCS modifier is applied, the normal Division I game score is:
+
+```text
+Game Score = Opponent Rank Points + Win Bonus + Margin
+```
+
+Beginning in Week 2, for a Division I pool of `N` teams and an opponent ranked `R`:
+
+```text
+Win opponent points  = (N + 1) - R
+Loss opponent points = -R
+Win bonus            = 10 for a win, 0 for a loss
+Margin               = points_for - points_against
+```
+
+## FCS scoring modifier
+
+FBS and FCS remain in the same ranking pool, but FCS teams receive a scoring multiplier based on the matchup result.
+
+```text
+FBS team vs any Division I opponent = 100% of normal game points
+FCS team vs FCS opponent            = 50% of normal game points
+FCS team loses to FBS opponent      = 50% of normal negative game points
+FCS team beats FBS opponent         = 100% of normal game points
+```
+
+The multiplier applies to the visible game-score components:
+
+- opponent-rank points;
+- win points;
+- margin points.
+
+This means an FCS upset over an FBS team receives full credit, while ordinary FCS-vs-FCS results have half the ranking impact.
+
 ## Week 1
 
 Week 1 establishes the first ranking.
@@ -42,60 +78,56 @@ There is no previous current-season rank to use yet, so every in-pool Division I
 Opponent Rank Points = 0
 ```
 
-Every Division I game is then scored as:
+The normal Week 1 score is therefore:
 
 ```text
-Game Score = Win Bonus + Full Margin
+Normal Week 1 Game Score = Win Bonus + Margin
 ```
 
-where:
+The FCS modifier is then applied when appropriate.
 
-```text
-Win Bonus = 10 for a win, 0 for a loss
-Full Margin = points_for - points_against
-```
+### FBS over FCS example
 
-This is identical for:
-
-- FBS vs FBS
-- FBS vs FCS
-- FCS vs FBS
-- FCS vs FCS
-
-Example:
-
-```text
 Kansas State 71, Nicholls 3
+
+Kansas State is FBS, so its score is not reduced:
+
+```text
 Opponent Rank Points = 0
-Win Bonus = 10
-Margin = 68
-Game Score = 78
+Win Bonus            = 10
+Margin               = 68
+Kansas State Score   = 78
 ```
 
-Nicholls being FCS does not reduce the score because Nicholls is part of the same Division I ranking pool.
+Nicholls is FCS and lost to an FBS team, so its negative score is halved:
+
+```text
+Opponent Rank Points = 0
+Win Bonus            = 0
+Margin               = -68
+Normal Score         = -68
+FCS Multiplier       = 0.5
+Nicholls Score       = -34
+```
+
+### FCS vs FCS example
+
+If an FCS team wins 30-10 over another FCS team in Week 1:
+
+```text
+Opponent Rank Points = 0
+Win Bonus            = 10
+Margin               = 20
+Normal Score         = 30
+FCS Multiplier       = 0.5
+Final Game Score     = 15
+```
 
 ## Week 2 and later
 
 Beginning in Week 2, each game uses the opponent's rank from the immediately preceding completed week of the same season.
 
-For a Division I pool of `N` teams and an opponent ranked `R`:
-
-```text
-Win opponent points  = (N + 1) - R
-Loss opponent points = -R
-```
-
-The complete game score is:
-
-```text
-Game Score = Opponent Rank Points + Win Bonus + Margin
-```
-
-The same equations apply to FBS and FCS teams.
-
-## Cumulative season score
-
-A team's ranking score is the sum of the game scores it has earned so far in the current season.
+The opponent-rank formula uses the full combined Division I ranking. An FCS opponent ranked #25 and an FBS opponent ranked #25 therefore supply the same base opponent-rank value before any FCS-team scoring modifier is applied.
 
 Earlier games are not retroactively rescored when an opponent moves up or down later.
 
@@ -111,7 +143,7 @@ It may appear at the bottom of the full pool for completeness, but that placemen
 
 Division II, Division III, NAIA, and other opponents outside the active Division I pool do not receive an opponent rank.
 
-The active profile may apply its configured out-of-pool margin scale to those games. This is the only remaining classification-based scoring distinction.
+The active profile may apply its configured out-of-pool margin scale to those games. That treatment is separate from the FCS-vs-FCS / FCS-vs-FBS modifier.
 
 ## Tie handling
 
@@ -126,7 +158,7 @@ The engine can consider, in order:
 
 No conference reputation or prior-season result is used as a tiebreaker.
 
-## Production engine
+## Production engine and model
 
 The live current-season engine is:
 
@@ -134,8 +166,14 @@ The live current-season engine is:
 WeeklySeasonRankingEngine
 ```
 
-The older recursive engine remains only for reproducing and studying historical spreadsheets.
+The live scoring model is:
+
+```text
+division_i_weighted_v1
+```
+
+The older recursive engine and legacy FBS model remain available for historical reproduction and research.
 
 ## Guiding rule
 
-**All NCAA Division I football teams are ranked together, and FBS and FCS are scored exactly the same.**
+**Rank FBS and FCS together, give FCS teams half credit for FCS-vs-FCS games and FCS losses to FBS, and give FCS teams full credit when they beat FBS teams.**
