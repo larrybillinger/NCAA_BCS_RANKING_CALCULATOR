@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Week {{ prediction_week }} Predictions · {{ title }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><div class="eyebrow">GAME BOOK</div><h1>Week {{ prediction_week }} predictions</h1><p>Projections use the latest selected completed ranking snapshot. Pregame predictions lock when the game starts and never get rewritten.</p></div>
+</header>
+
+<section class="chapter-nav">
+  {% if prediction_week > 1 %}<a href="/predictions?week={{ prediction_week - 1 }}&as_of={{ as_of_week or '' }}">← Week {{ prediction_week - 1 }}</a>{% endif %}
+  <a class="active" href="/predictions?week={{ prediction_week }}&as_of={{ as_of_week or '' }}">Week {{ prediction_week }}</a>
+  <a href="/predictions?week={{ prediction_week + 1 }}&as_of={{ as_of_week or '' }}">Week {{ prediction_week + 1 }} →</a>
+</section>
+
+<div class="asof-line">View projections as of {% if as_of_week %}<strong>Week {{ as_of_week }}</strong>{% else %}<strong>latest completed week</strong>{% endif %}. {% if latest_week %}<a href="/predictions?week={{ prediction_week }}&as_of={{ latest_week }}">use current</a>{% endif %}</div>
+
+<div class="game-list">
+{% for row in games %}
+  {% set g = row.game %}{% set p = row.prediction %}
+  <article class="game-row">
+    <div class="game-time">{% if g.start_time %}{{ g.start_time.strftime('%a %b %d') }}<br><span>{{ g.start_time.strftime('%H:%M UTC') }}</span>{% else %}TBD{% endif %}</div>
+    <div class="game-matchup">
+      <div>{% if p and p.away_rank %}<span class="mini-rank">{{ p.away_rank }}</span>{% endif %}<a href="/teams/{{ row.away.slug }}">{{ row.away.name }}</a></div>
+      <div>{% if p and p.home_rank %}<span class="mini-rank">{{ p.home_rank }}</span>{% endif %}<a href="/teams/{{ row.home.slug }}">{{ row.home.name }}</a></div>
+      {% if g.neutral_site %}<small>neutral site</small>{% elif g.venue %}<small>{{ g.venue }}</small>{% endif %}
+    </div>
+    <div class="game-projection">
+      {% if p %}<span class="lock-state">{% if p.official %}LOCKED{% else %}CURRENT{% endif %}</span><strong>{{ p.projected_away_points|score }}–{{ p.projected_home_points|score }}</strong><span>{{ p.home_win_probability|pct }} home win</span>{% else %}<span class="lock-state">NO PROJECTION</span><span>Awaiting ranking/schedule data</span>{% endif %}
+    </div>
+    <div class="game-result">{% if g.completed %}<span>FINAL</span><strong>{{ g.away_points }}–{{ g.home_points }}</strong>{% else %}<span>{% if p %}sample {{ p.sample_size }}{% else %}scheduled{% endif %}</span>{% endif %}</div>
+  </article>
+{% else %}
+  <div class="empty-panel">No games are loaded for Week {{ prediction_week }} yet. Once the CFBD API key is configured, the worker will sync the full season schedule automatically.</div>
+{% endfor %}
+</div>
+{% endblock %}
