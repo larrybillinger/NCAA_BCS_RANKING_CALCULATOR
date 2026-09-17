@@ -4,11 +4,11 @@ import csv
 from pathlib import Path
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .models import RankingEntry, RankingSnapshot, Team, TeamSeason
-from .ranking_service import get_snapshot
 from .utils import slugify
 
 
@@ -39,6 +39,27 @@ def _record(value: str) -> tuple[int, int]:
         return 0, 0
 
 
+def _existing_snapshot(
+    session: Session,
+    season: int,
+    week: int,
+    model_version: str,
+) -> RankingSnapshot | None:
+    """Return the exact official snapshot used by a bundled import.
+
+    This intentionally does not rely on global settings so the uniqueness check
+    matches the database constraint exactly.
+    """
+    return session.scalar(
+        select(RankingSnapshot).where(
+            RankingSnapshot.season == season,
+            RankingSnapshot.week == week,
+            RankingSnapshot.model_version == model_version,
+            RankingSnapshot.official.is_(True),
+        )
+    )
+
+
 def import_ranking_csv(
     session: Session,
     path: Path,
@@ -47,7 +68,7 @@ def import_ranking_csv(
     week: int,
     model_version: str,
 ) -> RankingSnapshot:
-    existing = get_snapshot(session, season, week)
+    existing = _existing_snapshot(session, season, week, model_version)
     if existing is not None:
         return existing
 
@@ -56,7 +77,11 @@ def import_ranking_csv(
     if not rows:
         raise RuntimeError(f"Bundled ranking file is empty: {path}")
 
-    previous = get_snapshot(session, season, week - 1) if week > 1 else None
+    previous = (
+        _existing_snapshot(session, season, week - 1, model_version)
+        if week > 1
+        else None
+    )
     previous_ranks: dict[int, int] = {}
     if previous is not None:
         for entry in session.scalars(
@@ -71,8 +96,21 @@ def import_ranking_csv(
         official=True,
         source_note=f"Bundled official ranking imported from {path.name}.",
     )
-    session.add(snapshot)
-    session.flush()
+
+    # The web process and background worker can start at the same time on a
+    # fresh Synology deployment. Both may observe that the snapshot is missing
+    # before either one commits it. Keep the insert inside a savepoint so the
+    # process that loses that race can recover cleanly instead of aborting its
+    # entire startup transaction with uq_ranking_snapshot.
+    try:
+        with session.begin_nested():
+            session.add(snapshot)
+            session.flush()
+    except IntegrityError:
+        existing = _existing_snapshot(session, season, week, model_version)
+        if existing is not None:
+            return existing
+        raise
 
     for row in rows:
         name = (row.get("Team") or "").strip()
@@ -122,7 +160,12 @@ def bootstrap_bundled_rankings(session: Session) -> list[int]:
         path = season_dir / f"week_{week:02d}.csv"
         if not path.exists():
             continue
-        if get_snapshot(session, settings.season, week) is None:
+        if _existing_snapshot(
+            session,
+            settings.season,
+            week,
+            settings.model_version,
+        ) is None:
             import_ranking_csv(
                 session,
                 path,
