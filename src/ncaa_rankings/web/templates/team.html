@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }} · {{ title }}{% endblock %}
+{% block content %}
+<header class="team-head">
+  <div class="eyebrow">TEAM PAGE</div><h1>{{ team.name }}</h1>
+  <div class="team-snapshot">
+    {% if current_entry %}<span><strong>#{{ current_entry.rank }}</strong> current rank</span><span><strong>{{ current_entry.wins }}–{{ current_entry.losses }}</strong> record</span><span><strong>{{ current_entry.score|num }}</strong> points</span>{% else %}<span>Not ranked yet</span>{% endif %}
+    <span><strong>{{ team_metrics.winner_accuracy|pct if team_metrics.games else '—' }}</strong> model winner accuracy</span>
+  </div>
+</header>
+
+<section class="chapter-nav"><a class="active" href="#schedule">Schedule + predictions</a><a href="#history">Rank history</a><a href="#accuracy">Accuracy</a></section>
+
+<div class="asof-line">Projection view: {% if as_of_week %}<strong>as of Week {{ as_of_week }}</strong>{% else %}latest{% endif %}. {% for w in weeks %}<a href="/teams/{{ team.slug }}?as_of={{ w }}">W{{ w }}</a>{% endfor %}</div>
+
+<section id="schedule">
+  <div class="section-kicker">FULL SEASON</div><h2>Schedule</h2>
+  <div class="table-wrap"><table class="schedule-table">
+    <thead><tr><th>Week</th><th>Opponent</th><th>Site</th><th>Projection</th><th>Probability</th><th>Actual</th></tr></thead>
+    <tbody>
+    {% for row in schedule %}{% set g=row.game %}{% set p=row.prediction %}
+      <tr>
+        <td>{{ g.week }}</td><td><a href="/teams/{{ row.opponent.slug }}">{{ row.opponent.name }}</a></td><td>{% if g.neutral_site %}Neutral{% elif row.is_home %}Home{% else %}Away{% endif %}</td>
+        <td>{% if p %}{% if row.is_home %}<strong>{{ p.projected_home_points|score }}–{{ p.projected_away_points|score }}</strong>{% else %}<strong>{{ p.projected_away_points|score }}–{{ p.projected_home_points|score }}</strong>{% endif %}<span class="subline">{% if p.official %}locked{% else %}from Week {{ p.ranking_snapshot.week }}{% endif %}</span>{% else %}—{% endif %}</td>
+        <td>{% if p %}{% if row.is_home %}{{ p.home_win_probability|pct }}{% else %}{{ (1-p.home_win_probability)|pct }}{% endif %}{% else %}—{% endif %}</td>
+        <td>{% if g.completed %}{% if row.is_home %}{{ g.home_points }}–{{ g.away_points }}{% else %}{{ g.away_points }}–{{ g.home_points }}{% endif %}{% else %}<span class="muted">upcoming</span>{% endif %}</td>
+      </tr>
+    {% else %}<tr><td colspan="6" class="empty">Schedule will populate automatically after CFBD is connected.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section id="history" class="split-section">
+  <div><div class="section-kicker">RANK HISTORY</div><h2>Week by week</h2><div class="history-list">{% for row in history %}<div><span>Week {{ row.week }}</span><strong>#{{ row.rank }}</strong><span>{{ row.score|num }} pts</span></div>{% else %}<p>No ranking history yet.</p>{% endfor %}</div></div>
+  <div id="accuracy"><div class="section-kicker">TEAM MODEL EFFICACY</div><h2>How the model reads {{ team.name }}</h2>
+    <div class="team-metrics"><div><strong>{{ team_metrics.winner_accuracy|pct if team_metrics.games else '—' }}</strong><span>winner accuracy</span></div><div><strong>{{ team_metrics.spread_mae|num if team_metrics.games else '—' }}</strong><span>spread MAE</span></div><div><strong>{{ team_metrics.score_mae|num if team_metrics.games else '—' }}</strong><span>score MAE</span></div><div><strong>{{ team_metrics.brier|num(3) if team_metrics.games else '—' }}</strong><span>Brier</span></div></div>
+    <p class="muted">{{ team_metrics.games }} locked predictions evaluated for this team.</p>
+  </div>
+</section>
+{% endblock %}
