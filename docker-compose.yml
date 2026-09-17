@@ -1,0 +1,53 @@
+name: ncaa-rankings
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: ncaa-rankings-db
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rankings}
+      POSTGRES_USER: ${POSTGRES_USER:-rankings}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${TZ:-America/Chicago}
+    volumes:
+      - /volume1/rankings/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rankings} -d ${POSTGRES_DB:-rankings}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build: .
+    container_name: ncaa-rankings-web
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      RANKINGS_DIR: /app/rankings
+    ports:
+      - "${WEB_PORT:-8765}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 5
+
+  worker:
+    build: .
+    container_name: ncaa-rankings-worker
+    restart: unless-stopped
+    command: ["python", "-m", "ncaa_rankings.web.worker"]
+    env_file:
+      - ../.env
+    environment:
+      RANKINGS_DIR: /app/rankings
+    depends_on:
+      db:
+        condition: service_healthy
