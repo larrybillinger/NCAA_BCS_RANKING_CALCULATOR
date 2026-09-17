@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Rank Calculator · {{ title }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><div class="eyebrow">TOOL</div><h1>Rank calculator</h1><p>Estimate a matchup from two current ranked positions using the same rank-gap calibration used by the prediction pages.</p></div></header>
+<form class="calculator-form" method="get">
+  <label># <input class="bare-number" type="number" min="1" max="400" name="rank_a" value="{{ rank_a or '' }}" placeholder="12"></label>
+  <span>vs</span>
+  <label># <input class="bare-number" type="number" min="1" max="400" name="rank_b" value="{{ rank_b or '' }}" placeholder="48"></label>
+  <label class="check-line"><input type="checkbox" name="neutral" value="true" {% if neutral %}checked{% endif %}> neutral site</label>
+  <button class="text-submit" type="submit">calculate →</button>
+</form>
+{% if calculator_result %}
+<section class="calculator-result">
+  <div><span>#{{ calculator_result.home_rank }}</span><strong>{{ calculator_result.home_points|score }}</strong></div>
+  <div class="calc-mid"><span>projected</span><strong>{{ calculator_result.home_win_probability|pct }}</strong><span>home-side win probability</span></div>
+  <div><span>#{{ calculator_result.away_rank }}</span><strong>{{ calculator_result.away_points|score }}</strong></div>
+</section>
+<p class="muted">Expected margin {{ calculator_result.margin|num }} · calibration sample {{ calculator_result.sample_size }} completed games.</p>
+{% endif %}
+{% endblock %}
