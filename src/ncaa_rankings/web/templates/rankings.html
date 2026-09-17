@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Week {{ selected_week }} Rankings · {{ title }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">WEEK {{ selected_week }} CHAPTER</div>
+    <h1>{% if snapshot %}Division I ranking{% else %}Ranking not available yet{% endif %}</h1>
+    {% if snapshot %}<p>{{ snapshot.locked_at.strftime('%B %d, %Y') }} · {{ ranking_rows|length }} shown · model {{ snapshot.model_version }}</p>{% else %}<p>This week has not been frozen into an official ranking.</p>{% endif %}
+  </div>
+  <div class="head-links">
+    {% if selected_week > 1 %}<a href="/?week={{ selected_week - 1 }}">← previous</a>{% endif %}
+    {% if latest_week and selected_week < latest_week %}<a href="/?week={{ selected_week + 1 }}">next →</a>{% endif %}
+  </div>
+</header>
+
+<section class="chapter-nav">
+  <a class="active" href="/?week={{ selected_week }}">Ranking</a>
+  <a href="/predictions?week={{ selected_week + 1 }}&as_of={{ selected_week }}">Next-week preview</a>
+  <a href="/stats">Model stats</a>
+</section>
+
+<section class="ranking-tools">
+  <form class="search-form" action="/" method="get">
+    <input type="hidden" name="week" value="{{ selected_week }}">
+    <input class="bare-input" type="search" name="q" value="{{ search_query }}" placeholder="Find a team" aria-label="Find a team">
+  </form>
+  <div class="text-filters">
+    <a class="{% if not subdivision_filter %}active{% endif %}" href="/?week={{ selected_week }}">All</a>
+    <a class="{% if subdivision_filter == 'FBS' %}active{% endif %}" href="/?week={{ selected_week }}&subdivision=FBS">FBS</a>
+    <a class="{% if subdivision_filter == 'FCS' %}active{% endif %}" href="/?week={{ selected_week }}&subdivision=FCS">FCS</a>
+  </div>
+</section>
+
+{% if not cfbd_configured %}<div class="quiet-note">The bundled Week 1 and Week 2 rankings are available now. Add a CFBD API key on the Synology server to populate schedules, future games, stats, and automatic weekly updates.</div>{% endif %}
+
+<div class="table-wrap">
+<table class="ranking-table">
+  <thead><tr><th>Rank</th><th>Team</th><th>Div.</th><th>Record</th><th class="right">Points</th><th class="right">Move</th></tr></thead>
+  <tbody>
+    {% for row in ranking_rows %}
+    <tr>
+      <td class="rank">{{ row.rank }}</td>
+      <td class="team-name"><a href="/teams/{{ row.team.slug }}">{{ row.team.name }}</a>{% if row.conference %}<span>{{ row.conference }}</span>{% endif %}</td>
+      <td>{{ row.subdivision }}</td><td>{{ row.record }}</td><td class="right score">{{ row.score|num }}</td>
+      <td class="right movement {% if row.movement and row.movement > 0 %}up{% elif row.movement and row.movement < 0 %}down{% endif %}">{% if row.movement is none %}—{% elif row.movement > 0 %}↑{{ row.movement }}{% elif row.movement < 0 %}↓{{ row.movement|abs }}{% else %}—{% endif %}</td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="empty">No ranking rows match this view.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
