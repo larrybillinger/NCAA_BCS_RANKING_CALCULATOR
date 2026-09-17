@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Teams · {{ title }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><div class="eyebrow">TEAM INDEX</div><h1>Every Division I team</h1><p>Open a team to see its schedule, ranking path, predictions, and model accuracy.</p></div></header>
+<div class="team-index">
+{% for team, season_row in teams %}<a href="/teams/{{ team.slug }}"><strong>{{ team.name }}</strong><span>{{ season_row.subdivision }}{% if season_row.conference %} · {{ season_row.conference }}{% endif %}</span></a>{% else %}<div class="empty-panel">No teams loaded.</div>{% endfor %}
+</div>
+{% endblock %}
