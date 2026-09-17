@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Model Accuracy · {{ title }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><div class="eyebrow">ACCURACY LEDGER</div><h1>How well is the system working?</h1><p>Only predictions that existed before kickoff count toward official accuracy. Later retrocasts never rewrite this ledger.</p></div>
+</header>
+
+<section class="metric-strip">
+  <a class="{% if metric == 'winner_accuracy' %}active{% endif %}" href="/stats?metric=winner_accuracy"><strong>{{ metrics.winner_accuracy|pct if metrics.games else '—' }}</strong><span>winner accuracy</span></a>
+  <a class="{% if metric == 'spread_mae' %}active{% endif %}" href="/stats?metric=spread_mae"><strong>{{ metrics.spread_mae|num if metrics.games else '—' }}</strong><span>spread MAE</span></a>
+  <a class="{% if metric == 'spread_rmse' %}active{% endif %}" href="/stats?metric=spread_rmse"><strong>{{ metrics.spread_rmse|num if metrics.games else '—' }}</strong><span>spread RMSE</span></a>
+  <a class="{% if metric == 'score_mae' %}active{% endif %}" href="/stats?metric=score_mae"><strong>{{ metrics.score_mae|num if metrics.games else '—' }}</strong><span>score MAE</span></a>
+  <a class="{% if metric == 'brier' %}active{% endif %}" href="/stats?metric=brier"><strong>{{ metrics.brier|num(3) if metrics.games else '—' }}</strong><span>Brier</span></a>
+  <a class="{% if metric == 'upset_hit_rate' %}active{% endif %}" href="/stats?metric=upset_hit_rate"><strong>{{ metrics.upset_hit_rate|pct if metrics.upset_hit_rate is not none else '—' }}</strong><span>upset hits</span></a>
+</section>
+
+<section class="chart-section">
+  <div class="section-kicker">WEEK BY WEEK</div><h2>{{ metric.replace('_',' ')|title }}</h2>
+  {% if weekly_metrics %}
+    <div class="week-bars">
+    {% for item in weekly_metrics %}
+      {% set m = item.metrics %}
+      {% if metric == 'winner_accuracy' %}{% set value = m.winner_accuracy %}{% set width = (value or 0) * 100 %}
+      {% elif metric == 'spread_mae' %}{% set value = m.spread_mae %}{% set width = [((value or 0) / 30 * 100),100]|min %}
+      {% elif metric == 'spread_rmse' %}{% set value = m.spread_rmse %}{% set width = [((value or 0) / 40 * 100),100]|min %}
+      {% elif metric == 'score_mae' %}{% set value = m.score_mae %}{% set width = [((value or 0) / 30 * 100),100]|min %}
+      {% elif metric == 'brier' %}{% set value = m.brier %}{% set width = [((value or 0) * 100),100]|min %}
+      {% elif metric == 'upset_hit_rate' %}{% set value = m.upset_hit_rate %}{% set width = (value or 0) * 100 %}
+      {% else %}{% set value = m.rank_result_correlation %}{% set width = ((value or 0)|abs) * 100 %}{% endif %}
+      <div class="week-bar-row"><span>W{{ item.week }}</span><div class="bar-track"><i style="width:{{ width }}%"></i></div><strong>{% if metric in ['winner_accuracy','upset_hit_rate'] %}{{ value|pct }}{% elif metric == 'brier' %}{{ value|num(3) }}{% else %}{{ value|num }}{% endif %}</strong></div>
+    {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-panel">Official prediction statistics will begin accumulating once the installed site has made and locked predictions before kickoff. Historical games are not backfilled as if those predictions existed at the time.</div>
+  {% endif %}
+</section>
+
+<section class="stat-notes">
+  <div><div class="section-kicker">LOCKED</div><h3>Official ledger</h3><p>Pregame snapshot + model version + projection are retained permanently.</p></div>
+  <div><div class="section-kicker">RETROCAST</div><h3>Later knowledge</h3><p>Past games can be recalculated with later rankings for research without contaminating official accuracy.</p></div>
+  <div><div class="section-kicker">SAMPLE</div><h3>{{ metrics.games }} evaluated games</h3><p>Early-season accuracy is shown with its actual sample size rather than pretending it is stable.</p></div>
+</section>
+{% endblock %}
