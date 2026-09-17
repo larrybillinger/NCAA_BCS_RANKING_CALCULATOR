@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Compare Teams · {{ title }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><div class="eyebrow">TOOL</div><h1>Compare teams</h1><p>Put two current teams side by side without leaving the Weekbook.</p></div></header>
+<form class="compare-form" method="get">
+  <label>Team A<select name="a"><option value="">choose</option>{% for team, season_row in teams %}<option value="{{ team.slug }}" {% if team_a and team.id == team_a.id %}selected{% endif %}>{{ team.name }}</option>{% endfor %}</select></label>
+  <span>vs</span>
+  <label>Team B<select name="b"><option value="">choose</option>{% for team, season_row in teams %}<option value="{{ team.slug }}" {% if team_b and team.id == team_b.id %}selected{% endif %}>{{ team.name }}</option>{% endfor %}</select></label>
+  <button class="text-submit" type="submit">compare →</button>
+</form>
+{% if team_a and team_b %}
+<section class="compare-grid">
+  <div><h2><a href="/teams/{{ team_a.slug }}">{{ team_a.name }}</a></h2>{% if entry_a %}<strong>#{{ entry_a.rank }}</strong><span>{{ entry_a.wins }}–{{ entry_a.losses }}</span><span>{{ entry_a.score|num }} points</span>{% endif %}</div>
+  <div><h2><a href="/teams/{{ team_b.slug }}">{{ team_b.name }}</a></h2>{% if entry_b %}<strong>#{{ entry_b.rank }}</strong><span>{{ entry_b.wins }}–{{ entry_b.losses }}</span><span>{{ entry_b.score|num }} points</span>{% endif %}</div>
+</section>
+{% endif %}
+{% endblock %}
