@@ -26,10 +26,15 @@ Do not change these without an explicit approved decision:
 - an unplayed opponent remains on the neutral T-1 scoring baseline until its first completed current-season game;
 - after a team has played, later games use the previous completed week's scoring rank;
 - old games do not get recursively revalued;
+- production has no separate +10 win bonus;
+- actual scoring margin is used directly;
+- an away win receives +7 site points;
+- a home loss receives -7 site points;
+- a home win, away loss, or neutral-site result receives 0 site points;
+- FBS-vs-FBS and FBS-vs-FCS both use full scoring;
 - FCS-vs-FCS score multiplier is 0.5;
 - FCS loss to FBS multiplier is 0.5;
-- FCS win over FBS receives full credit;
-- FBS games use full scoring.
+- FCS win over FBS receives full credit.
 
 ## Prediction rules
 - The projected winner must follow the ranking order.
