@@ -1,8 +1,8 @@
 # Authoritative production alias for the current Division I model.
 # This file mirrors the live policy in current_season_v1.yaml with a scope-first name.
-model: division_i_weighted_v3
+model: division_i_weighted_v4
 engine: WeeklySeasonRankingEngine
-version: 4
+version: 5
 
 scope:
   ranking_pool: NCAA_Division_I
@@ -25,16 +25,22 @@ weekly_flow:
   retroactive_rescoring: false
 
 scoring:
-  win_bonus: 10
+  win_bonus: 0
   in_pool_margin_scale: 1.0
+  road_win_bonus: 7
+  home_loss_penalty: 7
+  home_win_adjustment: 0
+  away_loss_adjustment: 0
+  neutral_site_adjustment: 0
   out_of_pool_margin_scale: 0.5
   win_opponent_rule: N_plus_1_minus_R
   loss_opponent_rule: negative_R
 
 fcs_scoring_modifier:
-  fbs_team_any_division_i_opponent: 1.0
+  fbs_vs_fbs: 1.0
+  fbs_vs_fcs: 1.0
   fcs_vs_fcs: 0.5
   fcs_loss_to_fbs: 0.5
   fcs_win_over_fbs: 1.0
   fcs_tie_with_fbs: 0.5
-  applies_to_components: [opponent_rank_points, win_points, margin_points]
+  applies_to_components: [opponent_rank_points, margin_points, site_points]
