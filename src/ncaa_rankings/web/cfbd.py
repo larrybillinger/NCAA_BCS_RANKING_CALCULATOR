@@ -212,7 +212,10 @@ def upsert_game(session: Session, payload: dict) -> Game | None:
         row = Game(provider="cfbd", provider_game_id=provider_game_id)
 
     row.season = season
-    row.week = int(payload.get("week") or 0)
+    source_week = int(payload.get("week") or 0)
+    # Ranking Week 1 is the first ranking period. If a provider identifies
+    # early-season games as Week 0, fold them into ranking Week 1.
+    row.week = max(1, source_week)
     row.season_type = str(payload.get("seasonType") or "regular")
     row.start_time = parse_iso_datetime(payload.get("startDate"))
     row.completed = bool(payload.get("completed"))
