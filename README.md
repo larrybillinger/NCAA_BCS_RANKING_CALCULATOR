@@ -58,7 +58,7 @@ FCS loss to FBS  = 50%
 FCS win over FBS = 100%
 ```
 
-FCS is NCAA Division I. FBS-vs-FBS and FBS-vs-FCS are written separately only to make the multiplier explicit. The FCS percentage applies to opponent-rank points, scoring margin, and the seven-point site adjustment.
+FCS is NCAA Division I. FBS-vs-FBS and FBS-vs-FCS are written separately only to make the multiplier explicit. The FCS percentage applies to opponent-rank points and scoring margin. The seven-point road-win/home-loss adjustment is then applied at full value for every team.
 
 There is no conference-strength value, previous-season carryover, preseason seed, or same-week recursive revaluation.
 
