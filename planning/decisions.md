@@ -20,3 +20,7 @@ Use current-season rank-gap calibration against completed game margins. The pred
 
 ## 2026-09-16 — Production path
 Use `/volume1/rankings` on Synology.
+
+
+## 2026-09-17 — Week 1 neutral tied baseline
+Treat every Division I team as tied for first before the first current-season games because there is no evidence separating them. For scoring, use the average occupied rank of that all-team tie, `(N + 1) / 2`. For exact score ties after a completed week, use the average occupied rank of the tied positions for the following week's opponent scoring. Keep deterministic display order separate from scoring rank.
