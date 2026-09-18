@@ -23,10 +23,12 @@ DIVISION_I = {"FBS", "FCS"}
 
 
 def latest_snapshot(session: Session, season: int) -> RankingSnapshot | None:
+    settings = get_settings()
     return session.scalar(
         select(RankingSnapshot)
         .where(
             RankingSnapshot.season == season,
+            RankingSnapshot.model_version == settings.model_version,
             RankingSnapshot.official.is_(True),
         )
         .order_by(RankingSnapshot.week.desc())
@@ -124,30 +126,61 @@ def _subdivision_map(session: Session, season: int) -> dict[int, str]:
     return {team_id: subdivision for team_id, subdivision in rows}
 
 
+def _average_scoring_ranks(entries: list[RankingEntry]) -> dict[int, float]:
+    """Give exact score ties the average rank of the positions they occupy."""
+    ordered = sorted(entries, key=lambda entry: entry.rank)
+    scoring_ranks: dict[int, float] = {}
+    start = 0
+    while start < len(ordered):
+        score = ordered[start].score
+        end = start + 1
+        while end < len(ordered) and ordered[end].score == score:
+            end += 1
+
+        first_position = start + 1
+        last_position = end
+        average_rank = (first_position + last_position) / 2.0
+        for index in range(start, end):
+            scoring_ranks[ordered[index].team_id] = average_rank
+        start = end
+    return scoring_ranks
+
+
 def _previous_state(
     session: Session,
     season: int,
     week: int,
-) -> tuple[dict[int, int], dict[int, float], dict[int, int], dict[int, int], dict[int, float]]:
+) -> tuple[
+    dict[int, int],
+    dict[int, float],
+    dict[int, float],
+    dict[int, int],
+    dict[int, int],
+    dict[int, float],
+]:
     if week <= 1:
-        return {}, {}, {}, {}, {}
+        return {}, {}, {}, {}, {}, {}
     previous = get_snapshot(session, season, week - 1)
     if previous is None:
         raise RuntimeError(
             f"Cannot calculate Week {week}: official Week {week - 1} snapshot is missing."
         )
-    ranks: dict[int, int] = {}
+
+    entries = snapshot_entries(session, previous.id)
+    display_ranks: dict[int, int] = {}
     scores: dict[int, float] = {}
     wins: dict[int, int] = {}
     losses: dict[int, int] = {}
     strength: dict[int, float] = {}
-    for entry in snapshot_entries(session, previous.id):
-        ranks[entry.team_id] = entry.rank
+    for entry in entries:
+        display_ranks[entry.team_id] = entry.rank
         scores[entry.team_id] = entry.score
         wins[entry.team_id] = entry.wins
         losses[entry.team_id] = entry.losses
         strength[entry.team_id] = entry.opponent_strength
-    return ranks, scores, wins, losses, strength
+
+    scoring_ranks = _average_scoring_ranks(entries)
+    return display_ranks, scoring_ranks, scores, wins, losses, strength
 
 
 def _head_to_head(session: Session, season: int, through_week: int) -> dict[tuple[int, int], int]:
@@ -247,9 +280,15 @@ def calculate_week_snapshot(
     subdivisions = _subdivision_map(session, season)
     team_count = len(team_ids)
 
-    previous_ranks, previous_scores, previous_wins, previous_losses, previous_strength = _previous_state(
-        session, season, week
-    )
+    (
+        previous_display_ranks,
+        previous_scoring_ranks,
+        previous_scores,
+        previous_wins,
+        previous_losses,
+        previous_strength,
+    ) = _previous_state(session, season, week)
+    neutral_rank = (team_count + 1) / 2.0
     totals = defaultdict(float, previous_scores)
     wins = defaultdict(int, previous_wins)
     losses = defaultdict(int, previous_losses)
@@ -275,7 +314,11 @@ def calculate_week_snapshot(
             if opponent is None:
                 continue
             opponent_in_pool = opponent_subdivision in DIVISION_I
-            opponent_rank = previous_ranks.get(opponent_id) if opponent_in_pool else None
+            opponent_rank = (
+                neutral_rank
+                if week == 1 and opponent_in_pool
+                else previous_scoring_ranks.get(opponent_id) if opponent_in_pool else None
+            )
             team_game = TeamGame(
                 team=team_name,
                 opponent=opponent.name,
@@ -320,13 +363,16 @@ def calculate_week_snapshot(
         model_version=settings.model_version,
         official=True,
         locked_at=datetime.now(timezone.utc),
-        source_note="Calculated automatically from completed CFBD game results.",
+        source_note=(
+            "Calculated automatically from completed CFBD game results using "
+            "the tied-pool neutral Week 1 baseline and averaged scoring ranks for ties."
+        ),
     )
     session.add(snapshot)
     session.flush()
 
     for team_id in ordered:
-        previous_rank = previous_ranks.get(team_id)
+        previous_rank = previous_display_ranks.get(team_id)
         new_rank = current_ranks[team_id]
         session.add(RankingEntry(
             snapshot_id=snapshot.id,
