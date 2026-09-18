@@ -115,6 +115,32 @@ compose --env-file "$ENV_FILE" up -d --build --remove-orphans
 
 docker image prune -f >/dev/null 2>&1 || true
 
+PORT="$(awk -F= '/^WEB_PORT=/{print $2}' "$ENV_FILE" | tail -n 1)"
+PORT="${PORT:-8765}"
+
+echo "Waiting for the updated website to become healthy..."
+ATTEMPT=0
+while :; do
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsS "http://127.0.0.1:$PORT/health" >/tmp/rankings-health.json 2>/dev/null; then
+      break
+    fi
+  elif command -v wget >/dev/null 2>&1; then
+    if wget -q -O /tmp/rankings-health.json "http://127.0.0.1:$PORT/health"; then
+      break
+    fi
+  fi
+
+  ATTEMPT=$((ATTEMPT + 1))
+  if [ "$ATTEMPT" -ge 30 ]; then
+    echo "ERROR: updated website did not become healthy in time."
+    docker logs --tail 120 ncaa-rankings-web || true
+    docker logs --tail 80 ncaa-rankings-worker || true
+    exit 1
+  fi
+  sleep 4
+done
+
 echo
 echo "Update complete."
 echo "Backup: $BACKUPS/app-$STAMP.tar.gz"
@@ -122,12 +148,8 @@ echo
 echo "Active release:"
 grep '^MODEL_VERSION=' "$ENV_FILE" || true
 grep '^PREDICTOR_VERSION=' "$ENV_FILE" || true
-PORT="$(awk -F= '/^WEB_PORT=/{print $2}' "$ENV_FILE" | tail -n 1)"
-PORT="${PORT:-8765}"
-if command -v curl >/dev/null 2>&1; then
-  curl -fsS "http://127.0.0.1:$PORT/health" 2>/dev/null || true
-  echo
-fi
+cat /tmp/rankings-health.json 2>/dev/null || true
+echo
 echo
 echo "Container status:"
 compose --env-file "$ENV_FILE" ps || true
