@@ -135,6 +135,44 @@ def test_tied_previous_week_scores_use_average_occupied_rank():
     assert snapshots[2].scores["C"] == 2.0
 
 
+
+def test_week_zero_is_folded_into_first_ranking_period():
+    games = [
+        TeamGame("A", "B", 20, 10, week=0),
+        TeamGame("B", "A", 10, 20, week=0),
+        TeamGame("C", "D", 17, 7, week=1),
+        TeamGame("D", "C", 7, 17, week=1),
+    ]
+    engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
+    snapshots = engine.rank_by_week(games, teams=["A", "B", "C", "D"])
+
+    assert list(snapshots) == [1]
+    assert snapshots[1].scores["A"] == snapshots[1].scores["C"]
+
+
+def test_unplayed_opponent_keeps_neutral_rank_until_first_game():
+    games = [
+        TeamGame(
+            "A",
+            "Outside",
+            20,
+            10,
+            week=1,
+            opponent_in_rank_pool=False,
+        ),
+        TeamGame("B", "C", 7, 0, week=2),
+        TeamGame("C", "B", 0, 7, week=2),
+    ]
+    engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
+    snapshots = engine.rank_by_week(games, teams=["A", "B", "C"])
+
+    # N=3 -> neutral scoring rank is 2.0. B and C had not played before
+    # Week 2, so C remains neutral for B's first game even though the
+    # post-Week-1 display order would otherwise give the idle pair a tie rank.
+    # B Week 2 = (4 - 2) + 10 + 7 = 19.
+    assert snapshots[2].scores["B"] == 19.0
+
+
 def test_weekly_engine_rejects_previous_season_seed():
     games = [
         TeamGame("A", "B", 21, 14, week=1),
