@@ -28,3 +28,7 @@ Treat every Division I team as tied for first before the first current-season ga
 
 ## 2026-09-17 — GitHub-first production workflow
 GitHub is the authoritative source for the D1 Rank application, ranking model, website, deployment scripts, and documentation. All normal changes are committed to GitHub first. The Synology production instance under `/volume1/rankings` is updated from GitHub over SSH using repository deployment scripts rather than by editing the live application directly.
+
+
+## 2026-09-17 — Monotonic rank-gap predictions
+The projected winner must follow the ranking order. The higher-ranked team is always the projected winner, and the projected scoring margin is based directly on the numerical gap between team ranks. Current-season results may calibrate the positive points-per-rank scale and uncertainty, but no intercept, home-field adjustment, or unconstrained regression may reverse the projected winner.
