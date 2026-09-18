@@ -5,15 +5,21 @@ from datetime import datetime, timezone
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from .config import get_settings
 from .models import Game, RankingEntry, RankingSnapshot, Team, TeamSeason
 from .prediction_service import latest_prediction
 from .ranking_service import latest_snapshot
 
 
 def available_ranking_weeks(session: Session, season: int) -> list[int]:
+    settings = get_settings()
     return list(session.scalars(
         select(RankingSnapshot.week)
-        .where(RankingSnapshot.season == season, RankingSnapshot.official.is_(True))
+        .where(
+            RankingSnapshot.season == season,
+            RankingSnapshot.model_version == settings.model_version,
+            RankingSnapshot.official.is_(True),
+        )
         .order_by(RankingSnapshot.week)
     ))
 
@@ -127,11 +133,13 @@ def team_schedule_rows(
 
 
 def team_ranking_history(session: Session, team_id: int, season: int) -> list[dict]:
+    settings = get_settings()
     rows = session.execute(
         select(RankingSnapshot, RankingEntry)
         .join(RankingEntry, RankingEntry.snapshot_id == RankingSnapshot.id)
         .where(
             RankingSnapshot.season == season,
+            RankingSnapshot.model_version == settings.model_version,
             RankingSnapshot.official.is_(True),
             RankingEntry.team_id == team_id,
         )
