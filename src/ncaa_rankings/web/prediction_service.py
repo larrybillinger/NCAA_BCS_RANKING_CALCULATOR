@@ -14,12 +14,16 @@ from .ranking_service import get_snapshot, latest_snapshot
 
 DIVISION_I = {"FBS", "FCS"}
 
+# Ranking gap is the only directional input to projected margin.
+FALLBACK_POINTS_PER_RANK = 0.20
+MIN_POINTS_PER_RANK = 0.08
+MAX_POINTS_PER_RANK = 0.35
+MAX_PROJECTED_MARGIN = 45.0
+
 
 @dataclass(frozen=True, slots=True)
 class Calibration:
-    intercept: float
     rank_slope: float
-    neutral_adjustment: float
     average_total: float
     residual_sd: float
     sample_size: int
@@ -46,27 +50,24 @@ def _entry_map(session: Session, snapshot_id: int) -> dict[int, RankingEntry]:
     }
 
 
-def _solve3(matrix: list[list[float]], vector: list[float]) -> list[float]:
-    augmented = [matrix[i][:] + [vector[i]] for i in range(3)]
-    for col in range(3):
-        pivot = max(range(col, 3), key=lambda row: abs(augmented[row][col]))
-        augmented[col], augmented[pivot] = augmented[pivot], augmented[col]
-        divisor = augmented[col][col]
-        if abs(divisor) < 1e-9:
-            continue
-        for j in range(col, 4):
-            augmented[col][j] /= divisor
-        for row in range(3):
-            if row == col:
-                continue
-            factor = augmented[row][col]
-            for j in range(col, 4):
-                augmented[row][j] -= factor * augmented[col][j]
-    return [augmented[i][3] for i in range(3)]
+def _clamp_slope(value: float) -> float:
+    return min(max(value, MIN_POINTS_PER_RANK), MAX_POINTS_PER_RANK)
+
+
+def _monotonic_margin(rank_gap: float, rank_slope: float) -> float:
+    """Translate rank gap directly into projected margin.
+
+    rank_gap is away_rank - home_rank. Positive means the home team is
+    higher-ranked, so the projected home margin must be positive. Negative
+    means the away team is higher-ranked, so the projected home margin must
+    be negative. Equal ranks project an even game.
+    """
+    margin = rank_gap * _clamp_slope(rank_slope)
+    return min(max(margin, -MAX_PROJECTED_MARGIN), MAX_PROJECTED_MARGIN)
 
 
 def fit_calibration(session: Session, season: int, through_week: int) -> Calibration:
-    samples: list[tuple[float, float, float, float]] = []
+    samples: list[tuple[float, float]] = []
     totals: list[float] = []
 
     for week in range(2, through_week + 1):
@@ -91,60 +92,77 @@ def fit_calibration(session: Session, season: int, through_week: int) -> Calibra
             if home is None or away is None:
                 continue
             rank_gap = float(away.rank - home.rank)
-            neutral = 1.0 if game.neutral_site else 0.0
             actual_margin = float(game.home_points - game.away_points)
-            samples.append((1.0, rank_gap, neutral, actual_margin))
+            if rank_gap != 0:
+                samples.append((rank_gap, actual_margin))
             totals.append(float(game.home_points + game.away_points))
 
-    fallback = Calibration(
-        intercept=2.5,
-        rank_slope=0.22,
-        neutral_adjustment=-2.5,
-        average_total=52.0,
-        residual_sd=14.0,
-        sample_size=len(samples),
+    sample_size = len(samples)
+    average_total = statistics.fmean(totals) if totals else 52.0
+
+    if sample_size < 5:
+        return Calibration(
+            rank_slope=FALLBACK_POINTS_PER_RANK,
+            average_total=average_total,
+            residual_sd=14.0,
+            sample_size=sample_size,
+        )
+
+    # Fit through the origin: expected_margin = slope * rank_gap.
+    denominator = sum(rank_gap * rank_gap for rank_gap, _ in samples)
+    fitted_slope = (
+        sum(rank_gap * actual_margin for rank_gap, actual_margin in samples)
+        / denominator
+        if denominator > 0
+        else FALLBACK_POINTS_PER_RANK
     )
-    if len(samples) < 5:
-        return fallback
 
-    xtx = [[0.0] * 3 for _ in range(3)]
-    xty = [0.0] * 3
-    for x0, x1, x2, y in samples:
-        x = [x0, x1, x2]
-        for i in range(3):
-            xty[i] += x[i] * y
-            for j in range(3):
-                xtx[i][j] += x[i] * x[j]
+    # Blend early-season noise toward the conservative fallback, then constrain
+    # the scale so the predicted winner can never reverse the ranking order.
+    blend = min(1.0, sample_size / 100.0)
+    blended_slope = (
+        FALLBACK_POINTS_PER_RANK * (1.0 - blend)
+        + fitted_slope * blend
+    )
+    rank_slope = _clamp_slope(blended_slope)
 
-    for i in range(3):
-        xtx[i][i] += 0.25
-    fitted = _solve3(xtx, xty)
-
-    blend = min(1.0, len(samples) / 80.0)
-    intercept = fallback.intercept * (1.0 - blend) + fitted[0] * blend
-    rank_slope = fallback.rank_slope * (1.0 - blend) + fitted[1] * blend
-    neutral_adjustment = fallback.neutral_adjustment * (1.0 - blend) + fitted[2] * blend
-    average_total = statistics.fmean(totals) if totals else fallback.average_total
-
-    residuals: list[float] = []
-    for x0, x1, x2, y in samples:
-        predicted = intercept + rank_slope * x1 + neutral_adjustment * x2
-        residuals.append(y - predicted)
+    residuals = [
+        actual_margin - _monotonic_margin(rank_gap, rank_slope)
+        for rank_gap, actual_margin in samples
+    ]
     residual_sd = statistics.pstdev(residuals) if len(residuals) > 1 else 14.0
     residual_sd = max(residual_sd, 7.0)
 
     return Calibration(
-        intercept=intercept,
         rank_slope=rank_slope,
-        neutral_adjustment=neutral_adjustment,
         average_total=average_total,
         residual_sd=residual_sd,
-        sample_size=len(samples),
+        sample_size=sample_size,
     )
 
 
 def _normal_cdf(value: float) -> float:
     return 0.5 * (1.0 + math.erf(value / math.sqrt(2.0)))
+
+
+def _projection_from_ranks(
+    home_rank: int,
+    away_rank: int,
+    calibration: Calibration,
+) -> tuple[float, float, float, float]:
+    rank_gap = float(away_rank - home_rank)
+    margin = _monotonic_margin(rank_gap, calibration.rank_slope)
+    total = min(max(calibration.average_total, 34.0), 76.0)
+    home_points = max(0.0, (total + margin) / 2.0)
+    away_points = max(0.0, (total - margin) / 2.0)
+
+    if margin == 0:
+        probability = 0.5
+    else:
+        probability = _normal_cdf(margin / calibration.residual_sd)
+        probability = min(max(probability, 0.02), 0.98)
+
+    return home_points, away_points, margin, probability
 
 
 def project_game(session: Session, game: Game, snapshot: RankingSnapshot) -> Projection | None:
@@ -163,15 +181,12 @@ def project_game(session: Session, game: Game, snapshot: RankingSnapshot) -> Pro
     effective_away_rank = away_rank or (team_count + 1)
 
     calibration = fit_calibration(session, snapshot.season, snapshot.week)
+    home_points, away_points, margin, probability = _projection_from_ranks(
+        effective_home_rank,
+        effective_away_rank,
+        calibration,
+    )
     rank_gap = float(effective_away_rank - effective_home_rank)
-    neutral = 1.0 if game.neutral_site else 0.0
-    margin = calibration.intercept + calibration.rank_slope * rank_gap + calibration.neutral_adjustment * neutral
-    total = min(max(calibration.average_total, 34.0), 76.0)
-    margin = min(max(margin, -45.0), 45.0)
-    home_points = max(0.0, (total + margin) / 2.0)
-    away_points = max(0.0, (total - margin) / 2.0)
-    probability = _normal_cdf(margin / calibration.residual_sd)
-    probability = min(max(probability, 0.02), 0.98)
 
     return Projection(
         home_rank=home_rank,
@@ -184,11 +199,10 @@ def project_game(session: Session, game: Game, snapshot: RankingSnapshot) -> Pro
         detail={
             "method": settings.predictor_version,
             "rank_gap": round(rank_gap, 2),
-            "intercept": round(calibration.intercept, 4),
             "rank_slope": round(calibration.rank_slope, 4),
-            "neutral_adjustment": round(calibration.neutral_adjustment, 4),
             "average_total": round(calibration.average_total, 2),
             "residual_sd": round(calibration.residual_sd, 2),
+            "winner_rule": "higher_rank_always_projected_winner",
         },
     )
 
@@ -307,18 +321,18 @@ def rank_matchup_projection(
     *,
     neutral: bool = False,
 ) -> Projection | None:
+    # neutral is retained for backwards compatibility. The v3 predictor
+    # deliberately ignores game site: ranking gap alone determines margin.
     snapshot = latest_snapshot(session, season)
     if snapshot is None:
         return None
     calibration = fit_calibration(session, season, snapshot.week)
+    home_points, away_points, margin, probability = _projection_from_ranks(
+        home_rank,
+        away_rank,
+        calibration,
+    )
     rank_gap = float(away_rank - home_rank)
-    neutral_value = 1.0 if neutral else 0.0
-    margin = calibration.intercept + calibration.rank_slope * rank_gap + calibration.neutral_adjustment * neutral_value
-    total = min(max(calibration.average_total, 34.0), 76.0)
-    margin = min(max(margin, -45.0), 45.0)
-    home_points = max(0.0, (total + margin) / 2.0)
-    away_points = max(0.0, (total - margin) / 2.0)
-    probability = min(max(_normal_cdf(margin / calibration.residual_sd), 0.02), 0.98)
     return Projection(
         home_rank=home_rank,
         away_rank=away_rank,
@@ -329,7 +343,9 @@ def rank_matchup_projection(
         sample_size=calibration.sample_size,
         detail={
             "method": get_settings().predictor_version,
+            "rank_gap": round(rank_gap, 2),
             "rank_slope": round(calibration.rank_slope, 4),
             "average_total": round(calibration.average_total, 2),
+            "winner_rule": "higher_rank_always_projected_winner",
         },
     )
