@@ -39,3 +39,7 @@ A team remains on the neutral T-1 scoring baseline until it completes its first 
 
 ## 2026-09-17 — Historical retrocasts
 Completed games that never had an actual locked pregame prediction may be shown with a research retrocast generated only from the ranking information available before that game. Retrocasts must be visibly labeled and must never be mixed into official locked-prediction accuracy.
+
+
+## 2026-09-18 — Remove win bonus and add site adjustment
+Production no longer awards a separate +10 for a win. The actual scoring margin remains a direct game-score component. An away win receives +7 ranking points, and a home loss receives -7 ranking points. Home wins, away losses, and neutral-site results receive no site adjustment. FBS-vs-FBS and FBS-vs-FCS are both explicitly 100%; FCS remains part of Division I. The FCS percentage applies to opponent-rank points, scoring margin, and site adjustment.
