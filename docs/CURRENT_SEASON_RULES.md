@@ -121,7 +121,7 @@ Final game score     = -101
 
 ## Road-win example
 
-If the #40 team is beaten 31-17 by a visiting FBS team in a 267-team pool:
+If a visiting FBS team beats an opponent whose prior-week scoring rank is #40 by 31-17 in a 267-team pool:
 
 ```text
 Opponent rank points = 268 - 40 = 228
@@ -130,7 +130,7 @@ Road-win adjustment  = +7
 Game score           = 249
 ```
 
-The home loser receives:
+Separately, if a home team loses 17-31 to an opponent whose prior-week scoring rank is #40:
 
 ```text
 Opponent rank points = -40
