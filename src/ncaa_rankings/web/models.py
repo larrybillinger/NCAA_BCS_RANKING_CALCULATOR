@@ -136,6 +136,8 @@ class RankingEntry(Base):
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
     rank: Mapped[int] = mapped_column(Integer)
     score: Mapped[float] = mapped_column(Float)
+    raw_score: Mapped[float] = mapped_column(Float, default=0.0)
+    games_played: Mapped[int] = mapped_column(Integer, default=0)
     wins: Mapped[int] = mapped_column(Integer, default=0)
     losses: Mapped[int] = mapped_column(Integer, default=0)
     opponent_strength: Mapped[float] = mapped_column(Float, default=0.0)
