@@ -4,15 +4,22 @@
 <header class="page-head"><div><div class="eyebrow">METHOD NOTES</div><h1>Transparent by design</h1><p>The public site explains both the ranking formula and the prediction layer rather than hiding a black-box score.</p></div></header>
 <section class="method-copy">
 <h2>Ranking formula</h2>
-<p>For a Division I opponent ranked <em>R</em> in a pool of <em>N</em> teams:</p>
-<pre>Win  = (N + 1 - R) + 10 + scoring margin
-Loss = (-R) + scoring margin</pre>
+<p>For a Division I opponent ranked <em>R</em> in a pool of <em>N</em> teams, the actual scoring margin is always <em>points for − points against</em>. There is no longer a separate +10 for winning.</p>
+<pre>Home or neutral win = (N + 1 - R) + scoring margin
+Away win            = (N + 1 - R) + scoring margin + 7
+
+Away or neutral loss = (-R) + scoring margin
+Home loss            = (-R) + scoring margin - 7</pre>
+<p>The seven-point site adjustment rewards winning on the road and penalizes losing at home. A home win gets no extra site points, and an away loss gets no extra site penalty.</p>
 <p>Every Division I team enters its first game on the same neutral T-1 baseline because it has no current-season evidence yet. For scoring, that baseline is the average occupied rank <em>(N + 1) / 2</em>; in the current {{ team_count }}-team pool that is {{ neutral_rank|num }}. Provider Week 0 games are treated as ranking Week 1. A team that has not played yet stays on the neutral baseline for opponent scoring; after its first completed game, the immediately preceding completed week's scoring rank takes over. Exact score ties share the average rank of their occupied positions. Earlier games stay frozen.</p>
 <h2>FCS modifier</h2>
-<pre>FBS team vs Division I opponent = 100%
-FCS vs FCS                      = 50%
-FCS loss to FBS                 = 50%
-FCS win over FBS                = 100%</pre>
+<p>FBS and FCS are both Division I. The percentages below describe how much of the normal game score each side receives.</p>
+<pre>FBS vs FBS      = 100%
+FBS vs FCS      = 100%
+FCS vs FCS      = 50%
+FCS loss to FBS = 50%
+FCS win over FBS= 100%</pre>
+<p>The FCS percentage applies to opponent-rank points, scoring margin, and the seven-point site adjustment.</p>
 <h2>Score prediction</h2>
 <p>The prediction layer is monotonic: the higher-ranked team is always the projected winner. The projected margin is the ranking gap multiplied by a current-season points-per-rank scale. That scale is calibrated from completed games, blended conservatively early in the season, and constrained so it cannot reverse the ranking order. Home field and free intercept adjustments do not change the projected winner. The season's average scoring total is used only to turn the projected margin into a projected final score.</p>
 <h2>Locked predictions</h2>
