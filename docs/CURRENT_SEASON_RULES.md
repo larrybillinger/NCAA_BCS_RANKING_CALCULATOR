@@ -144,14 +144,30 @@ Division II, Division III, NAIA, and other opponents outside the active Division
 
 The configured out-of-pool margin scale remains separate from the FBS/FCS modifier. The production site adjustment still reflects road win/home loss.
 
+## Season aggregation and bye weeks
+
+Every completed game keeps the exact frozen score it earned when played.
+
+The value used to rank a team is:
+
+```text
+Ranking Score = Sum of Frozen Game Scores / Games Played
+```
+
+A bye week adds neither points nor a game to the denominator, so the team's ranking average does not change merely because it did not play. Playing an extra game likewise does not create an automatic cumulative-points advantage.
+
+The raw cumulative score is retained for auditing but does not determine ranking position.
+
 ## Tie handling
 
 If teams have identical season scores, deterministic display tiebreaking is used so the same inputs always produce the same display order. The engine can consider:
 
 1. head-to-head wins among the tied teams;
-2. number of wins;
-3. accumulated current-season opponent strength;
+2. win percentage;
+3. average current-season opponent strength per game;
 4. deterministic team name/ID fallback.
+
+The normalized tie-breakers avoid rewarding a team merely for having played more games.
 
 Display ordering does not change the average scoring rank assigned to an exact score tie.
 
@@ -159,11 +175,11 @@ Display ordering does not change the average scoring rank assigned to an exact s
 
 ```text
 Engine: WeeklySeasonRankingEngine
-Model:  division_i_weighted_v4
+Model:  division_i_weighted_v5
 ```
 
 The older recursive engine and legacy FBS model remain available for historical reproduction and are not modified by the production formula change.
 
 ## Guiding rule
 
-**Use current-season opponent rank plus the actual scoring margin, reward road wins by seven, penalize home losses by seven, keep every unplayed team on the neutral first-game baseline, and never retroactively rewrite old games.**
+**Use current-season opponent rank plus the actual scoring margin, reward road wins by seven, penalize home losses by seven, rank teams by average frozen game score so bye weeks are neutral, keep every unplayed team on the neutral first-game baseline, and never retroactively rewrite old games.**
