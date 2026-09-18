@@ -29,6 +29,7 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     _migrate_fractional_opponent_rank()
     _migrate_site_points()
+    _migrate_average_ranking_fields()
 
 
 def _migrate_fractional_opponent_rank() -> None:
@@ -67,6 +68,32 @@ def _migrate_site_points() -> None:
                 text(
                     "ALTER TABLE ranking_game_audits "
                     "ADD COLUMN site_points DOUBLE PRECISION NOT NULL DEFAULT 0"
+                )
+            )
+
+
+def _migrate_average_ranking_fields() -> None:
+    """Add fields used to rank by average frozen game score."""
+    if engine.dialect.name != "postgresql":
+        return
+
+    columns = {
+        column["name"]
+        for column in inspect(engine).get_columns("ranking_entries")
+    }
+    with engine.begin() as connection:
+        if "raw_score" not in columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE ranking_entries "
+                    "ADD COLUMN raw_score DOUBLE PRECISION NOT NULL DEFAULT 0"
+                )
+            )
+        if "games_played" not in columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE ranking_entries "
+                    "ADD COLUMN games_played INTEGER NOT NULL DEFAULT 0"
                 )
             )
 
