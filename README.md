@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.5.1**
+**Current version: 0.5.2**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -61,7 +61,7 @@ There is no conference-strength value, previous-season carryover, preseason seed
 
 Predictions are derived from ranked position, not from an external betting line.
 
-The current predictor fits the relationship between **pregame rank gap and actual scoring margin** using completed games from the current season. It also learns the season's average scoring total and residual uncertainty. Early in the season the model blends toward a documented conservative fallback because the sample is small.
+The current predictor is deliberately **monotonic**: the higher-ranked team is always the projected winner, and the projected scoring margin is based directly on the gap between the two ranks. The current-season data calibrates only the positive points-per-rank scale and residual uncertainty. The fit goes through the origin, blends toward a conservative early-season fallback, and is constrained to a documented reasonable range. Home field, an intercept, or another free adjustment may not reverse the ranking order. The season's average scoring total is used only to translate the projected margin into a projected final score.
 
 For each future game the site stores:
 
