@@ -63,13 +63,18 @@
     <span class="season-label">{{ season }}</span>
   </div>
   <div class="ticker-row">
-    {% set dock_metrics = metrics if metrics.games else retro_metrics %}
-    <span class="ticker-mode">{{ 'OFFICIAL' if metrics.games else 'RETROCAST' }}</span>
-    <a href="/stats?metric=winner_accuracy"><strong>{{ dock_metrics.winner_accuracy|pct if dock_metrics.games else '—' }}</strong> winner</a>
-    <a href="/stats?metric=spread_mae"><strong>{{ dock_metrics.spread_mae|num if dock_metrics.games else '—' }}</strong> margin MAE</a>
-    <a href="/stats?metric=brier"><strong>{{ dock_metrics.brier|num(3) if dock_metrics.games else '—' }}</strong> Brier</a>
-    <a href="/stats?metric=rank_result_correlation"><strong>{{ dock_metrics.rank_result_correlation|num(2) if dock_metrics.rank_result_correlation is not none else '—' }}</strong> rank corr.</a>
-    <span class="ticker-note">{% if metrics.games %}Locked pregame ledger{% else %}Research only · not official{% endif %}</span>
+    {% if metrics.games %}
+      <span class="ticker-mode">OFFICIAL</span>
+      <a href="/stats?metric=winner_accuracy"><strong>{{ metrics.winner_accuracy|pct }}</strong> winner</a>
+      <a href="/stats?metric=spread_mae"><strong>{{ metrics.spread_mae|num }}</strong> margin MAE</a>
+      <a href="/stats?metric=brier"><strong>{{ metrics.brier|num(3) }}</strong> Brier</a>
+      <a href="/stats?metric=rank_result_correlation"><strong>{{ metrics.rank_result_correlation|num(2) if metrics.rank_result_correlation is not none else '—' }}</strong> rank corr.</a>
+      <span class="ticker-note">Locked pregame ledger</span>
+    {% else %}
+      <span class="ticker-mode">OFFICIAL PENDING</span>
+      <a href="/stats"><strong>Research</strong> retrocast stats available →</a>
+      <span class="ticker-note">Official accuracy starts with predictions actually locked before kickoff</span>
+    {% endif %}
   </div>
 </footer>
 </body>
