@@ -43,3 +43,7 @@ Completed games that never had an actual locked pregame prediction may be shown 
 
 ## 2026-09-18 — Remove win bonus and add site adjustment
 Production no longer awards a separate +10 for a win. The actual scoring margin remains a direct game-score component. An away win receives +7 ranking points, and a home loss receives -7 ranking points. Home wins, away losses, and neutral-site results receive no site adjustment. FBS-vs-FBS and FBS-vs-FCS are both explicitly 100%; FCS remains part of Division I. The FCS percentage applies to opponent-rank points and scoring margin. The ±7 site adjustment is applied afterward at full value for every team.
+
+
+## 2026-09-18 — Rank by average frozen game score
+Production ranking position is based on the arithmetic mean of each team's frozen game scores rather than the cumulative point total. This removes the automatic advantage of playing more games and makes bye weeks neutral. Raw cumulative points remain available for auditing. Exact average-score ties use head-to-head, then win percentage, then average opponent strength per game, then deterministic team-name fallback.
