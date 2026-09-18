@@ -13,8 +13,8 @@ Weekbook-style FastAPI/Jinja site with PostgreSQL and a background CFBD sync wor
 rank_gap_v3 — projected winner always follows ranking order; projected margin is based directly on rank gap.
 
 ## Current bundled ranking data
-- 2026 Week 1 recalculated v0.5.0 ranking
-- 2026 Week 2 recalculated v0.5.0 final ranking
+- 2026 Week 1 current v0.6.0 / division_i_weighted_v3 ranking
+- 2026 Week 2 current v0.6.0 / division_i_weighted_v3 final ranking
 
 ## Deployment target
 Synology Container Manager under `/volume1/rankings`.
