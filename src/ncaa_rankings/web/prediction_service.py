@@ -282,10 +282,15 @@ def latest_prediction(
     as_of_week: int | None = None,
     official_only: bool = False,
 ) -> PredictionSnapshot | None:
+    settings = get_settings()
     query = (
         select(PredictionSnapshot)
         .join(RankingSnapshot, RankingSnapshot.id == PredictionSnapshot.ranking_snapshot_id)
-        .where(PredictionSnapshot.game_id == game_id)
+        .where(
+            PredictionSnapshot.game_id == game_id,
+            PredictionSnapshot.predictor_version == settings.predictor_version,
+            RankingSnapshot.model_version == settings.model_version,
+        )
     )
     if official_only:
         query = query.where(PredictionSnapshot.official.is_(True))
