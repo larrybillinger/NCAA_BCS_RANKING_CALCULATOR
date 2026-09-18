@@ -1,5 +1,13 @@
 # Version history
 
+## 0.6.1 — Reliable Synology deployment
+
+- Build the D1 Rank application image once for both web and worker.
+- Extend Docker/Compose timeouts for slower Synology systems.
+- Force-recreate application containers after a successful build.
+- Verify the running app, model, and predictor versions from `/health`.
+- Fix temporary environment-file handling in the updater.
+
 ## 0.6.0 — First-game baseline and Weekbook completion
 
 - Normalize provider Week 0 into ranking Week 1.
