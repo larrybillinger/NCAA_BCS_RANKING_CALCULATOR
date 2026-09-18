@@ -15,9 +15,9 @@ from ncaa_rankings.models.base import (
 class WeeklySeasonRankingEngine:
     """Rank NCAA Division I football using only the current season.
 
-    The production pool contains FBS and FCS teams together. Subdivision does
-    not affect scoring. There is no preseason ranking, previous-season
-    carryover, or conference strength.
+    The production pool contains FBS and FCS teams together. The active model
+    may apply the documented FCS modifier, but there is no preseason ranking,
+    previous-season carryover, or conference strength.
 
     Before Week 1 every team is tied because the current season contains no
     evidence yet. For scoring, that all-team tie uses the average occupied rank
