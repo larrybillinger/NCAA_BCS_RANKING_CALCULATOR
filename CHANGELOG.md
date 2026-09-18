@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.8.0 — 2026-09-18
+
+### Ranking aggregation
+- Ranking position now uses average frozen game score rather than cumulative points.
+- A bye week adds neither score nor a game to the denominator.
+- Playing more games no longer creates an automatic cumulative-points advantage.
+- Raw cumulative game-score total is retained for audit only.
+- Exact average-score ties use head-to-head, win percentage, average opponent strength, then deterministic fallback.
+- Production ranking model is now `division_i_weighted_v5`.
+
+### Database
+- Added `raw_score` and `games_played` to ranking entries.
+- Existing PostgreSQL installs add those fields automatically.
+
+### Website
+- Ranking tables, team pages, and compare views now label the production value as average score.
+
 ## v0.7.0 — 2026-09-18
 
 ### Ranking formula
