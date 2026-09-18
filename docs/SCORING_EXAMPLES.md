@@ -1,6 +1,6 @@
 # Current-Season Scoring Examples
 
-These examples use the unified NCAA Division I ranking pool with the v0.3.1 FCS scoring modifier.
+These examples use the unified NCAA Division I ranking pool with the v0.5.0 tied-pool baseline and FCS scoring modifier.
 
 ## Week 1: FBS beats FCS
 
@@ -9,21 +9,23 @@ Kansas State 71, Nicholls 3
 Kansas State receives the full score:
 
 ```text
-Opponent Rank Points = 0
-Win Bonus            = 10
-Margin               = 68
-Kansas State Score   = 78
+Neutral Scoring Rank = 133.5
+Opponent Rank Points  = 267 - 133.5 = 133.5
+Win Bonus             = 10
+Margin                = 68
+Kansas State Score    = 211.5
 ```
 
 Nicholls is FCS and lost to an FBS team, so its negative score is halved:
 
 ```text
-Opponent Rank Points = 0
-Win Bonus            = 0
-Margin               = -68
-Normal Score         = -68
-FCS Multiplier       = 0.5
-Nicholls Score       = -34
+Neutral Scoring Rank = 133.5
+Opponent Rank Points  = -133.5
+Win Bonus             = 0
+Margin                = -68
+Normal Score          = -201.5
+FCS Multiplier        = 0.5
+Nicholls Score        = -100.75
 ```
 
 ## Week 1: FBS vs FBS
@@ -31,10 +33,11 @@ Nicholls Score       = -34
 Alabama 48, East Carolina 10
 
 ```text
-Opponent Rank Points = 0
-Win Bonus            = 10
-Margin               = 38
-Game Score            = 48
+Neutral Scoring Rank = 133.5
+Opponent Rank Points  = 133.5
+Win Bonus             = 10
+Margin                = 38
+Game Score            = 181.5
 ```
 
 FBS teams always use 100% of the normal Division I game score.
@@ -44,20 +47,23 @@ FBS teams always use 100% of the normal Division I game score.
 Suppose FCS Team A beats FCS Team B 30-10:
 
 ```text
-Opponent Rank Points = 0
-Win Bonus            = 10
-Margin               = 20
-Normal Score         = 30
-FCS Multiplier       = 0.5
-Final Score          = 15
+Neutral Scoring Rank = 133.5
+Opponent Rank Points  = 133.5
+Win Bonus             = 10
+Margin                = 20
+Normal Score          = 163.5
+FCS Multiplier        = 0.5
+Final Score           = 81.75
 ```
 
 The losing FCS team also receives half of its normal negative score:
 
 ```text
-Normal Score         = -20
+Opponent Rank Points = -133.5
+Margin               = -20
+Normal Score         = -153.5
 FCS Multiplier       = 0.5
-Final Score          = -10
+Final Score          = -76.75
 ```
 
 ## Week 2 and later: FCS beats FBS
@@ -91,3 +97,14 @@ Final Score          = -27
 ## Non-Division-I opponent
 
 If a ranked Division I team plays a Division II, Division III, NAIA, or other team outside the active ranking pool, that opponent has no ranking value. The configured out-of-pool treatment remains separate from the FCS scoring modifier.
+
+
+## Exact score ties
+
+If three teams finish a completed week with exactly the same season score and occupy display positions 10, 11, and 12, they all carry the same opponent-scoring rank into the next week:
+
+```text
+Average Occupied Rank = (10 + 11 + 12) / 3 = 11
+```
+
+The deterministic display tiebreakers can still order the three teams for presentation, but the ranking formula does not pretend one tied score is mathematically stronger than another.
