@@ -1,5 +1,12 @@
 # Version history
 
+## 0.5.1 — Deployment version visibility and model sync
+
+- Show application, ranking-model, and predictor versions in the website sidebar.
+- Return those versions from `/health`.
+- Make the normal Synology updater synchronize committed model identifiers from GitHub while preserving secrets.
+- Prevent the NAS from continuing to select stale v1 ranking snapshots after a GitHub update.
+
 ## 0.5.0 — Neutral tied Week 1 baseline
 
 - Treat all Division I teams as tied before Week 1.
