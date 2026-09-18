@@ -1,7 +1,7 @@
 # Project state
 
 ## Current release
-v0.5.0
+v0.5.1
 
 ## Production model
 division_i_weighted_v2
@@ -17,4 +17,4 @@ Weekbook-style FastAPI/Jinja site with PostgreSQL and a background CFBD sync wor
 Synology Container Manager under `/volume1/rankings`.
 
 ## Current next milestone
-Deploy v0.5.0, connect a valid CFBD API key, verify Week 3 schedule ingestion, and let the application create the first truly pregame locked predictions.
+Deploy v0.5.1, connect a valid CFBD API key, verify Week 3 schedule ingestion, and let the application create the first truly pregame locked predictions.
