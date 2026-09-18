@@ -46,7 +46,7 @@ Every Division I team enters its first current-season game tied at the same neut
 Week 1 neutral scoring rank = (N + 1) / 2
 ```
 
-With 266 teams, an unplayed Division I opponent therefore has scoring rank **133.5**. Provider Week 0 is normalized into ranking Week 1. A team remains on the neutral scoring baseline until it completes its first game; after that, the immediately preceding completed week's current-season scoring rank is used. If teams are exactly tied on season score, they share the average rank of the positions occupied by that tie for the next week's opponent scoring.
+The live site calculates that neutral rank from the current pool size. For example, with 267 teams the neutral scoring rank is **134.0**. Provider Week 0 is normalized into ranking Week 1. A team remains on the neutral scoring baseline until it completes its first game; after that, the immediately preceding completed week's current-season scoring rank is used. If teams are exactly tied on season score, they share the average rank of the positions occupied by that tie for the next week's opponent scoring.
 
 ### FCS modifier
 
