@@ -35,7 +35,10 @@ Do not change these without an explicit approved decision:
 - FCS-vs-FCS score multiplier is 0.5;
 - FCS loss to FBS multiplier is 0.5;
 - FCS win over FBS receives full credit;
-- FCS multipliers apply to opponent-rank and margin points, while the ±7 site adjustment remains full value.
+- FCS multipliers apply to opponent-rank and margin points, while the ±7 site adjustment remains full value;
+- season ranking position is based on average frozen game score, not cumulative total;
+- bye weeks add neither score nor denominator;
+- exact average-score ties use head-to-head, win percentage, average opponent strength, then deterministic fallback.
 
 ## Prediction rules
 - The projected winner must follow the ranking order.
