@@ -19,10 +19,12 @@ class WeeklySeasonRankingEngine:
     not affect scoring. There is no preseason ranking, previous-season
     carryover, or conference strength.
 
-    Week 1 creates the first ranking from Week 1 game totals alone. Beginning
-    in Week 2, each game uses the opponent's rank from the immediately preceding
-    completed week. Published weekly rankings are never recursively rewritten
-    by later weeks.
+    Before Week 1 every team is tied because the current season contains no
+    evidence yet. For scoring, that all-team tie uses the average occupied rank
+    of the pool: (N + 1) / 2. Beginning in Week 2, each game uses the opponent's
+    scoring rank from the immediately preceding completed week. Teams tied on
+    season score share the average rank of the positions occupied by that tie.
+    Published weekly rankings are never recursively rewritten by later weeks.
     """
 
     def __init__(self, model: RankingModel) -> None:
@@ -98,7 +100,10 @@ class WeeklySeasonRankingEngine:
         opponent_strength: dict[str, float] = defaultdict(float)
         h2h_wins: dict[tuple[str, str], int] = defaultdict(int)
 
-        previous_ranks: dict[str, int] | None = None
+        neutral_rank = (team_count + 1) / 2.0
+        previous_scoring_ranks: dict[str, float] = {
+            team: neutral_rank for team in ordered_teams
+        }
         snapshots: dict[int, RankingResult] = {}
 
         weeks = sorted({game.week for game in eligible_games if game.week is not None})
@@ -106,8 +111,8 @@ class WeeklySeasonRankingEngine:
             week_games = [game for game in eligible_games if game.week == week]
             for game in week_games:
                 opponent_rank = (
-                    previous_ranks.get(game.opponent)
-                    if previous_ranks is not None
+                    previous_scoring_ranks.get(game.opponent)
+                    if game.opponent_in_rank_pool
                     else None
                 )
                 age_weeks = self._age_weeks(game, freeze_date)
@@ -155,9 +160,41 @@ class WeeklySeasonRankingEngine:
                 converged=True,
                 cycle_detected=False,
             )
-            previous_ranks = current_ranks
+            previous_scoring_ranks = self._scoring_ranks(new_order, totals)
 
         return snapshots
+
+    @staticmethod
+    def _scoring_ranks(
+        ordered_teams: list[str],
+        totals: Mapping[str, float],
+    ) -> dict[str, float]:
+        """Return average occupied rank for every exact score tie.
+
+        Display order remains deterministic, but opponent scoring does not
+        pretend that tied teams have different mathematical ranks. For example,
+        three teams tied across positions 10, 11, and 12 each receive a scoring
+        rank of 11.0.
+        """
+        ranks: dict[str, float] = {}
+        start = 0
+        while start < len(ordered_teams):
+            score = totals.get(ordered_teams[start], 0.0)
+            end = start + 1
+            while (
+                end < len(ordered_teams)
+                and totals.get(ordered_teams[end], 0.0) == score
+            ):
+                end += 1
+
+            first_position = start + 1
+            last_position = end
+            average_rank = (first_position + last_position) / 2.0
+            for index in range(start, end):
+                ranks[ordered_teams[index]] = average_rank
+            start = end
+
+        return ranks
 
     @staticmethod
     def _age_weeks(game: TeamGame, freeze_date: date | None) -> float:
