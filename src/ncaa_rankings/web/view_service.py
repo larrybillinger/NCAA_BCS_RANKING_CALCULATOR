@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .models import Game, RankingEntry, RankingSnapshot, Team, TeamSeason
-from .prediction_service import latest_prediction
+from .prediction_service import latest_prediction, retrocast_game
 from .ranking_service import latest_snapshot
 
 
@@ -84,15 +84,34 @@ def game_rows_for_week(
         home = _team_name(session, game.home_team_id)
         away = _team_name(session, game.away_team_id)
         prediction = None
+        prediction_kind = None
+        prediction_source_week = None
+
         if game.completed or (game.start_time and game.start_time <= now):
             prediction = latest_prediction(session, game.id, official_only=True)
-        if prediction is None:
+            if prediction is not None:
+                prediction_kind = "official"
+                prediction_source_week = prediction.ranking_snapshot.week
+
+        if prediction is None and not game.completed:
             prediction = latest_prediction(session, game.id, as_of_week=as_of_week)
+            if prediction is not None:
+                prediction_kind = "current"
+                prediction_source_week = prediction.ranking_snapshot.week
+
+        if prediction is None and game.completed:
+            prediction = retrocast_game(session, game)
+            if prediction is not None:
+                prediction_kind = "retrocast"
+                prediction_source_week = game.week - 1
+
         rows.append({
             "game": game,
             "home": home,
             "away": away,
             "prediction": prediction,
+            "prediction_kind": prediction_kind,
+            "prediction_source_week": prediction_source_week,
             "actual_margin": (game.home_points - game.away_points if game.home_points is not None and game.away_points is not None else None),
         })
     return rows
@@ -117,16 +136,35 @@ def team_schedule_rows(
         opponent_id = game.away_team_id if is_home else game.home_team_id
         opponent = _team_name(session, opponent_id)
         prediction = None
+        prediction_kind = None
+        prediction_source_week = None
         official_prediction = latest_prediction(session, game.id, official_only=True)
+
         if game.completed or (game.start_time and game.start_time <= now):
             prediction = official_prediction
-        if prediction is None:
+            if prediction is not None:
+                prediction_kind = "official"
+                prediction_source_week = prediction.ranking_snapshot.week
+
+        if prediction is None and not game.completed:
             prediction = latest_prediction(session, game.id, as_of_week=as_of_week)
+            if prediction is not None:
+                prediction_kind = "current"
+                prediction_source_week = prediction.ranking_snapshot.week
+
+        if prediction is None and game.completed:
+            prediction = retrocast_game(session, game)
+            if prediction is not None:
+                prediction_kind = "retrocast"
+                prediction_source_week = game.week - 1
+
         rows.append({
             "game": game,
             "opponent": opponent,
             "is_home": is_home,
             "prediction": prediction,
+            "prediction_kind": prediction_kind,
+            "prediction_source_week": prediction_source_week,
             "official_prediction": official_prediction,
         })
     return rows
