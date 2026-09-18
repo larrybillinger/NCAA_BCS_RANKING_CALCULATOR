@@ -3,9 +3,9 @@
 {% block content %}
 <header class="page-head">
   <div>
-    <div class="eyebrow">WEEK {{ selected_week }} CHAPTER</div>
+    <div class="eyebrow">AFTER WEEK {{ selected_week }}</div>
     <h1>{% if snapshot %}Division I ranking{% else %}Ranking not available yet{% endif %}</h1>
-    {% if snapshot %}<p>{{ snapshot.locked_at.strftime('%B %d, %Y') }} · {{ ranking_rows|length }} shown · model {{ snapshot.model_version }}</p>{% else %}<p>This week has not been frozen into an official ranking.</p>{% endif %}
+    {% if snapshot %}<p>Ranking after Week {{ selected_week }} results · {{ snapshot.locked_at.strftime('%B %d, %Y') }} · {{ ranking_rows|length }} shown · model {{ snapshot.model_version }}</p>{% else %}<p>This week has not been frozen into an official ranking.</p>{% endif %}
   </div>
   <div class="head-links">
     {% if selected_week > 1 %}<a href="/?week={{ selected_week - 1 }}">← previous</a>{% endif %}
@@ -31,7 +31,8 @@
   </div>
 </section>
 
-{% if not cfbd_configured %}<div class="quiet-note">The bundled Week 1 and Week 2 rankings are available now. Add a CFBD API key on the Synology server to populate schedules, future games, stats, and automatic weekly updates.</div>{% endif %}
+{% if selected_week == 1 %}<div class="quiet-note">This is the ranking <strong>after</strong> Week 1 results. Every team entered its first game at the neutral T-1 baseline (scoring rank 133.5 in the 266-team pool). Provider Week 0 games are treated as ranking Week 1.</div>{% endif %}
+{% if not cfbd_configured %}<div class="quiet-note">The bundled rankings are available now. Add a CFBD API key on the Synology server to populate schedules, future games, stats, and automatic weekly updates.</div>{% endif %}
 
 <div class="table-wrap">
 <table class="ranking-table">
