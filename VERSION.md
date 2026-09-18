@@ -1,5 +1,11 @@
 # Version history
 
+## 0.6.2 — Retrocast route compatibility
+
+- Fix team-page, Game Book, and Accuracy HTTP 500 errors.
+- Make research retrocast objects compatible with persisted prediction field names.
+- Add regression test for the shared projection interface.
+
 ## 0.6.1 — Reliable Synology deployment
 
 - Build the D1 Rank application image once for both web and worker.
