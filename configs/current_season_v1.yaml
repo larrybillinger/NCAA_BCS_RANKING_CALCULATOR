@@ -1,6 +1,6 @@
-model: division_i_weighted_v4
+model: division_i_weighted_v5
 engine: WeeklySeasonRankingEngine
-version: 6
+version: 7
 scope:
   ranking_pool: NCAA_Division_I
   subdivisions: [FBS, FCS]
@@ -26,6 +26,9 @@ weekly_flow:
   exact_score_ties_use: average_occupied_rank_for_next_week_scoring
   retroactive_revalue_old_games: false
   same_week_recursive_recalculation: false
+  season_ranking_value: average_frozen_game_score
+  raw_game_score_total: audit_only
+  bye_week_effect_on_ranking_average: none
 
 scoring:
   win_bonus: 0
@@ -52,6 +55,15 @@ fcs_scoring_modifier:
   fcs_tie_with_fbs: 0.5
   applies_to_components: [opponent_rank_points, margin_points]
   site_adjustment_applied_after_multiplier: true
+
+season_aggregation:
+  ranking_score: sum_frozen_game_scores_divided_by_games_played
+  zero_game_team_score: 0
+  tie_breakers:
+    - head_to_head
+    - win_percentage
+    - average_opponent_strength
+    - deterministic_team_name
 
 classification_rule:
   in_rank_pool: [FBS, FCS]
