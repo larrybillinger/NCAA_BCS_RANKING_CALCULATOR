@@ -1,6 +1,11 @@
 #!/bin/sh
 set -eu
 
+# Synology/Container Manager can be slow to export images. Avoid client-side
+# timeouts while Docker is still successfully working.
+export DOCKER_CLIENT_TIMEOUT="${DOCKER_CLIENT_TIMEOUT:-1200}"
+export COMPOSE_HTTP_TIMEOUT="${COMPOSE_HTTP_TIMEOUT:-1200}"
+
 ROOT="/volume1/rankings"
 APP="$ROOT/app"
 BACKUPS="$ROOT/backups"
@@ -110,10 +115,20 @@ rm -rf "$APP"
 mv "$APP.new" "$APP"
 
 cd "$APP"
-echo "Rebuilding and restarting containers..."
-compose --env-file "$ENV_FILE" up -d --build --remove-orphans
 
-docker image prune -f >/dev/null 2>&1 || true
+EXPECTED_APP="$(tr -d '\r\n ' < VERSION)"
+EXPECTED_MODEL="$(awk -F= '/^MODEL_VERSION=/{print $2}' "$ENV_FILE" | tail -n 1)"
+EXPECTED_PREDICTOR="$(awk -F= '/^PREDICTOR_VERSION=/{print $2}' "$ENV_FILE" | tail -n 1)"
+
+echo "Building shared application image once..."
+docker build -t ncaa-rankings-app:latest .
+
+echo "Ensuring PostgreSQL is running..."
+compose --env-file "$ENV_FILE" up -d db
+
+echo "Recreating web and worker from the new image..."
+compose --env-file "$ENV_FILE" up -d --no-deps --force-recreate web worker
+compose --env-file "$ENV_FILE" up -d --remove-orphans
 
 PORT="$(awk -F= '/^WEB_PORT=/{print $2}' "$ENV_FILE" | tail -n 1)"
 PORT="${PORT:-8765}"
@@ -132,24 +147,40 @@ while :; do
   fi
 
   ATTEMPT=$((ATTEMPT + 1))
-  if [ "$ATTEMPT" -ge 30 ]; then
+  if [ "$ATTEMPT" -ge 45 ]; then
     echo "ERROR: updated website did not become healthy in time."
-    docker logs --tail 120 ncaa-rankings-web || true
-    docker logs --tail 80 ncaa-rankings-worker || true
+    docker logs --tail 160 ncaa-rankings-web || true
+    docker logs --tail 100 ncaa-rankings-worker || true
     exit 1
   fi
   sleep 4
 done
 
+HEALTH="$(cat /tmp/rankings-health.json)"
+echo "$HEALTH" | grep -q "\"app_version\":\"$EXPECTED_APP\"" || {
+  echo "ERROR: running app version does not match GitHub ($EXPECTED_APP)."
+  echo "$HEALTH"
+  exit 1
+}
+echo "$HEALTH" | grep -q "\"model_version\":\"$EXPECTED_MODEL\"" || {
+  echo "ERROR: running model does not match GitHub ($EXPECTED_MODEL)."
+  echo "$HEALTH"
+  exit 1
+}
+echo "$HEALTH" | grep -q "\"predictor_version\":\"$EXPECTED_PREDICTOR\"" || {
+  echo "ERROR: running predictor does not match GitHub ($EXPECTED_PREDICTOR)."
+  echo "$HEALTH"
+  exit 1
+}
+
+docker image prune -f >/dev/null 2>&1 || true
+
 echo
 echo "Update complete."
 echo "Backup: $BACKUPS/app-$STAMP.tar.gz"
 echo
-echo "Active release:"
-grep '^MODEL_VERSION=' "$ENV_FILE" || true
-grep '^PREDICTOR_VERSION=' "$ENV_FILE" || true
-cat /tmp/rankings-health.json 2>/dev/null || true
-echo
+echo "Verified active release:"
+echo "$HEALTH"
 echo
 echo "Container status:"
 compose --env-file "$ENV_FILE" ps || true
