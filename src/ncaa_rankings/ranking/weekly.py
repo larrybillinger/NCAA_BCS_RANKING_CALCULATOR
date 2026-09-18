@@ -25,7 +25,10 @@ class WeeklySeasonRankingEngine:
     first ranking period. An opponent stays on the neutral baseline until it has
     completed its first game; after that, the immediately preceding completed
     week's scoring rank is used. Exact score ties share average occupied rank.
-    Published weekly rankings are never recursively rewritten by later weeks.
+    A team's published ranking score is its average frozen game score rather
+    than a cumulative total, so bye weeks and unequal games played do not
+    automatically inflate or depress the rating. Published weekly rankings are
+    never recursively rewritten by later weeks.
     """
 
     def __init__(self, model: RankingModel) -> None:
@@ -99,7 +102,8 @@ class WeeklySeasonRankingEngine:
         ordered_teams = sorted(team_set)
         team_count = len(ordered_teams)
 
-        totals: dict[str, float] = defaultdict(float)
+        raw_totals: dict[str, float] = defaultdict(float)
+        games_played: dict[str, int] = defaultdict(int)
         wins: dict[str, int] = defaultdict(int)
         losses: dict[str, int] = defaultdict(int)
         opponent_strength: dict[str, float] = defaultdict(float)
@@ -130,7 +134,8 @@ class WeeklySeasonRankingEngine:
                     team_count,
                     age_weeks=age_weeks,
                 )
-                totals[game.team] += component.total
+                raw_totals[game.team] += component.total
+                games_played[game.team] += 1
 
                 if opponent_rank is not None:
                     opponent_strength[game.team] += (team_count + 1) - opponent_rank
@@ -141,10 +146,19 @@ class WeeklySeasonRankingEngine:
                 elif game.lost:
                     losses[game.team] += 1
 
+            average_scores = {
+                team: (
+                    raw_totals[team] / games_played[team]
+                    if games_played[team] > 0
+                    else 0.0
+                )
+                for team in ordered_teams
+            }
             new_order = self._order_teams(
                 ordered_teams,
-                totals,
+                average_scores,
                 wins,
+                games_played,
                 opponent_strength,
                 h2h_wins,
             )
@@ -154,11 +168,13 @@ class WeeklySeasonRankingEngine:
             standings = tuple(
                 TeamStanding(
                     team=team,
-                    score=totals[team],
+                    score=average_scores[team],
                     rank=current_ranks[team],
                     wins=wins[team],
                     losses=losses[team],
                     opponent_strength=opponent_strength[team],
+                    games_played=games_played[team],
+                    raw_score=raw_totals[team],
                 )
                 for team in new_order
             )
@@ -168,7 +184,7 @@ class WeeklySeasonRankingEngine:
                 converged=True,
                 cycle_detected=False,
             )
-            previous_scoring_ranks = self._scoring_ranks(new_order, totals)
+            previous_scoring_ranks = self._scoring_ranks(new_order, average_scores)
             for game in week_games:
                 previously_played.add(game.team)
                 if game.opponent_in_rank_pool:
@@ -217,14 +233,15 @@ class WeeklySeasonRankingEngine:
     @staticmethod
     def _order_teams(
         teams: list[str],
-        totals: Mapping[str, float],
+        scores: Mapping[str, float],
         wins: Mapping[str, int],
+        games_played: Mapping[str, int],
         opponent_strength: Mapping[str, float],
         h2h_wins: Mapping[tuple[str, str], int],
     ) -> list[str]:
         groups: dict[float, list[str]] = defaultdict(list)
         for team in teams:
-            groups[totals.get(team, 0.0)].append(team)
+            groups[scores.get(team, 0.0)].append(team)
 
         result: list[str] = []
         for score in sorted(groups, reverse=True):
@@ -237,8 +254,16 @@ class WeeklySeasonRankingEngine:
                         for opponent in tied_set
                         if opponent != team
                     ),
-                    -wins.get(team, 0),
-                    -opponent_strength.get(team, 0.0),
+                    -(
+                        wins.get(team, 0) / games_played.get(team, 1)
+                        if games_played.get(team, 0) > 0
+                        else 0.0
+                    ),
+                    -(
+                        opponent_strength.get(team, 0.0) / games_played.get(team, 1)
+                        if games_played.get(team, 0) > 0
+                        else 0.0
+                    ),
                     team,
                 )
             )
