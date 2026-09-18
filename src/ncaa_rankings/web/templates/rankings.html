@@ -31,12 +31,13 @@
   </div>
 </section>
 
+<div class="quiet-note">Ranking score is the average of each team's frozen game scores, so bye weeks and unequal games played do not add or remove ranking opportunities.</div>
 {% if selected_week == 1 %}<div class="quiet-note">This is the ranking <strong>after</strong> Week 1 results. Every team entered its first game at the neutral T-1 baseline (scoring rank {{ neutral_rank|num }} in the {{ team_count }}-team pool). Provider Week 0 games are treated as ranking Week 1.</div>{% endif %}
 {% if not cfbd_configured %}<div class="quiet-note">The bundled rankings are available now. Add a CFBD API key on the Synology server to populate schedules, future games, stats, and automatic weekly updates.</div>{% endif %}
 
 <div class="table-wrap">
 <table class="ranking-table">
-  <thead><tr><th>Rank</th><th>Team</th><th>Div.</th><th>Record</th><th class="right">Points</th><th class="right">Move</th></tr></thead>
+  <thead><tr><th>Rank</th><th>Team</th><th>Div.</th><th>Record</th><th class="right">Avg score</th><th class="right">Move</th></tr></thead>
   <tbody>
     {% for row in ranking_rows %}
     <tr>
