@@ -207,6 +207,20 @@ def project_game(session: Session, game: Game, snapshot: RankingSnapshot) -> Pro
     )
 
 
+def retrocast_game(session: Session, game: Game) -> Projection | None:
+    """Research-only projection using only the ranking known before the game.
+
+    This never creates or changes an official prediction. Week 1 has no prior
+    evidence-based ranking snapshot, so retrocasts begin with Week 2.
+    """
+    if game.week <= 1:
+        return None
+    prior = get_snapshot(session, game.season, game.week - 1)
+    if prior is None:
+        return None
+    return project_game(session, game, prior)
+
+
 def generate_predictions_for_snapshot(session: Session, snapshot: RankingSnapshot) -> int:
     settings = get_settings()
     games = session.scalars(
