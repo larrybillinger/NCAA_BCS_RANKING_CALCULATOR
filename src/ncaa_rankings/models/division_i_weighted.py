@@ -8,30 +8,38 @@ from .legacy_fbs import LegacyFBSModel
 
 @dataclass(frozen=True, slots=True)
 class DivisionIWeightedModel:
-    """Live Division I scoring model with a limited FCS point modifier.
+    """Live Division I scoring model.
 
-    The active ranking pool still contains both FBS and FCS teams. The core
-    opponent-rank, win-bonus, and margin formula comes from the recovered later
-    FBS model, but live FCS game totals are scaled as follows:
+    FBS and FCS are both NCAA Division I and share one ranking pool. The
+    opponent-rank formula is unchanged, but the old +10 win bonus is removed.
+    Actual scoring margin is used directly, with a seven-point site adjustment:
 
-    - FCS vs FCS: 50% of the normal game score for the FCS team.
-    - FCS loss to FBS: 50% of the normal negative game score.
-    - FCS win over FBS: 100% of the normal game score.
-    - FBS teams: 100% of the normal game score regardless of opponent.
+    - away win: +7
+    - home loss: -7
+    - home win, away loss, neutral-site result: 0
 
-    Historical legacy models remain unchanged and can still reproduce the old
-    workbook behavior independently of this production model.
+    FCS-side scaling remains:
+    - FBS vs FBS: 100%
+    - FBS vs FCS: 100%
+    - FCS vs FCS: 50%
+    - FCS loss to FBS: 50%
+    - FCS win over FBS: 100%
+
+    The scale applies to the whole production game score, including opponent
+    rank points, margin points, and the site adjustment. Historical legacy
+    models remain unchanged and still retain their recovered +10 win bonus.
     """
 
     loss_rank_penalty: bool = True
-    win_bonus: float = 10.0
     out_of_pool_margin_scale: float = 0.5
+    road_win_bonus: float = 7.0
+    home_loss_penalty: float = 7.0
     fcs_vs_fcs_scale: float = 0.5
     fcs_loss_to_fbs_scale: float = 0.5
     fcs_win_over_fbs_scale: float = 1.0
     fcs_tie_vs_fbs_scale: float = 0.5
 
-    name: str = "division_i_weighted_v3"
+    name: str = "division_i_weighted_v4"
 
     def score_game(
         self,
@@ -41,24 +49,39 @@ class DivisionIWeightedModel:
         *,
         age_weeks: float = 0.0,
     ) -> GameScore:
-        base_model = LegacyFBSModel(
-            loss_rank_penalty=self.loss_rank_penalty,
-            win_bonus=self.win_bonus,
-            out_of_pool_margin_scale=self.out_of_pool_margin_scale,
+        if team_count < 1:
+            raise ValueError("team_count must be positive")
+
+        usable_rank = (
+            game.opponent_in_rank_pool
+            and opponent_rank is not None
+            and 1 <= opponent_rank <= team_count
         )
-        base_score = base_model.score_game(
-            game,
-            opponent_rank,
-            team_count,
-            age_weeks=age_weeks,
-        )
+
+        opponent_points = 0.0
+        if usable_rank:
+            if game.won:
+                opponent_points = float((team_count + 1) - opponent_rank)
+            elif game.lost and self.loss_rank_penalty:
+                opponent_points = float(-opponent_rank)
+
+        margin_points = float(game.margin)
+        if not game.opponent_in_rank_pool:
+            margin_points *= self.out_of_pool_margin_scale
+
+        site_points = 0.0
+        if game.won and game.site is Site.AWAY:
+            site_points = self.road_win_bonus
+        elif game.lost and game.site is Site.HOME:
+            site_points = -self.home_loss_penalty
+
         scale = self._game_scale(game)
 
         return GameScore(
-            opponent_points=base_score.opponent_points * scale,
-            win_points=base_score.win_points * scale,
-            margin_points=base_score.margin_points * scale,
-            recency_weight=base_score.recency_weight,
+            opponent_points=opponent_points * scale,
+            win_points=0.0,
+            margin_points=margin_points * scale,
+            site_points=site_points * scale,
         )
 
     def _game_scale(self, game: TeamGame) -> float:
@@ -78,6 +101,4 @@ class DivisionIWeightedModel:
                 return self.fcs_loss_to_fbs_scale
             return self.fcs_tie_vs_fbs_scale
 
-        # Games against teams outside FBS/FCS retain the normal legacy-derived
-        # out-of-pool handling rather than receiving an additional FCS penalty.
         return 1.0
