@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.6.2**
+**Current version: 0.7.0**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -27,16 +27,18 @@ The visual design is intentionally simple: white background, plain text navigati
 For a ranking pool containing `N` teams and an opponent ranked `R`:
 
 ```text
-Win:
-    opponent_rank_score = (N + 1) - R
-    win_score = 10
+opponent_rank_score on win  = (N + 1) - R
+opponent_rank_score on loss = -R
+scoring_margin              = points_for - points_against
 
-Loss:
-    opponent_rank_score = -R
-    win_score = 0
+home or neutral win = opponent_rank_score + scoring_margin
+away win            = opponent_rank_score + scoring_margin + 7
 
-spread_score = points_for - points_against
+away or neutral loss = opponent_rank_score + scoring_margin
+home loss            = opponent_rank_score + scoring_margin - 7
 ```
+
+There is **no separate +10 win bonus**. Actual scoring margin is used directly. A road win earns seven additional ranking points; a home loss loses seven additional ranking points.
 
 Every Division I team enters its first current-season game tied at the same neutral T-1 baseline because there is no evidence about that team yet. For scoring, the baseline uses the average occupied rank of the full pool:
 
@@ -49,11 +51,14 @@ With 266 teams, an unplayed Division I opponent therefore has scoring rank **133
 ### FCS modifier
 
 ```text
-FBS vs Division I opponent = 100%
-FCS vs FCS                 = 50%
-FCS loss to FBS            = 50%
-FCS win over FBS           = 100%
+FBS vs FBS       = 100%
+FBS vs FCS       = 100%
+FCS vs FCS       = 50%
+FCS loss to FBS  = 50%
+FCS win over FBS = 100%
 ```
+
+FCS is NCAA Division I. FBS-vs-FBS and FBS-vs-FCS are written separately only to make the multiplier explicit. The FCS percentage applies to opponent-rank points, scoring margin, and the seven-point site adjustment.
 
 There is no conference-strength value, previous-season carryover, preseason seed, or same-week recursive revaluation.
 
@@ -176,7 +181,7 @@ PostgreSQL stores:
 - official locked predictions;
 - source sync history.
 
-The bundled `rankings/2026/week_01.csv` and `week_02.csv` are the current frozen snapshots. Under v0.6.0 they load as `division_i_weighted_v3`, using the neutral first-game baseline, Week 0-to-Week 1 normalization, and averaged scoring ranks for exact ties. The 2026 Week 1/2 values remain unchanged by the late-starter rule because the teams still awaiting a first result in that interval had not yet created an affected matchup.
+The bundled `rankings/2026/week_01.csv` and `week_02.csv` are retained as archived `division_i_weighted_v3` snapshots. They are **not** relabeled as v4. When `division_i_weighted_v4` is active, the worker rebuilds completed weekly snapshots from the synced PostgreSQL game data using the new no-win-bonus and road-win/home-loss rules.
 
 ## Project structure
 
