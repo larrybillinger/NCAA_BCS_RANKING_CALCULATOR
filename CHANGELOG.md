@@ -16,7 +16,7 @@
 - FCS vs FCS remains 50%.
 - FCS loss to FBS remains 50%.
 - FCS win over FBS remains 100%.
-- FCS multipliers apply to opponent-rank points, scoring margin, and site adjustment.
+- FCS multipliers apply to opponent-rank points and scoring margin; the ±7 site adjustment remains full value for every team.
 
 ### Database and audit
 - Added `site_points` to per-game ranking audits.
