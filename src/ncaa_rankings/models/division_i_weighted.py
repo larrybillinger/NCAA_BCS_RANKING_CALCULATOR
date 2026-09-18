@@ -39,7 +39,7 @@ class DivisionIWeightedModel:
     fcs_win_over_fbs_scale: float = 1.0
     fcs_tie_vs_fbs_scale: float = 0.5
 
-    name: str = "division_i_weighted_v4"
+    name: str = "division_i_weighted_v5"
 
     def score_game(
         self,
