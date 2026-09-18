@@ -173,6 +173,34 @@ echo "$HEALTH" | grep -q "\"predictor_version\":\"$EXPECTED_PREDICTOR\"" || {
   exit 1
 }
 
+# A new ranking-model identifier intentionally starts without relabeling older
+# bundled snapshots. If CFBD is configured, give the worker time to rebuild
+# completed weeks from PostgreSQL before reporting the deployment as settled.
+CFBD_KEY="$(awk -F= '/^CFBD_API_KEY=/{print substr($0, index($0, "=") + 1)}' "$ENV_FILE" | tail -n 1)"
+case "$CFBD_KEY" in
+  ""|replace-with-your-collegefootballdata-api-key)
+    ;;
+  *)
+    if echo "$HEALTH" | grep -q '"latest_ranking_week":null'; then
+      echo "Waiting for $EXPECTED_MODEL to rebuild completed ranking weeks..."
+      RANK_ATTEMPT=0
+      while echo "$HEALTH" | grep -q '"latest_ranking_week":null'; do
+        RANK_ATTEMPT=$((RANK_ATTEMPT + 1))
+        if [ "$RANK_ATTEMPT" -ge 60 ]; then
+          echo "WARNING: application is healthy, but the new model has not produced a ranking snapshot yet."
+          echo "Recent worker log:"
+          docker logs --tail 100 ncaa-rankings-worker || true
+          break
+        fi
+        sleep 5
+        if command -v curl >/dev/null 2>&1; then
+          HEALTH="$(curl -fsS "http://127.0.0.1:$PORT/health" 2>/dev/null || printf '%s' "$HEALTH")"
+        fi
+      done
+    fi
+    ;;
+esac
+
 docker image prune -f >/dev/null 2>&1 || true
 
 echo
