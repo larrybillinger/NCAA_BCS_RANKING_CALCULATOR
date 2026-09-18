@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.7.0 — 2026-09-18
+
+### Ranking formula
+- Removed the production +10 win bonus.
+- Actual scoring margin remains a direct scoring component.
+- Added a +7 site adjustment for an away win.
+- Added a -7 site adjustment for a home loss.
+- Home wins, away losses, and neutral-site results receive no site adjustment.
+- Production ranking model is now `division_i_weighted_v4`.
+
+### Division I / FCS clarity
+- FBS vs FBS is explicitly 100%.
+- FBS vs FCS is explicitly 100%.
+- FCS vs FCS remains 50%.
+- FCS loss to FBS remains 50%.
+- FCS win over FBS remains 100%.
+- FCS multipliers apply to opponent-rank points, scoring margin, and site adjustment.
+
+### Database and audit
+- Added `site_points` to per-game ranking audits.
+- Existing PostgreSQL installs add the new audit column automatically.
+
+### Snapshot integrity
+- Archived v3 Week 1/2 CSVs are no longer imported under a newer model identifier.
+- v4 completed-week rankings are rebuilt from the synced PostgreSQL game database instead of relabeling older snapshots.
+
+### Documentation and tests
+- Updated Method Notes, README, current-season rules, scoring examples, configs, and protected project rules.
+- Added tests for no win bonus, road-win reward, home-loss penalty, away-loss neutrality, and FCS scaling of site points.
+
 ## v0.6.2 — 2026-09-18
 
 ### Fixed
