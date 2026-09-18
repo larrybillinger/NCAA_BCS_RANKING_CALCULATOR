@@ -1,5 +1,15 @@
 # Version history
 
+## 0.6.0 — First-game baseline and Weekbook completion
+
+- Normalize provider Week 0 into ranking Week 1.
+- Keep unplayed teams on the neutral T-1 scoring baseline until their first completed game.
+- Move production ranking model to `division_i_weighted_v3`.
+- Make score ownership explicit throughout team schedules and Game Book.
+- Label ranking history as season start T-1 followed by post-week snapshots.
+- Add clearly separated pregame-information retrocasts and retrocast accuracy.
+- Keep official locked predictions and official accuracy immutable and separate.
+
 ## 0.5.2 — Monotonic rank-gap predictor
 
 - Make the higher-ranked team the projected winner in every matchup.
