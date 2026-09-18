@@ -122,8 +122,10 @@ echo
 echo "Active release:"
 grep '^MODEL_VERSION=' "$ENV_FILE" || true
 grep '^PREDICTOR_VERSION=' "$ENV_FILE" || true
+PORT="$(awk -F= '/^WEB_PORT=/{print $2}' "$ENV_FILE" | tail -n 1)"
+PORT="${PORT:-8765}"
 if command -v curl >/dev/null 2>&1; then
-  curl -fsS "http://127.0.0.1:${WEB_PORT:-8765}/health" 2>/dev/null || true
+  curl -fsS "http://127.0.0.1:$PORT/health" 2>/dev/null || true
   echo
 fi
 echo
