@@ -36,6 +36,13 @@
       {% if cfbd_configured %}<span>CFBD connected</span>{% else %}<span>CFBD key needed</span>{% endif %}
       {% if last_sync and last_sync.finished_at %}<span>Last sync {{ last_sync.finished_at.strftime('%b %d %H:%M UTC') }}</span>{% endif %}
     </section>
+
+    <section class="side-group side-status">
+      <div class="side-label">SYSTEM</div>
+      <span>App v{{ app_version }}</span>
+      <span>Model {{ model_version }}</span>
+      <span>Predictor {{ predictor_version }}</span>
+    </section>
   </aside>
 
   <main class="main">{% block content %}{% endblock %}</main>
