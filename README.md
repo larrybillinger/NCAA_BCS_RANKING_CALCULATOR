@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.5.2**
+**Current version: 0.6.0**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -38,13 +38,13 @@ Loss:
 spread_score = points_for - points_against
 ```
 
-Before Week 1, every Division I team is tied because the current season contains no evidence yet. The tie is conceptually T-1, but for scoring it uses the average occupied rank of the full pool:
+Every Division I team enters its first current-season game tied at the same neutral T-1 baseline because there is no evidence about that team yet. For scoring, the baseline uses the average occupied rank of the full pool:
 
 ```text
 Week 1 neutral scoring rank = (N + 1) / 2
 ```
 
-With 266 teams, every in-pool Week 1 opponent therefore has scoring rank **133.5**. Week 2 and later use the immediately preceding completed week's current-season scoring rank. If teams are exactly tied on season score, they share the average rank of the positions occupied by that tie for the next week's opponent scoring.
+With 266 teams, an unplayed Division I opponent therefore has scoring rank **133.5**. Provider Week 0 is normalized into ranking Week 1. A team remains on the neutral scoring baseline until it completes its first game; after that, the immediately preceding completed week's current-season scoring rank is used. If teams are exactly tied on season score, they share the average rank of the positions occupied by that tie for the next week's opponent scoring.
 
 ### FCS modifier
 
@@ -72,7 +72,7 @@ For each future game the site stores:
 - calibration sample size;
 - ranking snapshot and predictor version.
 
-At kickoff, the latest pregame projection becomes the **official locked prediction**. It is never replaced after the result is known. Later rankings can produce research retrocasts, but those do not alter the official accuracy ledger.
+At kickoff, the latest pregame projection becomes the **official locked prediction**. It is never replaced after the result is known. For earlier completed games that never had a live locked prediction, the website can calculate a **research retrocast using only the ranking available before that game**. Retrocasts are labeled separately and never alter the official accuracy ledger.
 
 ## Automatic data source
 
