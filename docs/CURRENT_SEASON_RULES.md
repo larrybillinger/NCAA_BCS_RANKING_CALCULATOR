@@ -81,13 +81,12 @@ FCS win over FBS = 100%
 FCS tie with FBS = 50%
 ```
 
-The FCS percentage applies to the whole normal production game score:
+The FCS percentage applies to:
 
 - opponent-rank points;
-- scoring-margin points;
-- seven-point site adjustment.
+- scoring-margin points.
 
-There are no production win-bonus points to scale.
+The seven-point site adjustment is applied **after** the FCS percentage and remains full value for every Division I team. A road win is always +7 and a home loss is always -7. There are no production win-bonus points to scale.
 
 ## First-game example
 
