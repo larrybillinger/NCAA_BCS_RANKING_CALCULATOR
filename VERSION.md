@@ -1,5 +1,15 @@
 # Version history
 
+## 0.8.0 — Bye-week-neutral average ranking score
+
+- Rank teams by the arithmetic mean of their frozen game scores.
+- Keep raw cumulative score for auditing only.
+- Make bye weeks neutral.
+- Remove the automatic ranking advantage from playing more games.
+- Normalize exact-score tie-breakers using win percentage and average opponent strength.
+- Add ranking-entry fields for raw score and games played.
+- Move production ranking model to `division_i_weighted_v5`.
+
 ## 0.7.0 — Margin-and-site production scoring
 
 - Remove the separate +10 production win bonus.
