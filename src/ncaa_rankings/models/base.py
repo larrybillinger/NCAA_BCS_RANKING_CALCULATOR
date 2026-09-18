@@ -68,6 +68,7 @@ class GameScore:
     opponent_points: float
     win_points: float
     margin_points: float
+    site_points: float = 0.0
     recency_weight: float = 1.0
 
     @property
@@ -76,6 +77,7 @@ class GameScore:
             self.opponent_points
             + self.win_points
             + self.margin_points
+            + self.site_points
         ) * self.recency_weight
 
 
