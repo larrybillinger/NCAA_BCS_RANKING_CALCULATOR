@@ -8,7 +8,7 @@
 - Penalize home losses with -7 ranking points.
 - Keep home wins, away losses, and neutral-site results at 0 site adjustment.
 - Clarify FBS-vs-FBS and FBS-vs-FCS as separate 100% cases.
-- Apply FCS multipliers to opponent points, margin, and site adjustment.
+- Apply FCS multipliers to opponent points and margin, then apply the full ±7 site adjustment.
 - Add site-adjustment audit storage.
 - Move production ranking model to `division_i_weighted_v4`.
 - Rebuild v4 completed weeks from PostgreSQL rather than relabeling archived v3 CSVs.
