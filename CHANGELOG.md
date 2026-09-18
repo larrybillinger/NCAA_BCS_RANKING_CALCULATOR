@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.6.1 — 2026-09-18
+
+### Deployment
+- Fixed Synology updater temporary environment-file handling.
+- Increased Docker/Compose client timeouts for slow Container Manager builds.
+- Web and worker now use one shared `ncaa-rankings-app:latest` image instead of building the same application twice.
+- Update flow now builds once, keeps PostgreSQL running, force-recreates web and worker, waits for health, and verifies the exact application/model/predictor versions before reporting success.
+- Fresh installs use the same shared-image deployment path.
+
 ## v0.6.0 — 2026-09-17
 
 ### Ranking
