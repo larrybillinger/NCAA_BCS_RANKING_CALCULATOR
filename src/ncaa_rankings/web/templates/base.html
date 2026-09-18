@@ -50,19 +50,26 @@
 
 <footer class="week-dock">
   <div class="week-row">
-    <span class="dock-label">WEEK</span>
+    <span class="dock-label">AFTER WEEK</span>
     {% set max_week = ([latest_week or 2, 10]|max) %}
-    {% for w in range(1, max_week + 1) %}<a class="week-link {% if w == selected_week %}active{% endif %}" href="/?week={{ w }}">{{ w }}</a>{% endfor %}
+    {% for w in range(1, max_week + 1) %}
+      {% if w in weeks %}
+        <a class="week-link {% if w == selected_week %}active{% endif %}" href="/?week={{ w }}">{{ w }}</a>
+      {% else %}
+        <a class="week-link future" href="/predictions?week={{ w }}&as_of={{ latest_week or '' }}">{{ w }}</a>
+      {% endif %}
+    {% endfor %}
     <a class="week-link" href="/predictions?week={{ (latest_week or 2) + 1 }}">…</a>
     <span class="season-label">{{ season }}</span>
   </div>
   <div class="ticker-row">
-    <a href="/stats?metric=winner_accuracy"><strong>{{ metrics.winner_accuracy|pct if metrics.games else '—' }}</strong> winner</a>
-    <a href="/stats?metric=spread_mae"><strong>{{ metrics.spread_mae|num if metrics.games else '—' }}</strong> margin MAE</a>
-    <a href="/stats?metric=brier"><strong>{{ metrics.brier|num(3) if metrics.games else '—' }}</strong> Brier</a>
-    <a href="/stats?metric=upset_hit_rate"><strong>{{ metrics.upset_hit_rate|pct if metrics.upset_hit_rate is not none else '—' }}</strong> upset hits</a>
-    <a href="/stats?metric=rank_result_correlation"><strong>{{ metrics.rank_result_correlation|num(2) if metrics.rank_result_correlation is not none else '—' }}</strong> rank corr.</a>
-    <span class="ticker-note">Click a metric to inspect it</span>
+    {% set dock_metrics = metrics if metrics.games else retro_metrics %}
+    <span class="ticker-mode">{{ 'OFFICIAL' if metrics.games else 'RETROCAST' }}</span>
+    <a href="/stats?metric=winner_accuracy"><strong>{{ dock_metrics.winner_accuracy|pct if dock_metrics.games else '—' }}</strong> winner</a>
+    <a href="/stats?metric=spread_mae"><strong>{{ dock_metrics.spread_mae|num if dock_metrics.games else '—' }}</strong> margin MAE</a>
+    <a href="/stats?metric=brier"><strong>{{ dock_metrics.brier|num(3) if dock_metrics.games else '—' }}</strong> Brier</a>
+    <a href="/stats?metric=rank_result_correlation"><strong>{{ dock_metrics.rank_result_correlation|num(2) if dock_metrics.rank_result_correlation is not none else '—' }}</strong> rank corr.</a>
+    <span class="ticker-note">{% if metrics.games %}Locked pregame ledger{% else %}Research only · not official{% endif %}</span>
   </div>
 </footer>
 </body>
