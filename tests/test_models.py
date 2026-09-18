@@ -230,7 +230,7 @@ def test_away_loss_has_no_site_penalty():
     assert score.total == -54
 
 
-def test_fcs_home_loss_to_fbs_halves_site_penalty_too():
+def test_fcs_home_loss_to_fbs_keeps_full_site_penalty():
     model = DivisionIWeightedModel()
     game = TeamGame(
         "FCS Team", "FBS Team", 17, 31,
@@ -241,8 +241,8 @@ def test_fcs_home_loss_to_fbs_halves_site_penalty_too():
     score = model.score_game(game, opponent_rank=40, team_count=266)
     assert score.opponent_points == -20
     assert score.margin_points == -7
-    assert score.site_points == -3.5
-    assert score.total == -30.5
+    assert score.site_points == -7
+    assert score.total == -34
 
 
 def test_historical_legacy_model_remains_subdivision_neutral():
