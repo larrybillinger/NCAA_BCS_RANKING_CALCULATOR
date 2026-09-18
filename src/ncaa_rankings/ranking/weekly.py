@@ -19,11 +19,12 @@ class WeeklySeasonRankingEngine:
     may apply the documented FCS modifier, but there is no preseason ranking,
     previous-season carryover, or conference strength.
 
-    Before Week 1 every team is tied because the current season contains no
-    evidence yet. For scoring, that all-team tie uses the average occupied rank
-    of the pool: (N + 1) / 2. Beginning in Week 2, each game uses the opponent's
-    scoring rank from the immediately preceding completed week. Teams tied on
-    season score share the average rank of the positions occupied by that tie.
+    Every team begins at the same neutral baseline because the current season
+    contains no evidence yet. For scoring, that baseline is the average occupied
+    rank of the full pool: (N + 1) / 2. Provider Week 0 is normalized into the
+    first ranking period. An opponent stays on the neutral baseline until it has
+    completed its first game; after that, the immediately preceding completed
+    week's scoring rank is used. Exact score ties share average occupied rank.
     Published weekly rankings are never recursively rewritten by later weeks.
     """
 
@@ -68,13 +69,17 @@ class WeeklySeasonRankingEngine:
             raise ValueError(
                 "Every game must have a current-season week for weekly rankings"
             )
-        if any(game.week is not None and game.week < 1 for game in game_list):
-            raise ValueError("Game weeks must be 1 or greater")
+        if any(game.week is not None and game.week < 0 for game in game_list):
+            raise ValueError("Game weeks must be 0 or greater")
+
+        def ranking_week(game: TeamGame) -> int:
+            # Provider Week 0 is part of the first ranking period.
+            return max(1, int(game.week or 0))
 
         eligible_games = tuple(
             game
             for game in game_list
-            if through_week is None or (game.week is not None and game.week <= through_week)
+            if through_week is None or ranking_week(game) <= through_week
         )
 
         # No ranking exists before at least one current-season game is complete.
@@ -105,16 +110,19 @@ class WeeklySeasonRankingEngine:
             team: neutral_rank for team in ordered_teams
         }
         snapshots: dict[int, RankingResult] = {}
+        previously_played: set[str] = set()
 
-        weeks = sorted({game.week for game in eligible_games if game.week is not None})
+        weeks = sorted({ranking_week(game) for game in eligible_games})
         for week in weeks:
-            week_games = [game for game in eligible_games if game.week == week]
+            week_games = [game for game in eligible_games if ranking_week(game) == week]
             for game in week_games:
-                opponent_rank = (
-                    previous_scoring_ranks.get(game.opponent)
-                    if game.opponent_in_rank_pool
-                    else None
-                )
+                opponent_rank = None
+                if game.opponent_in_rank_pool:
+                    opponent_rank = (
+                        neutral_rank
+                        if game.opponent not in previously_played
+                        else previous_scoring_ranks.get(game.opponent)
+                    )
                 age_weeks = self._age_weeks(game, freeze_date)
                 component = self.model.score_game(
                     game,
@@ -161,6 +169,10 @@ class WeeklySeasonRankingEngine:
                 cycle_detected=False,
             )
             previous_scoring_ranks = self._scoring_ranks(new_order, totals)
+            for game in week_games:
+                previously_played.add(game.team)
+                if game.opponent_in_rank_pool:
+                    previously_played.add(game.opponent)
 
         return snapshots
 
