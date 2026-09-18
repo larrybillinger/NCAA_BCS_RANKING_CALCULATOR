@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.4.1 — 2026-09-17
+
+### Fixed
+- Updated all Jinja/Starlette TemplateResponse calls to the current request-first API so the homepage and other HTML routes render instead of returning HTTP 500.
+- Made bundled ranking bootstrap safe when the web and worker containers initialize concurrently.
+- Improved Synology install/update scripts for both `docker compose` and `docker-compose`.
+
+### Diagnostics
+- The CFBD worker can still report HTTP 401 when `CFBD_API_KEY` is missing, expired, or not a CollegeFootballData API key.
+
 ## v0.4.0 — 2026-09-16
 
 ### Added
