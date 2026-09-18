@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .models import Game, PredictionSnapshot, SourceSyncRun
+from .prediction_service import retrocast_game
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,7 +62,7 @@ def _corr(xs: list[float], ys: list[float]) -> float | None:
     return numerator / (dx * dy)
 
 
-def _metrics(rows: list[tuple[PredictionSnapshot, Game]]) -> AccuracyMetrics:
+def _metrics(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
     if not rows:
         return AccuracyMetrics()
 
@@ -114,6 +115,56 @@ def _metrics(rows: list[tuple[PredictionSnapshot, Game]]) -> AccuracyMetrics:
         upset_hit_rate=(predicted_actual_upsets / actual_upsets) if actual_upsets else None,
         rank_result_correlation=_corr(rank_gaps, actual_margins),
     )
+
+
+def _retrocast_rows(
+    session: Session,
+    season: int,
+    *,
+    team_id: int | None = None,
+) -> list[tuple[object, Game]]:
+    query = select(Game).where(
+        Game.season == season,
+        Game.week >= 2,
+        Game.completed.is_(True),
+        Game.home_points.is_not(None),
+        Game.away_points.is_not(None),
+        Game.home_subdivision.in_(("FBS", "FCS")),
+        Game.away_subdivision.in_(("FBS", "FCS")),
+    )
+    if team_id is not None:
+        query = query.where(
+            or_(Game.home_team_id == team_id, Game.away_team_id == team_id)
+        )
+
+    rows: list[tuple[object, Game]] = []
+    for game in session.scalars(query.order_by(Game.week, Game.start_time, Game.id)):
+        projection = retrocast_game(session, game)
+        if projection is not None:
+            rows.append((projection, game))
+    return rows
+
+
+def retrocast_metrics(session: Session, season: int) -> AccuracyMetrics:
+    return _metrics(_retrocast_rows(session, season))
+
+
+def team_retrocast_metrics(
+    session: Session,
+    season: int,
+    team_id: int,
+) -> AccuracyMetrics:
+    return _metrics(_retrocast_rows(session, season, team_id=team_id))
+
+
+def weekly_retrocast_metrics(session: Session, season: int) -> list[dict]:
+    grouped: dict[int, list[tuple[object, Game]]] = defaultdict(list)
+    for projection, game in _retrocast_rows(session, season):
+        grouped[game.week].append((projection, game))
+    return [
+        {"week": week, "metrics": _metrics(grouped[week])}
+        for week in sorted(grouped)
+    ]
 
 
 def overall_metrics(session: Session, season: int) -> AccuracyMetrics:
