@@ -1,5 +1,18 @@
 # Version history
 
+## 0.7.0 — Margin-and-site production scoring
+
+- Remove the separate +10 production win bonus.
+- Use actual scoring margin directly.
+- Reward away wins with +7 ranking points.
+- Penalize home losses with -7 ranking points.
+- Keep home wins, away losses, and neutral-site results at 0 site adjustment.
+- Clarify FBS-vs-FBS and FBS-vs-FCS as separate 100% cases.
+- Apply FCS multipliers to opponent points, margin, and site adjustment.
+- Add site-adjustment audit storage.
+- Move production ranking model to `division_i_weighted_v4`.
+- Rebuild v4 completed weeks from PostgreSQL rather than relabeling archived v3 CSVs.
+
 ## 0.6.2 — Retrocast route compatibility
 
 - Fix team-page, Game Book, and Accuracy HTTP 500 errors.
