@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .config import get_settings
@@ -27,6 +27,28 @@ def init_db() -> None:
     from . import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _migrate_fractional_opponent_rank()
+
+
+def _migrate_fractional_opponent_rank() -> None:
+    """Upgrade existing PostgreSQL installs for averaged tied scoring ranks."""
+    if engine.dialect.name != "postgresql":
+        return
+
+    columns = {
+        column["name"]: str(column["type"]).upper()
+        for column in inspect(engine).get_columns("ranking_game_audits")
+    }
+    opponent_rank_type = columns.get("opponent_rank_used", "")
+    if opponent_rank_type in {"INTEGER", "INT", "INT4"}:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE ranking_game_audits "
+                    "ALTER COLUMN opponent_rank_used TYPE DOUBLE PRECISION "
+                    "USING opponent_rank_used::double precision"
+                )
+            )
 
 
 def get_session() -> Generator[Session, None, None]:
