@@ -72,7 +72,7 @@ This means an FCS upset over an FBS team receives full credit, while ordinary FC
 
 Before any current-season game is played, every Division I team is tied for first conceptually because there is no current-season evidence separating them.
 
-That T-1 state is **not published as a preseason opinion ranking**. It exists only to give every Week 1 Division I opponent the same neutral mathematical value.
+That T-1 state is **not a preseason opinion ranking**. It is the neutral mathematical state for a team that has not yet produced a current-season result.
 
 For opponent scoring, a tie uses the average numerical rank of the positions occupied by the tie. Because all `N` teams are tied before Week 1, the neutral Week 1 scoring rank is:
 
@@ -86,7 +86,7 @@ For the 2026 pool of 266 teams:
 Neutral Week 1 Scoring Rank = 133.5
 ```
 
-The normal Week 1 game score therefore uses that same rank for every in-pool Division I opponent before the normal FCS modifier is applied.
+The normal first-game score therefore uses that same neutral rank for an in-pool Division I opponent that has not played yet, before the normal FCS modifier is applied. Provider Week 0 games are normalized into ranking Week 1.
 
 ### FBS over FCS example
 
@@ -127,7 +127,7 @@ Final Game Score     = 81.75
 
 ## Week 2 and later
 
-Beginning in Week 2, each game uses the opponent's scoring rank from the immediately preceding completed week of the same season.
+Beginning after a team has completed its first game, opponents use that team's scoring rank from the immediately preceding completed week of the same season. If the opponent still has not played, it remains at the neutral baseline rather than receiving an artificial rank based only on inactivity.
 
 Display order remains deterministic, but exact score ties do not receive artificial different values for opponent scoring. If three teams tie on score across display positions 10, 11, and 12, each carries scoring rank 11.0 into the next week:
 
@@ -143,9 +143,9 @@ Week 2 uses Week 1 ranks. Week 3 uses Week 2 ranks. This continues through the s
 
 ## Teams that have not played yet
 
-Before a team completes its first current-season game, it has zero current-season points.
+Before a team completes its first current-season game, it has zero current-season points and remains on the neutral T-1 scoring baseline for opponent-value purposes.
 
-It may appear at the bottom of the full pool for completeness, but that placement is not a preseason opinion or inherited ranking.
+The website may list the team for completeness, but any display placement before its first result is not used as its opponent-scoring rank.
 
 ## Outside-Division-I games
 
@@ -177,11 +177,11 @@ WeeklySeasonRankingEngine
 The live scoring model is:
 
 ```text
-division_i_weighted_v2
+division_i_weighted_v3
 ```
 
 The older recursive engine and legacy FBS model remain available for historical reproduction and research.
 
 ## Guiding rule
 
-**Start every season from one neutral all-team tie, use average occupied ranks for exact ties, rank FBS and FCS together, give FCS teams half credit for FCS-vs-FCS games and FCS losses to FBS, and give FCS teams full credit when they beat FBS teams.**
+**Every team begins on the same neutral first-game baseline; Week 0 belongs to ranking Week 1; unplayed teams stay neutral until their first result; exact score ties use average occupied ranks; FBS and FCS share one pool; and the documented FCS modifiers apply without retroactively rescoring old games.**
