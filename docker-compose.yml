@@ -21,7 +21,7 @@ services:
       retries: 12
 
   web:
-    build: .
+    image: ncaa-rankings-app:latest
     container_name: ncaa-rankings-web
     restart: unless-stopped
     env_file:
@@ -40,7 +40,7 @@ services:
       retries: 5
 
   worker:
-    build: .
+    image: ncaa-rankings-app:latest
     container_name: ncaa-rankings-worker
     restart: unless-stopped
     command: ["python", "-m", "ncaa_rankings.web.worker"]
