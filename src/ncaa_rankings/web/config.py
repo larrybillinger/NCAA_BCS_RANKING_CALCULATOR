@@ -42,7 +42,7 @@ def get_settings() -> Settings:
         season=int(os.getenv("SEASON", "2026")),
         sync_minutes=max(int(os.getenv("SYNC_MINUTES", "15")), 5),
         timezone=os.getenv("TZ", "America/Chicago"),
-        model_version=os.getenv("MODEL_VERSION", "division_i_weighted_v2"),
+        model_version=os.getenv("MODEL_VERSION", "division_i_weighted_v3"),
         predictor_version=os.getenv("PREDICTOR_VERSION", "rank_gap_v3"),
         rankings_dir=Path(os.getenv("RANKINGS_DIR", "/app/rankings")),
         bootstrap_rankings=_bool_env("BOOTSTRAP_RANKINGS", True),
