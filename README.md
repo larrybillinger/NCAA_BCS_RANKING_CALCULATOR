@@ -117,7 +117,19 @@ The installer will:
 
 Default local port: **8765**.
 
+### Upgrade an existing pre-v0.5.0 installation
+
+The v0.5.0 ranking change requires switching the model identifier and preserving fractional tied ranks in PostgreSQL:
+
+```bash
+sudo -i
+curl -fsSL https://raw.githubusercontent.com/larrybillinger/NCAA_BCS_RANKING_CALCULATOR/main/scripts/upgrade-v0.5.0.sh -o /tmp/upgrade-rankings-v050.sh
+sh /tmp/upgrade-rankings-v050.sh
+```
+
 ### Update later
+
+After v0.5.0 is installed, ordinary source updates use:
 
 ```bash
 sudo sh /volume1/rankings/app/scripts/synology-update.sh
