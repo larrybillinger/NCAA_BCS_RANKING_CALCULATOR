@@ -57,7 +57,7 @@ download() {
 set_env_key() {
   key="$1"
   value="$2"
-  tmp_env="$ENV_FILE.tmp.$"
+  tmp_env="$ENV_FILE.tmp.$$"
 
   awk -v key="$key" -v value="$value" '
     BEGIN { found=0 }
