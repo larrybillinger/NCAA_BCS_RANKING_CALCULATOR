@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.web_title, version="0.5.0", lifespan=lifespan)
+app = FastAPI(title=settings.web_title, version="0.5.1", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
@@ -86,6 +86,9 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
         "metrics": metrics,
         "last_sync": sync,
         "cfbd_configured": CFBDClient().configured,
+        "app_version": app.version,
+        "model_version": settings.model_version,
+        "predictor_version": settings.predictor_version,
         "now": datetime.now(timezone.utc),
     }
 
@@ -98,6 +101,9 @@ def health(session: Session = Depends(get_session)) -> dict:
         "status": "ok",
         "season": settings.season,
         "latest_ranking_week": snapshot.week if snapshot else None,
+        "app_version": app.version,
+        "model_version": settings.model_version,
+        "predictor_version": settings.predictor_version,
         "cfbd_configured": CFBDClient().configured,
     }
 
