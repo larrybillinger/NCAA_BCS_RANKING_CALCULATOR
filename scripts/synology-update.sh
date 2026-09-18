@@ -49,6 +49,28 @@ download() {
   fi
 }
 
+set_env_key() {
+  key="$1"
+  value="$2"
+  tmp_env="$ENV_FILE.tmp.$"
+
+  awk -v key="$key" -v value="$value" '
+    BEGIN { found=0 }
+    index($0, key "=") == 1 {
+      print key "=" value
+      found=1
+      next
+    }
+    { print }
+    END {
+      if (!found) print key "=" value
+    }
+  ' "$ENV_FILE" > "$tmp_env"
+
+  chmod 600 "$tmp_env"
+  mv "$tmp_env" "$ENV_FILE"
+}
+
 mkdir -p "$BACKUPS" "$TMP/archive"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 if [ -d "$APP" ]; then
@@ -63,6 +85,22 @@ SOURCE_DIR="$(find "$TMP/archive" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
 if [ -z "$SOURCE_DIR" ] || [ ! -f "$SOURCE_DIR/docker-compose.yml" ]; then
   echo "Downloaded archive does not contain the expected application files."
   exit 1
+fi
+
+# Application model identifiers are not secrets. Keep production aligned with
+# the versions committed in GitHub while preserving passwords/API keys.
+if [ -f "$SOURCE_DIR/.env.example" ]; then
+  REQUIRED_MODEL="$(awk -F= '/^MODEL_VERSION=/{print $2}' "$SOURCE_DIR/.env.example" | tail -n 1)"
+  REQUIRED_PREDICTOR="$(awk -F= '/^PREDICTOR_VERSION=/{print $2}' "$SOURCE_DIR/.env.example" | tail -n 1)"
+
+  if [ -n "$REQUIRED_MODEL" ]; then
+    echo "Setting MODEL_VERSION=$REQUIRED_MODEL"
+    set_env_key MODEL_VERSION "$REQUIRED_MODEL"
+  fi
+  if [ -n "$REQUIRED_PREDICTOR" ]; then
+    echo "Setting PREDICTOR_VERSION=$REQUIRED_PREDICTOR"
+    set_env_key PREDICTOR_VERSION "$REQUIRED_PREDICTOR"
+  fi
 fi
 
 rm -rf "$APP.new"
@@ -80,6 +118,14 @@ docker image prune -f >/dev/null 2>&1 || true
 echo
 echo "Update complete."
 echo "Backup: $BACKUPS/app-$STAMP.tar.gz"
+echo
+echo "Active release:"
+grep '^MODEL_VERSION=' "$ENV_FILE" || true
+grep '^PREDICTOR_VERSION=' "$ENV_FILE" || true
+if command -v curl >/dev/null 2>&1; then
+  curl -fsS "http://127.0.0.1:${WEB_PORT:-8765}/health" 2>/dev/null || true
+  echo
+fi
 echo
 echo "Container status:"
 compose --env-file "$ENV_FILE" ps || true
