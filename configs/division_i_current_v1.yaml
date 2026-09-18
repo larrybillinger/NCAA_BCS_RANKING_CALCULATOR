@@ -1,8 +1,8 @@
 # Authoritative production alias for the current Division I model.
 # This file mirrors the live policy in current_season_v1.yaml with a scope-first name.
-model: division_i_weighted_v2
+model: division_i_weighted_v3
 engine: WeeklySeasonRankingEngine
-version: 3
+version: 4
 
 scope:
   ranking_pool: NCAA_Division_I
@@ -16,6 +16,8 @@ season_reset:
 weekly_flow:
   preseason_ranking: false
   pre_week_1_state: all_teams_tied_for_1
+  provider_week_0_maps_to_ranking_week_1: true
+  unplayed_team_scoring_rank: neutral_until_first_completed_game
   week_1_scoring_rank: average_occupied_rank_of_full_pool
   later_week_rank_source: previous_completed_week_current_season
   exact_score_ties_use: average_occupied_rank_for_next_week_scoring
