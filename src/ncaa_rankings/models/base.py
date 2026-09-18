@@ -102,6 +102,8 @@ class TeamStanding:
     wins: int
     losses: int
     opponent_strength: float
+    games_played: int = 0
+    raw_score: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
