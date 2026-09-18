@@ -53,13 +53,14 @@ def test_week_one_creates_first_ranking_with_fcs_modifier():
     engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
     result = engine.rank(games, teams=["A", "B", "C", "D"])
 
-    # Week 1 has no opponent-rank points. A's FBS win scores normally:
-    # +10 win +7 margin = 17. C's FCS-vs-FCS win is halved:
-    # (+10 win +40 margin) * 0.5 = 25.
-    assert result.scores["C"] == 25
-    assert result.scores["A"] == 17
-    assert result.scores["B"] == -7
-    assert result.scores["D"] == -20
+    # Before Week 1 all four teams are tied, so the scoring rank is the
+    # average occupied position: (1 + 4) / 2 = 2.5.
+    # A: (5 - 2.5) + 10 + 7 = 19.5.
+    # C is FCS vs FCS, so ((5 - 2.5) + 10 + 40) * 0.5 = 26.25.
+    assert result.scores["C"] == 26.25
+    assert result.scores["A"] == 19.5
+    assert result.scores["B"] == -9.5
+    assert result.scores["D"] == -21.25
     assert result.ranks == {"C": 1, "A": 2, "B": 3, "D": 4}
 
 
@@ -109,9 +110,29 @@ def test_week_two_uses_week_one_ranks_and_full_fcs_upset_points():
 
     # D is FCS and beats the Week 1 #2 FBS team A. With N=4:
     # opponent points = 5 - 2 = 3, win = 10, margin = 3, total = 16.
-    # FCS-over-FBS wins are not halved, so D rises from -20 to -4.
-    assert snapshots[2].scores["D"] == -4
+    # FCS-over-FBS wins are not halved, so D rises from -21.25 to -5.25.
+    assert snapshots[2].scores["D"] == -5.25
     assert snapshots[2].ranks["D"] == 3
+
+
+
+def test_tied_previous_week_scores_use_average_occupied_rank():
+    games = [
+        TeamGame("A", "C", 20, 10, week=1),
+        TeamGame("C", "A", 10, 20, week=1),
+        TeamGame("B", "D", 20, 10, week=1),
+        TeamGame("D", "B", 10, 20, week=1),
+        TeamGame("C", "A", 14, 13, week=2),
+        TeamGame("A", "C", 13, 14, week=2),
+    ]
+    engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
+    snapshots = engine.rank_by_week(games, teams=["A", "B", "C", "D"])
+
+    # A and B tie on Week 1 score and occupy display positions 1 and 2.
+    # Both therefore carry scoring rank 1.5 into Week 2. C starts Week 2
+    # at -12.5 and earns (5 - 1.5) + 10 + 1 = 14.5, finishing at 2.0.
+    assert snapshots[1].scores["A"] == snapshots[1].scores["B"] == 22.5
+    assert snapshots[2].scores["C"] == 2.0
 
 
 def test_weekly_engine_rejects_previous_season_seed():
