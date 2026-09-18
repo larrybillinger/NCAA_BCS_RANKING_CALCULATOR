@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.4.0**
+**Current version: 0.5.0**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -38,7 +38,13 @@ Loss:
 spread_score = points_for - points_against
 ```
 
-Week 1 has zero opponent-rank points. Week 2 and later use the immediately preceding completed week's current-season rank.
+Before Week 1, every Division I team is tied because the current season contains no evidence yet. The tie is conceptually T-1, but for scoring it uses the average occupied rank of the full pool:
+
+```text
+Week 1 neutral scoring rank = (N + 1) / 2
+```
+
+With 266 teams, every in-pool Week 1 opponent therefore has scoring rank **133.5**. Week 2 and later use the immediately preceding completed week's current-season scoring rank. If teams are exactly tied on season score, they share the average rank of the positions occupied by that tie for the next week's opponent scoring.
 
 ### FCS modifier
 
@@ -154,7 +160,7 @@ PostgreSQL stores:
 - official locked predictions;
 - source sync history.
 
-The bundled `rankings/2026/week_01.csv` and `week_02.csv` are imported on a fresh install so the current ranking pages work before the first API sync.
+The bundled `rankings/2026/week_01.csv` and `week_02.csv` are the recalculated v0.5.0 snapshots using the tied-pool Week 1 baseline and averaged scoring ranks for exact ties. They are imported on a fresh install so the ranking pages work before the first API sync.
 
 ## Project structure
 
