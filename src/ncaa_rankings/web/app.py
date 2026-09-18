@@ -85,7 +85,6 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
     neutral_rank = (team_count + 1) / 2.0 if team_count else None
     selected_week = week or (latest.week if latest else (weeks[-1] if weeks else 1))
     metrics = overall_metrics(session, season)
-    retro_metrics = retrocast_metrics(session, season)
     sync = last_sync(session)
     return {
         "request": request,
@@ -97,7 +96,6 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
         "team_count": team_count,
         "neutral_rank": neutral_rank,
         "metrics": metrics,
-        "retro_metrics": retro_metrics,
         "last_sync": sync,
         "cfbd_configured": CFBDClient().configured,
         "app_version": app.version,
@@ -183,10 +181,12 @@ def stats(
     session: Session = Depends(get_session),
 ):
     weekly = weekly_metrics(session, settings.season)
+    retro = retrocast_metrics(session, settings.season)
     retro_weekly = weekly_retrocast_metrics(session, settings.season)
     context = _base_context(session, request)
     context.update({
         "weekly_metrics": weekly,
+        "retro_metrics": retro,
         "retro_weekly_metrics": retro_weekly,
         "metric": metric,
     })
