@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.2 — 2026-09-17
+
+### Changed
+- Rebuilt the prediction layer so the projected winner always follows the ranking order.
+- Projected scoring margin is now directly proportional to the rank gap.
+- Current-season calibration now fits only a positive points-per-rank scale through the origin, blends toward a conservative early-season fallback, and is constrained to a reasonable range.
+- Removed intercept and home-field effects from projected margin so they cannot reverse the ranking result.
+- Production predictor is now `rank_gap_v3`.
+
+### Tests
+- Added tests confirming that the higher-ranked team is always projected to win, larger rank gaps produce larger margins, and equal ranks project an even game.
+
 ## v0.5.1 — 2026-09-17
 
 ### Fixed
