@@ -32,3 +32,10 @@ GitHub is the authoritative source for the D1 Rank application, ranking model, w
 
 ## 2026-09-17 — Monotonic rank-gap predictions
 The projected winner must follow the ranking order. The higher-ranked team is always the projected winner, and the projected scoring margin is based directly on the numerical gap between team ranks. Current-season results may calibrate the positive points-per-rank scale and uncertainty, but no intercept, home-field adjustment, or unconstrained regression may reverse the projected winner.
+
+
+## 2026-09-17 — First-game neutral baseline and Week 0
+A team remains on the neutral T-1 scoring baseline until it completes its first current-season game, even if the calendar has advanced beyond ranking Week 1. Provider Week 0 is normalized into ranking Week 1. Once a team has a completed result, later opponent scoring uses the immediately preceding completed week's scoring rank.
+
+## 2026-09-17 — Historical retrocasts
+Completed games that never had an actual locked pregame prediction may be shown with a research retrocast generated only from the ranking information available before that game. Retrocasts must be visibly labeled and must never be mixed into official locked-prediction accuracy.
