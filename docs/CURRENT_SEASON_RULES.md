@@ -177,7 +177,7 @@ WeeklySeasonRankingEngine
 The live scoring model is:
 
 ```text
-division_i_weighted_v1
+division_i_weighted_v2
 ```
 
 The older recursive engine and legacy FBS model remain available for historical reproduction and research.
