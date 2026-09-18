@@ -31,12 +31,12 @@ class DivisionIWeightedModel:
     fcs_win_over_fbs_scale: float = 1.0
     fcs_tie_vs_fbs_scale: float = 0.5
 
-    name: str = "division_i_weighted_v1"
+    name: str = "division_i_weighted_v2"
 
     def score_game(
         self,
         game: TeamGame,
-        opponent_rank: int | None,
+        opponent_rank: float | None,
         team_count: int,
         *,
         age_weeks: float = 0.0,
