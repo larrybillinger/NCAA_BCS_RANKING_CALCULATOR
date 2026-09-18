@@ -8,6 +8,7 @@ import statistics
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from .config import get_settings
 from .models import Game, PredictionSnapshot, SourceSyncRun
 
 
@@ -29,12 +30,14 @@ def _prediction_rows(
     *,
     team_id: int | None = None,
 ) -> list[tuple[PredictionSnapshot, Game]]:
+    settings = get_settings()
     query = (
         select(PredictionSnapshot, Game)
         .join(Game, Game.id == PredictionSnapshot.game_id)
         .where(
             Game.season == season,
             Game.completed.is_(True),
+            PredictionSnapshot.predictor_version == settings.predictor_version,
             PredictionSnapshot.official.is_(True),
             Game.home_points.is_not(None),
             Game.away_points.is_not(None),
