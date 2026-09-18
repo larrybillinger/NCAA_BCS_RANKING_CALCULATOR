@@ -183,6 +183,28 @@ def _previous_state(
     return display_ranks, scoring_ranks, scores, wins, losses, strength
 
 
+def _teams_with_completed_game_before(
+    session: Session,
+    season: int,
+    week: int,
+) -> set[int]:
+    """Teams with actual current-season evidence before this ranking week."""
+    played: set[int] = set()
+    games = session.scalars(
+        select(Game).where(
+            Game.season == season,
+            Game.week < week,
+            Game.completed.is_(True),
+            Game.home_points.is_not(None),
+            Game.away_points.is_not(None),
+        )
+    )
+    for game in games:
+        played.add(game.home_team_id)
+        played.add(game.away_team_id)
+    return played
+
+
 def _head_to_head(session: Session, season: int, through_week: int) -> dict[tuple[int, int], int]:
     h2h: dict[tuple[int, int], int] = defaultdict(int)
     games = session.scalars(
@@ -289,6 +311,7 @@ def calculate_week_snapshot(
         previous_strength,
     ) = _previous_state(session, season, week)
     neutral_rank = (team_count + 1) / 2.0
+    previously_played = _teams_with_completed_game_before(session, season, week)
     totals = defaultdict(float, previous_scores)
     wins = defaultdict(int, previous_wins)
     losses = defaultdict(int, previous_losses)
@@ -314,11 +337,12 @@ def calculate_week_snapshot(
             if opponent is None:
                 continue
             opponent_in_pool = opponent_subdivision in DIVISION_I
-            opponent_rank = (
-                neutral_rank
-                if week == 1 and opponent_in_pool
-                else previous_scoring_ranks.get(opponent_id) if opponent_in_pool else None
-            )
+            opponent_rank = None
+            if opponent_in_pool:
+                if week == 1 or opponent_id not in previously_played:
+                    opponent_rank = neutral_rank
+                else:
+                    opponent_rank = previous_scoring_ranks.get(opponent_id)
             team_game = TeamGame(
                 team=team_name,
                 opponent=opponent.name,
@@ -365,7 +389,8 @@ def calculate_week_snapshot(
         locked_at=datetime.now(timezone.utc),
         source_note=(
             "Calculated automatically from completed CFBD game results using "
-            "the tied-pool neutral Week 1 baseline and averaged scoring ranks for ties."
+            "the neutral first-game baseline, Week 0-to-Week 1 normalization, "
+            "and averaged scoring ranks for ties."
         ),
     )
     session.add(snapshot)
