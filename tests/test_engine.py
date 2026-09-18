@@ -55,10 +55,10 @@ def test_week_one_creates_first_ranking_with_fcs_modifier():
 
     # Before Week 1 all four teams are tied, so the scoring rank is the
     # average occupied position: (1 + 4) / 2 = 2.5.
-    # A: (5 - 2.5) + 10 + 7 = 19.5.
-    # C is FCS vs FCS, so ((5 - 2.5) + 10 + 40) * 0.5 = 26.25.
-    assert result.scores["C"] == 26.25
-    assert result.scores["A"] == 19.5
+    # A: (5 - 2.5) + 7 = 9.5.
+    # C is FCS vs FCS, so ((5 - 2.5) + 40) * 0.5 = 21.25.
+    assert result.scores["C"] == 21.25
+    assert result.scores["A"] == 9.5
     assert result.scores["B"] == -9.5
     assert result.scores["D"] == -21.25
     assert result.ranks == {"C": 1, "A": 2, "B": 3, "D": 4}
@@ -109,10 +109,10 @@ def test_week_two_uses_week_one_ranks_and_full_fcs_upset_points():
     assert snapshots[1].ranks == {"C": 1, "A": 2, "B": 3, "D": 4}
 
     # D is FCS and beats the Week 1 #2 FBS team A. With N=4:
-    # opponent points = 5 - 2 = 3, win = 10, margin = 3, total = 16.
-    # FCS-over-FBS wins are not halved, so D rises from -21.25 to -5.25.
-    assert snapshots[2].scores["D"] == -5.25
-    assert snapshots[2].ranks["D"] == 3
+    # opponent points = 5 - 2 = 3, margin = 3, total = 6.
+    # FCS-over-FBS wins are not halved, so D rises from -21.25 to -15.25.
+    assert snapshots[2].scores["D"] == -15.25
+    assert snapshots[2].ranks["D"] == 4
 
 
 
@@ -130,9 +130,9 @@ def test_tied_previous_week_scores_use_average_occupied_rank():
 
     # A and B tie on Week 1 score and occupy display positions 1 and 2.
     # Both therefore carry scoring rank 1.5 into Week 2. C starts Week 2
-    # at -12.5 and earns (5 - 1.5) + 10 + 1 = 14.5, finishing at 2.0.
-    assert snapshots[1].scores["A"] == snapshots[1].scores["B"] == 22.5
-    assert snapshots[2].scores["C"] == 2.0
+    # at -12.5 and earns (5 - 1.5) + 1 = 4.5, finishing at -8.0.
+    assert snapshots[1].scores["A"] == snapshots[1].scores["B"] == 12.5
+    assert snapshots[2].scores["C"] == -8.0
 
 
 
@@ -169,8 +169,8 @@ def test_unplayed_opponent_keeps_neutral_rank_until_first_game():
     # N=3 -> neutral scoring rank is 2.0. B and C had not played before
     # Week 2, so C remains neutral for B's first game even though the
     # post-Week-1 display order would otherwise give the idle pair a tie rank.
-    # B Week 2 = (4 - 2) + 10 + 7 = 19.
-    assert snapshots[2].scores["B"] == 19.0
+    # B Week 2 = (4 - 2) + 7 = 9.
+    assert snapshots[2].scores["B"] == 9.0
 
 
 def test_weekly_engine_rejects_previous_season_seed():
