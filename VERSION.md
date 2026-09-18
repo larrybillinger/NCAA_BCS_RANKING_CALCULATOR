@@ -1,5 +1,14 @@
 # Version history
 
+## 0.5.2 — Monotonic rank-gap predictor
+
+- Make the higher-ranked team the projected winner in every matchup.
+- Base projected scoring margin directly on rank gap.
+- Calibrate only the positive points-per-rank scale from current-season completed games.
+- Remove free intercept and home-field terms from projected margin.
+- Move production predictor to `rank_gap_v3`.
+- Add tests for winner direction, gap magnitude, and equal-rank games.
+
 ## 0.5.1 — Deployment version visibility and model sync
 
 - Show application, ranking-model, and predictor versions in the website sidebar.
