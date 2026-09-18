@@ -1,10 +1,10 @@
 # Project state
 
 ## Current release
-v0.7.0
+v0.8.0
 
 ## Production model
-division_i_weighted_v4
+division_i_weighted_v5
 
 ## Production website
 Weekbook-style FastAPI/Jinja site with PostgreSQL and a background CFBD sync worker.
@@ -20,4 +20,4 @@ rank_gap_v3 — projected winner always follows ranking order; projected margin 
 Synology Container Manager under `/volume1/rankings`.
 
 ## Current next milestone
-Deploy v0.7.0, rebuild completed 2026 weeks under division_i_weighted_v4 from the synced CFBD database, verify the new road-win/home-loss scoring audit, and regenerate rank_gap_v3 projections from the v4 rankings.
+Deploy v0.8.0, rebuild completed 2026 weeks under division_i_weighted_v5, verify average-score rankings are neutral to bye weeks and unequal games played, and regenerate rank_gap_v3 projections from the v5 rankings.
