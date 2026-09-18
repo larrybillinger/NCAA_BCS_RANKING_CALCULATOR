@@ -156,10 +156,11 @@ def _previous_state(
     dict[int, float],
     dict[int, int],
     dict[int, int],
+    dict[int, int],
     dict[int, float],
 ]:
     if week <= 1:
-        return {}, {}, {}, {}, {}, {}
+        return {}, {}, {}, {}, {}, {}, {}
     previous = get_snapshot(session, season, week - 1)
     if previous is None:
         raise RuntimeError(
@@ -168,19 +169,29 @@ def _previous_state(
 
     entries = snapshot_entries(session, previous.id)
     display_ranks: dict[int, int] = {}
-    scores: dict[int, float] = {}
+    raw_scores: dict[int, float] = {}
+    games_played: dict[int, int] = {}
     wins: dict[int, int] = {}
     losses: dict[int, int] = {}
     strength: dict[int, float] = {}
     for entry in entries:
         display_ranks[entry.team_id] = entry.rank
-        scores[entry.team_id] = entry.score
+        raw_scores[entry.team_id] = entry.raw_score
+        games_played[entry.team_id] = entry.games_played
         wins[entry.team_id] = entry.wins
         losses[entry.team_id] = entry.losses
         strength[entry.team_id] = entry.opponent_strength
 
     scoring_ranks = _average_scoring_ranks(entries)
-    return display_ranks, scoring_ranks, scores, wins, losses, strength
+    return (
+        display_ranks,
+        scoring_ranks,
+        raw_scores,
+        games_played,
+        wins,
+        losses,
+        strength,
+    )
 
 
 def _teams_with_completed_game_before(
@@ -229,14 +240,15 @@ def _head_to_head(session: Session, season: int, through_week: int) -> dict[tupl
 def _order_team_ids(
     team_ids: Iterable[int],
     names: dict[int, str],
-    totals: dict[int, float],
+    average_scores: dict[int, float],
     wins: dict[int, int],
+    games_played: dict[int, int],
     opponent_strength: dict[int, float],
     h2h: dict[tuple[int, int], int],
 ) -> list[int]:
     groups: dict[float, list[int]] = defaultdict(list)
     for team_id in team_ids:
-        groups[float(totals.get(team_id, 0.0))].append(team_id)
+        groups[float(average_scores.get(team_id, 0.0))].append(team_id)
 
     ordered: list[int] = []
     for score in sorted(groups, reverse=True):
@@ -249,8 +261,16 @@ def _order_team_ids(
                     for opponent_id in tied_set
                     if opponent_id != team_id
                 ),
-                -wins.get(team_id, 0),
-                -opponent_strength.get(team_id, 0.0),
+                -(
+                    wins.get(team_id, 0) / games_played.get(team_id, 1)
+                    if games_played.get(team_id, 0) > 0
+                    else 0.0
+                ),
+                -(
+                    opponent_strength.get(team_id, 0.0) / games_played.get(team_id, 1)
+                    if games_played.get(team_id, 0) > 0
+                    else 0.0
+                ),
                 names[team_id],
             )
         )
@@ -305,14 +325,16 @@ def calculate_week_snapshot(
     (
         previous_display_ranks,
         previous_scoring_ranks,
-        previous_scores,
+        previous_raw_scores,
+        previous_games_played,
         previous_wins,
         previous_losses,
         previous_strength,
     ) = _previous_state(session, season, week)
     neutral_rank = (team_count + 1) / 2.0
     previously_played = _teams_with_completed_game_before(session, season, week)
-    totals = defaultdict(float, previous_scores)
+    raw_totals = defaultdict(float, previous_raw_scores)
+    games_played = defaultdict(int, previous_games_played)
     wins = defaultdict(int, previous_wins)
     losses = defaultdict(int, previous_losses)
     opponent_strength = defaultdict(float, previous_strength)
@@ -357,7 +379,8 @@ def calculate_week_snapshot(
                 opponent_subdivision=opponent_subdivision,
             )
             component = model.score_game(team_game, opponent_rank, team_count)
-            totals[team_id] += component.total
+            raw_totals[team_id] += component.total
+            games_played[team_id] += 1
             if opponent_rank is not None:
                 opponent_strength[team_id] += (team_count + 1) - opponent_rank
             if points_for > points_against:
@@ -378,8 +401,25 @@ def calculate_week_snapshot(
                 "game_total": component.total,
             })
 
+    average_scores = {
+        team_id: (
+            raw_totals[team_id] / games_played[team_id]
+            if games_played[team_id] > 0
+            else 0.0
+        )
+        for team_id in team_ids
+    }
+
     h2h = _head_to_head(session, season, week)
-    ordered = _order_team_ids(team_ids, names, totals, wins, opponent_strength, h2h)
+    ordered = _order_team_ids(
+        team_ids,
+        names,
+        average_scores,
+        wins,
+        games_played,
+        opponent_strength,
+        h2h,
+    )
     current_ranks = {team_id: index + 1 for index, team_id in enumerate(ordered)}
 
     snapshot = RankingSnapshot(
@@ -391,8 +431,9 @@ def calculate_week_snapshot(
         source_note=(
             "Calculated automatically from completed CFBD game results using "
             "the neutral first-game baseline, Week 0-to-Week 1 normalization, "
-            "averaged scoring ranks for ties, no win bonus, and the seven-point "
-            "road-win/home-loss site adjustment."
+            "averaged scoring ranks for ties, no win bonus, the seven-point "
+            "road-win/home-loss site adjustment, and average frozen game score "
+            "as the season ranking value so games played and bye weeks are normalized."
         ),
     )
     session.add(snapshot)
@@ -405,7 +446,9 @@ def calculate_week_snapshot(
             snapshot_id=snapshot.id,
             team_id=team_id,
             rank=new_rank,
-            score=float(totals[team_id]),
+            score=float(average_scores[team_id]),
+            raw_score=float(raw_totals[team_id]),
+            games_played=games_played[team_id],
             wins=wins[team_id],
             losses=losses[team_id],
             opponent_strength=float(opponent_strength[team_id]),
