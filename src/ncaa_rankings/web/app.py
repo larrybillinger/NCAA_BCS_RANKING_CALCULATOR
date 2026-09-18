@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.web_title, version="0.4.0", lifespan=lifespan)
+app = FastAPI(title=settings.web_title, version="0.4.1", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
@@ -129,7 +129,7 @@ def home(
         "subdivision_filter": (subdivision or "").upper(),
         "search_query": q or "",
     })
-    return TEMPLATES.TemplateResponse("rankings.html", context)
+    return TEMPLATES.TemplateResponse(request=request, name="rankings.html", context=context)
 
 
 @app.get("/rankings", response_class=HTMLResponse)
@@ -153,7 +153,7 @@ def predictions(
     games = game_rows_for_week(session, settings.season, selected_week, as_of_week=as_of_week)
     context = _base_context(session, request, week=latest.week if latest else None)
     context.update({"prediction_week": selected_week, "as_of_week": as_of_week, "games": games})
-    return TEMPLATES.TemplateResponse("predictions.html", context)
+    return TEMPLATES.TemplateResponse(request=request, name="predictions.html", context=context)
 
 
 @app.get("/stats", response_class=HTMLResponse)
@@ -165,7 +165,7 @@ def stats(
     weekly = weekly_metrics(session, settings.season)
     context = _base_context(session, request)
     context.update({"weekly_metrics": weekly, "metric": metric})
-    return TEMPLATES.TemplateResponse("stats.html", context)
+    return TEMPLATES.TemplateResponse(request=request, name="stats.html", context=context)
 
 
 @app.get("/teams", response_class=HTMLResponse)
@@ -173,7 +173,7 @@ def team_index(request: Request, session: Session = Depends(get_session)):
     teams = all_teams(session, settings.season)
     context = _base_context(session, request)
     context.update({"teams": teams})
-    return TEMPLATES.TemplateResponse("teams.html", context)
+    return TEMPLATES.TemplateResponse(request=request, name="teams.html", context=context)
 
 
 @app.get("/teams/{slug}", response_class=HTMLResponse)
@@ -201,13 +201,13 @@ def team_page(
         "team_metrics": tmetrics,
         "as_of_week": as_of_week,
     })
-    return TEMPLATES.TemplateResponse("team.html", context)
+    return TEMPLATES.TemplateResponse(request=request, name="team.html", context=context)
 
 
 @app.get("/method", response_class=HTMLResponse)
 def method(request: Request, session: Session = Depends(get_session)):
     context = _base_context(session, request)
-    return TEMPLATES.TemplateResponse("method.html", context)
+    return TEMPLATES.TemplateResponse(request=request, name="method.html", context=context)
 
 
 @app.get("/tools/rank-calculator", response_class=HTMLResponse)
@@ -223,7 +223,7 @@ def rank_calculator(
         result = rank_matchup_projection(session, settings.season, home_rank=rank_a, away_rank=rank_b, neutral=neutral)
     context = _base_context(session, request)
     context.update({"rank_a": rank_a, "rank_b": rank_b, "neutral": neutral, "calculator_result": result})
-    return TEMPLATES.TemplateResponse("rank_calculator.html", context)
+    return TEMPLATES.TemplateResponse(request=request, name="rank_calculator.html", context=context)
 
 
 @app.get("/compare", response_class=HTMLResponse)
@@ -240,4 +240,4 @@ def compare(
     entry_b = team_current_entry(session, team_b.id, settings.season) if team_b else None
     context = _base_context(session, request)
     context.update({"teams": teams, "team_a": team_a, "team_b": team_b, "entry_a": entry_a, "entry_b": entry_b})
-    return TEMPLATES.TemplateResponse("compare.html", context)
+    return TEMPLATES.TemplateResponse(request=request, name="compare.html", context=context)
