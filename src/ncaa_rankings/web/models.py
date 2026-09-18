@@ -156,7 +156,7 @@ class RankingGameAudit(Base):
     game_id: Mapped[int] = mapped_column(ForeignKey("games.id"))
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
     opponent_team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
-    opponent_rank_used: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    opponent_rank_used: Mapped[float | None] = mapped_column(Float, nullable=True)
     opponent_points: Mapped[float] = mapped_column(Float, default=0.0)
     win_points: Mapped[float] = mapped_column(Float, default=0.0)
     margin_points: Mapped[float] = mapped_column(Float, default=0.0)
