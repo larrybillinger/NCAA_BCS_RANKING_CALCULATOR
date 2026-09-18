@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.5.0 — 2026-09-17
+
+### Changed
+- Before Week 1, all NCAA Division I teams are treated as one tied pool because no current-season evidence exists yet.
+- The tied Week 1 pool uses the average occupied scoring rank, `(N + 1) / 2`; with 266 teams the neutral rank is 133.5.
+- Exact score ties after a completed week share the average rank of the positions occupied by the tie for the next week's opponent scoring.
+- Deterministic display ordering remains separate from mathematical scoring rank.
+- Production model version is now `division_i_weighted_v2` and predictor version is `rank_gap_v2`.
+- Recalculated the bundled 2026 Week 1 and Week 2 ranking snapshots under the new rules.
+
+### Database
+- `ranking_game_audits.opponent_rank_used` now stores floating-point ranks so ties such as 10.5 or 133.5 are preserved.
+- Existing PostgreSQL installs migrate that column automatically at startup.
+
+### 2026 sanity check
+- Kansas State is #40 at 2-0 with 298.5 points after Week 2.
+- Tulane is #105 at 1-1 with 72.0 points after Week 2.
+
 ## v0.4.1 — 2026-09-17
 
 ### Fixed
