@@ -1,4 +1,4 @@
-from ncaa_rankings.web.prediction_service import Calibration, _projection_from_ranks
+from ncaa_rankings.web.prediction_service import Calibration, Projection, _projection_from_ranks
 from ncaa_rankings.web.utils import slugify, subdivision
 
 
@@ -67,3 +67,21 @@ def test_equal_ranks_project_even_game():
     assert margin == 0.0
     assert home_points == away_points
     assert probability == 0.5
+
+
+
+def test_retrocast_projection_matches_saved_prediction_field_names():
+    projection = Projection(
+        home_rank=10,
+        away_rank=40,
+        home_points=31.5,
+        away_points=24.5,
+        margin=7.0,
+        home_win_probability=0.68,
+        sample_size=50,
+        detail={"method": "rank_gap_v3"},
+    )
+
+    assert projection.projected_home_points == 31.5
+    assert projection.projected_away_points == 24.5
+    assert projection.projected_margin == 7.0
