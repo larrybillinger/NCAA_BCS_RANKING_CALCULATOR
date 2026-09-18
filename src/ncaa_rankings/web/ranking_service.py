@@ -373,6 +373,7 @@ def calculate_week_snapshot(
                 "opponent_points": component.opponent_points,
                 "win_points": component.win_points,
                 "margin_points": component.margin_points,
+                "site_points": component.site_points,
                 "multiplier": _game_scale(team_subdivision, opponent_subdivision, points_for, points_against),
                 "game_total": component.total,
             })
@@ -390,7 +391,8 @@ def calculate_week_snapshot(
         source_note=(
             "Calculated automatically from completed CFBD game results using "
             "the neutral first-game baseline, Week 0-to-Week 1 normalization, "
-            "and averaged scoring ranks for ties."
+            "averaged scoring ranks for ties, no win bonus, and the seven-point "
+            "road-win/home-loss site adjustment."
         ),
     )
     session.add(snapshot)
