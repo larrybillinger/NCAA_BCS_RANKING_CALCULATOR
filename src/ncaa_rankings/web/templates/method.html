@@ -14,7 +14,7 @@ FCS vs FCS                      = 50%
 FCS loss to FBS                 = 50%
 FCS win over FBS                = 100%</pre>
 <h2>Score prediction</h2>
-<p>The prediction layer converts the current rank gap into an expected scoring margin. Its slope, average game total, and uncertainty are recalibrated from completed current-season games only. Early weeks therefore carry smaller sample sizes.</p>
+<p>The prediction layer is monotonic: the higher-ranked team is always the projected winner. The projected margin is the ranking gap multiplied by a current-season points-per-rank scale. That scale is calibrated from completed games, blended conservatively early in the season, and constrained so it cannot reverse the ranking order. Home field and free intercept adjustments do not change the projected winner. The season's average scoring total is used only to turn the projected margin into a projected final score.</p>
 <h2>Locked predictions</h2>
 <p>The newest projection available before kickoff becomes the official prediction for that game. It is never replaced after the result is known. A later ranking may produce a retrocast, but that is a separate research view and never changes official accuracy.</p>
 <h2>Data source</h2>
