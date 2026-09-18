@@ -4,184 +4,167 @@
 
 The live calculator ranks **all NCAA Division I football teams together**.
 
-The active ranking pool contains:
+The active ranking pool contains both:
 
-- FBS teams
-- FCS teams
+- FBS teams;
+- FCS teams.
 
-Both subdivisions share one ranking table and one opponent-rank scale. FCS teams use a limited scoring modifier described below.
+FBS and FCS therefore share one opponent-rank scale. FCS teams use the limited scoring modifier described below.
 
-## New season reset
+## New-season reset
 
-Every season begins with a blank slate.
+Every season starts from zero. Production does not import previous-season rankings, records, statistics, preseason polls, preseason power ratings, or conference-strength values.
 
-The production ranking does not import:
+Conference membership may be displayed, but contributes zero ranking points.
 
-- previous-season rankings;
-- previous-season statistics;
-- previous-season records;
-- preseason polls;
-- preseason power ratings;
-- conference-strength values.
+## Neutral first-game baseline
 
-No ranking is published before current-season games are played.
+Every Division I team enters its first current-season game in the same neutral T-1 state because no current-season evidence separates it yet.
 
-## Conference rule
-
-Conferences have no mathematical strength value.
-
-Conference membership may be displayed, filtered, or used for reporting, but it contributes zero ranking points.
-
-## Core game formula
-
-Before any FCS modifier is applied, the normal Division I game score is:
+For a pool of `N` teams, the neutral scoring rank is:
 
 ```text
-Game Score = Opponent Rank Points + Win Bonus + Margin
+Neutral scoring rank = (N + 1) / 2
 ```
 
-Beginning in Week 2, for a Division I pool of `N` teams and an opponent ranked `R`:
+Provider Week 0 is treated as ranking Week 1. A team remains on the neutral scoring baseline until it completes its first game. After that first result, the immediately preceding completed week's scoring rank is used.
+
+Exact season-score ties use the average occupied rank for next-week opponent scoring. For example, teams tied across positions 10, 11, and 12 each carry scoring rank 11.0.
+
+Old games never get retroactively revalued.
+
+## Core production game formula
+
+For a Division I opponent ranked `R` in a pool of `N` teams:
 
 ```text
 Win opponent points  = (N + 1) - R
 Loss opponent points = -R
-Win bonus            = 10 for a win, 0 for a loss
-Margin               = points_for - points_against
+
+Scoring margin = points_for - points_against
 ```
+
+There is **no separate win bonus**.
+
+The site adjustment is:
+
+```text
+Away win   = +7
+Home loss  = -7
+Home win   = 0
+Away loss  = 0
+Neutral    = 0
+```
+
+Therefore:
+
+```text
+Home or neutral win = (N + 1 - R) + scoring margin
+Away win            = (N + 1 - R) + scoring margin + 7
+
+Away or neutral loss = (-R) + scoring margin
+Home loss            = (-R) + scoring margin - 7
+```
+
+This deliberately makes actual scoring margin the direct win/loss margin component. Winning on the road earns extra credit; losing at home receives an extra penalty.
 
 ## FCS scoring modifier
 
-FBS and FCS remain in the same ranking pool, but FCS teams receive a scoring multiplier based on the matchup result.
+FCS is Division I. The production percentage is based on the team being scored and the matchup:
 
 ```text
-FBS team vs any Division I opponent = 100% of normal game points
-FCS team vs FCS opponent            = 50% of normal game points
-FCS team loses to FBS opponent      = 50% of normal negative game points
-FCS team beats FBS opponent         = 100% of normal game points
+FBS vs FBS       = 100%
+FBS vs FCS       = 100%
+FCS vs FCS       = 50%
+FCS loss to FBS  = 50%
+FCS win over FBS = 100%
+FCS tie with FBS = 50%
 ```
 
-The multiplier applies to the visible game-score components:
+The FCS percentage applies to the whole normal production game score:
 
 - opponent-rank points;
-- win points;
-- margin points.
+- scoring-margin points;
+- seven-point site adjustment.
 
-This means an FCS upset over an FBS team receives full credit, while ordinary FCS-vs-FCS results have half the ranking impact.
+There are no production win-bonus points to scale.
 
-## Before Week 1 and the neutral tied baseline
+## First-game example
 
-Before any current-season game is played, every Division I team is tied for first conceptually because there is no current-season evidence separating them.
-
-That T-1 state is **not a preseason opinion ranking**. It is the neutral mathematical state for a team that has not yet produced a current-season result.
-
-For opponent scoring, a tie uses the average numerical rank of the positions occupied by the tie. Because all `N` teams are tied before Week 1, the neutral Week 1 scoring rank is:
+Suppose the current Division I pool contains `267` teams. The neutral scoring rank is:
 
 ```text
-Neutral Week 1 Scoring Rank = (N + 1) / 2
+(267 + 1) / 2 = 134
 ```
 
-For the 2026 pool of 266 teams:
+If an FBS team beats an FCS team 71-3 at home:
 
 ```text
-Neutral Week 1 Scoring Rank = 133.5
+Opponent rank points = 268 - 134 = 134
+Scoring margin       = +68
+Home-win adjustment  = 0
+Normal score         = 202
+FBS multiplier       = 100%
+Final game score     = 202
 ```
 
-The normal first-game score therefore uses that same neutral rank for an in-pool Division I opponent that has not played yet, before the normal FCS modifier is applied. Provider Week 0 games are normalized into ranking Week 1.
-
-### FBS over FCS example
-
-Kansas State 71, Nicholls 3
-
-Kansas State is FBS, so its score is not reduced:
+For the FCS team losing 3-71 on the road:
 
 ```text
-Opponent Rank Points = 267 - 133.5 = 133.5
-Win Bonus            = 10
-Margin               = 68
-Kansas State Score   = 211.5
+Opponent rank points = -134
+Scoring margin       = -68
+Away-loss adjustment = 0
+Normal score         = -202
+FCS-loss-to-FBS      = 50%
+Final game score     = -101
 ```
 
-Nicholls is FCS and lost to an FBS team, so its negative score is halved:
+## Road-win example
+
+If the #40 team is beaten 31-17 by a visiting FBS team in a 267-team pool:
 
 ```text
-Opponent Rank Points = -133.5
-Win Bonus            = 0
-Margin               = -68
-Normal Score         = -201.5
-FCS Multiplier       = 0.5
-Nicholls Score       = -100.75
+Opponent rank points = 268 - 40 = 228
+Scoring margin       = +14
+Road-win adjustment  = +7
+Game score           = 249
 ```
 
-### FCS vs FCS example
-
-If an FCS team wins 30-10 over another FCS team in Week 1:
+The home loser receives:
 
 ```text
-Opponent Rank Points = 133.5
-Win Bonus            = 10
-Margin               = 20
-Normal Score         = 163.5
-FCS Multiplier       = 0.5
-Final Game Score     = 81.75
+Opponent rank points = -40
+Scoring margin       = -14
+Home-loss adjustment = -7
+Game score           = -61
 ```
-
-## Week 2 and later
-
-Beginning after a team has completed its first game, opponents use that team's scoring rank from the immediately preceding completed week of the same season. If the opponent still has not played, it remains at the neutral baseline rather than receiving an artificial rank based only on inactivity.
-
-Display order remains deterministic, but exact score ties do not receive artificial different values for opponent scoring. If three teams tie on score across display positions 10, 11, and 12, each carries scoring rank 11.0 into the next week:
-
-```text
-Tie Scoring Rank = (10 + 11 + 12) / 3 = 11
-```
-
-The opponent-rank formula uses the full combined Division I ranking. An FCS opponent with scoring rank 25 and an FBS opponent with scoring rank 25 therefore supply the same base opponent-rank value before any FCS-team scoring modifier is applied.
-
-Earlier games are not retroactively rescored when an opponent moves up or down later.
-
-Week 2 uses Week 1 ranks. Week 3 uses Week 2 ranks. This continues through the season.
-
-## Teams that have not played yet
-
-Before a team completes its first current-season game, it has zero current-season points and remains on the neutral T-1 scoring baseline for opponent-value purposes.
-
-The website may list the team for completeness, but any display placement before its first result is not used as its opponent-scoring rank.
 
 ## Outside-Division-I games
 
-Division II, Division III, NAIA, and other opponents outside the active Division I pool do not receive an opponent rank.
+Division II, Division III, NAIA, and other opponents outside the active Division I pool have no opponent-rank value.
 
-The active profile may apply its configured out-of-pool margin scale to those games. That treatment is separate from the FCS-vs-FCS / FCS-vs-FBS modifier.
+The configured out-of-pool margin scale remains separate from the FBS/FCS modifier. The production site adjustment still reflects road win/home loss.
 
 ## Tie handling
 
-If teams have identical season scores, deterministic tiebreaking is used so the same inputs always produce the same order.
-
-The engine can consider, in order:
+If teams have identical season scores, deterministic display tiebreaking is used so the same inputs always produce the same display order. The engine can consider:
 
 1. head-to-head wins among the tied teams;
 2. number of wins;
-3. prior-week opponent-strength information accumulated during the current season;
+3. accumulated current-season opponent strength;
 4. deterministic team name/ID fallback.
 
-No conference reputation or prior-season result is used as a tiebreaker.
+Display ordering does not change the average scoring rank assigned to an exact score tie.
 
 ## Production engine and model
 
-The live current-season engine is:
-
 ```text
-WeeklySeasonRankingEngine
+Engine: WeeklySeasonRankingEngine
+Model:  division_i_weighted_v4
 ```
 
-The live scoring model is:
-
-```text
-division_i_weighted_v3
-```
-
-The older recursive engine and legacy FBS model remain available for historical reproduction and research.
+The older recursive engine and legacy FBS model remain available for historical reproduction and are not modified by the production formula change.
 
 ## Guiding rule
 
-**Every team begins on the same neutral first-game baseline; Week 0 belongs to ranking Week 1; unplayed teams stay neutral until their first result; exact score ties use average occupied ranks; FBS and FCS share one pool; and the documented FCS modifiers apply without retroactively rescoring old games.**
+**Use current-season opponent rank plus the actual scoring margin, reward road wins by seven, penalize home losses by seven, keep every unplayed team on the neutral first-game baseline, and never retroactively rewrite old games.**
