@@ -36,7 +36,7 @@ An away loss does not receive the extra -7 penalty.
 
 ## FBS road win
 
-A visiting FBS team beats the prior-week #40 FBS team 31-17.
+A visiting FBS team beats an FBS opponent whose prior-week scoring rank is #40, 31-17.
 
 ```text
 Opponent Rank Points = 268 - 40 = 228
@@ -47,7 +47,7 @@ Final Score          = 249
 
 ## FBS home loss
 
-The home #40 team loses 17-31.
+A home FBS team loses 17-31 to an FBS opponent whose prior-week scoring rank is #40.
 
 ```text
 Opponent Rank Points = -40
