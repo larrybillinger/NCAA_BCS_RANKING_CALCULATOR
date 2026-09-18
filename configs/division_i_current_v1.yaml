@@ -43,4 +43,5 @@ fcs_scoring_modifier:
   fcs_loss_to_fbs: 0.5
   fcs_win_over_fbs: 1.0
   fcs_tie_with_fbs: 0.5
-  applies_to_components: [opponent_rank_points, margin_points, site_points]
+  applies_to_components: [opponent_rank_points, margin_points]
+  site_adjustment_applied_after_multiplier: true
