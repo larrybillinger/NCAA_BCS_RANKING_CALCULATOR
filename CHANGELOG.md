@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.2 — 2026-09-18
+
+### Fixed
+- Fixed HTTP 500 errors on team pages, Game Book retrocasts, and Accuracy caused by the in-memory research projection using different field names from persisted prediction snapshots.
+- Research retrocasts now expose the same `projected_home_points`, `projected_away_points`, and `projected_margin` interface used by saved predictions.
+- Added regression coverage for the shared projection interface.
+
 ## v0.6.1 — 2026-09-18
 
 ### Deployment
