@@ -245,6 +245,22 @@ def test_fcs_home_loss_to_fbs_keeps_full_site_penalty():
     assert score.total == -34
 
 
+
+def test_fcs_road_win_keeps_full_seven_site_points():
+    model = DivisionIWeightedModel()
+    game = TeamGame(
+        "FCS Team", "FCS Team B", 24, 17,
+        site=Site.AWAY,
+        team_subdivision="FCS",
+        opponent_subdivision="FCS",
+    )
+    score = model.score_game(game, opponent_rank=40, team_count=266)
+    assert score.opponent_points == 113.5
+    assert score.margin_points == 3.5
+    assert score.site_points == 7
+    assert score.total == 124.0
+
+
 def test_historical_legacy_model_remains_subdivision_neutral():
     model = LegacyFBSModel(loss_rank_penalty=True)
     fbs_game = TeamGame(
