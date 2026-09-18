@@ -160,6 +160,7 @@ class RankingGameAudit(Base):
     opponent_points: Mapped[float] = mapped_column(Float, default=0.0)
     win_points: Mapped[float] = mapped_column(Float, default=0.0)
     margin_points: Mapped[float] = mapped_column(Float, default=0.0)
+    site_points: Mapped[float] = mapped_column(Float, default=0.0)
     multiplier: Mapped[float] = mapped_column(Float, default=1.0)
     game_total: Mapped[float] = mapped_column(Float, default=0.0)
 
