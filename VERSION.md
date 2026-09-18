@@ -1,5 +1,15 @@
 # Version history
 
+## 0.5.0 — Neutral tied Week 1 baseline
+
+- Treat all Division I teams as tied before Week 1.
+- Use the average occupied rank of the full tie, `(N + 1) / 2`, for Week 1 opponent scoring.
+- Use average occupied rank for exact score ties in all later weekly opponent scoring.
+- Preserve deterministic display ordering while separating display rank from scoring rank.
+- Recalculate 2026 Week 1 and Week 2 under the new rules.
+- Upgrade the PostgreSQL audit field to retain fractional opponent ranks.
+- Move production to `division_i_weighted_v2` and `rank_gap_v2`.
+
 ## 0.4.0 — Weekbook web application
 
 - Added a PostgreSQL-backed FastAPI website using the selected Weekbook design.
