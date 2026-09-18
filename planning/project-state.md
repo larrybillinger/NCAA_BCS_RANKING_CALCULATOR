@@ -1,7 +1,7 @@
 # Project state
 
 ## Current release
-v0.5.1
+v0.5.2
 
 ## Production model
 division_i_weighted_v2
