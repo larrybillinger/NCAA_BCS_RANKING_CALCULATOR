@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .base import GameScore, TeamGame
+from .base import GameScore, Site, TeamGame
 from .legacy_fbs import LegacyFBSModel
 
 
