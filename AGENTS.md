@@ -44,6 +44,10 @@ Do not change these without an explicit approved decision:
 - Do not publish a bulk mirror of CFBD raw data.
 
 ## Deployment rules
+- GitHub is the source of truth for all application, ranking-model, website, script, and documentation changes.
+- Make and commit changes in GitHub first; do not treat the live Synology app folder as the primary development copy.
+- Production updates must be deployed to Synology from GitHub over SSH using the repository's install/update/upgrade scripts.
+- Do not manually patch files under `/volume1/rankings/app` except for emergency diagnosis. If an emergency live edit is unavoidable, reproduce and commit the same change to GitHub immediately before the next deployment.
 - Synology production root: `/volume1/rankings`.
 - App code: `/volume1/rankings/app`.
 - PostgreSQL data: `/volume1/rankings/postgres`.
