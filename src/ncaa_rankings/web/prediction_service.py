@@ -40,6 +40,21 @@ class Projection:
     sample_size: int
     detail: dict[str, float | int | str]
 
+    # Keep the in-memory research retrocast interface compatible with the
+    # persisted PredictionSnapshot model so templates and accuracy code can
+    # consume either object without special cases.
+    @property
+    def projected_home_points(self) -> float:
+        return self.home_points
+
+    @property
+    def projected_away_points(self) -> float:
+        return self.away_points
+
+    @property
+    def projected_margin(self) -> float:
+        return self.margin
+
 
 def _entry_map(session: Session, snapshot_id: int) -> dict[int, RankingEntry]:
     return {
