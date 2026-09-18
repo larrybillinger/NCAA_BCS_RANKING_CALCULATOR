@@ -127,7 +127,9 @@ curl -fsSL https://raw.githubusercontent.com/larrybillinger/NCAA_BCS_RANKING_CAL
 sh /tmp/upgrade-rankings-v050.sh
 ```
 
-### Update later
+### Production update workflow
+
+GitHub is the source of truth. Normal changes are committed to this repository first, then the Synology website is updated from GitHub over SSH. Avoid editing `/volume1/rankings/app` directly.
 
 After v0.5.0 is installed, ordinary source updates use:
 
