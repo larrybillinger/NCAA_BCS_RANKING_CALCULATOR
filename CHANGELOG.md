@@ -21,6 +21,9 @@
 - Added separate overall and team retrocast accuracy metrics while preserving the official locked-prediction ledger unchanged.
 - Official-pending ticker now links to the separate research statistics rather than presenting blank metric placeholders.
 
+### Deployment
+- Fixed the updater's temporary environment-file handling and added a health wait so SSH deployment does not report success before the rebuilt site is ready.
+
 ### Tests
 - Added Week 0 normalization coverage.
 - Added coverage proving an unplayed opponent remains on the neutral first-game baseline.
