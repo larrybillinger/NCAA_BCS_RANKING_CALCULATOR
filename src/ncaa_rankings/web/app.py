@@ -81,6 +81,8 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
     season = settings.season
     weeks = available_ranking_weeks(session, season)
     latest = latest_snapshot(session, season)
+    team_count = len(all_teams(session, season))
+    neutral_rank = (team_count + 1) / 2.0 if team_count else None
     selected_week = week or (latest.week if latest else (weeks[-1] if weeks else 1))
     metrics = overall_metrics(session, season)
     retro_metrics = retrocast_metrics(session, season)
@@ -92,6 +94,8 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
         "weeks": weeks,
         "selected_week": selected_week,
         "latest_week": latest.week if latest else None,
+        "team_count": team_count,
+        "neutral_rank": neutral_rank,
         "metrics": metrics,
         "retro_metrics": retro_metrics,
         "last_sync": sync,
