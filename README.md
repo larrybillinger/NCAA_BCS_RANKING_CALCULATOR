@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.5.0**
+**Current version: 0.5.1**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -131,11 +131,13 @@ sh /tmp/upgrade-rankings-v050.sh
 
 GitHub is the source of truth. Normal changes are committed to this repository first, then the Synology website is updated from GitHub over SSH. Avoid editing `/volume1/rankings/app` directly.
 
-After v0.5.0 is installed, ordinary source updates use:
+Ordinary source updates use the GitHub-backed updater:
 
 ```bash
 sudo sh /volume1/rankings/app/scripts/synology-update.sh
 ```
+
+The updater now synchronizes the active non-secret `MODEL_VERSION` and `PREDICTOR_VERSION` from GitHub's committed `.env.example`, while preserving the NAS's API keys and database credentials. The Weekbook sidebar and `/health` endpoint display the running application and model versions so a stale deployment is immediately visible.
 
 ### Back up
 
