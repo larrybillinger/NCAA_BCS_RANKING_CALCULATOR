@@ -11,6 +11,10 @@ Away win            = (N + 1 - R) + scoring margin + 7
 Away or neutral loss = (-R) + scoring margin
 Home loss            = (-R) + scoring margin - 7</pre>
 <p>The seven-point site adjustment rewards winning on the road and penalizes losing at home. A home win gets no extra site points, and an away loss gets no extra site penalty.</p>
+<h2>Season ranking value</h2>
+<p>Each completed game keeps its frozen game score. The season ranking value is the arithmetic mean of those frozen game scores:</p>
+<pre>Ranking score = sum of frozen game scores / games played</pre>
+<p>This prevents an extra game from automatically creating more ranking points and makes a bye week neutral. Raw cumulative points are retained only for auditing. Exact average-score ties use head-to-head, then win percentage, then average opponent strength before the deterministic name fallback.</p>
 <p>Every Division I team enters its first game on the same neutral T-1 baseline because it has no current-season evidence yet. For scoring, that baseline is the average occupied rank <em>(N + 1) / 2</em>; in the current {{ team_count }}-team pool that is {{ neutral_rank|num }}. Provider Week 0 games are treated as ranking Week 1. A team that has not played yet stays on the neutral baseline for opponent scoring; after its first completed game, the immediately preceding completed week's scoring rank takes over. Exact score ties share the average rank of their occupied positions. Earlier games stay frozen.</p>
 <h2>FCS modifier</h2>
 <p>FBS and FCS are both Division I. The percentages below describe how much of the normal game score each side receives.</p>
