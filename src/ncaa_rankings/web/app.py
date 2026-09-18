@@ -18,7 +18,15 @@ from .db import SessionLocal, get_session, init_db
 from .models import Team
 from .prediction_service import rank_matchup_projection
 from .ranking_service import get_snapshot, latest_snapshot
-from .stats_service import last_sync, overall_metrics, team_metrics, weekly_metrics
+from .stats_service import (
+    last_sync,
+    overall_metrics,
+    retrocast_metrics,
+    team_metrics,
+    team_retrocast_metrics,
+    weekly_metrics,
+    weekly_retrocast_metrics,
+)
 from .view_service import (
     all_teams,
     available_ranking_weeks,
@@ -75,6 +83,7 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
     latest = latest_snapshot(session, season)
     selected_week = week or (latest.week if latest else (weeks[-1] if weeks else 1))
     metrics = overall_metrics(session, season)
+    retro_metrics = retrocast_metrics(session, season)
     sync = last_sync(session)
     return {
         "request": request,
@@ -84,6 +93,7 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
         "selected_week": selected_week,
         "latest_week": latest.week if latest else None,
         "metrics": metrics,
+        "retro_metrics": retro_metrics,
         "last_sync": sync,
         "cfbd_configured": CFBDClient().configured,
         "app_version": app.version,
@@ -169,8 +179,13 @@ def stats(
     session: Session = Depends(get_session),
 ):
     weekly = weekly_metrics(session, settings.season)
+    retro_weekly = weekly_retrocast_metrics(session, settings.season)
     context = _base_context(session, request)
-    context.update({"weekly_metrics": weekly, "metric": metric})
+    context.update({
+        "weekly_metrics": weekly,
+        "retro_weekly_metrics": retro_weekly,
+        "metric": metric,
+    })
     return TEMPLATES.TemplateResponse(request=request, name="stats.html", context=context)
 
 
@@ -198,6 +213,7 @@ def team_page(
     schedule = team_schedule_rows(session, team, settings.season, as_of_week=as_of_week)
     history = team_ranking_history(session, team.id, settings.season)
     tmetrics = team_metrics(session, settings.season, team.id)
+    tretro = team_retrocast_metrics(session, settings.season, team.id)
     context = _base_context(session, request)
     context.update({
         "team": team,
@@ -205,6 +221,7 @@ def team_page(
         "schedule": schedule,
         "history": history,
         "team_metrics": tmetrics,
+        "team_retro_metrics": tretro,
         "as_of_week": as_of_week,
     })
     return TEMPLATES.TemplateResponse(request=request, name="team.html", context=context)
