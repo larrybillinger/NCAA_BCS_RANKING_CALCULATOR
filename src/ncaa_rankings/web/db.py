@@ -28,6 +28,7 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _migrate_fractional_opponent_rank()
+    _migrate_site_points()
 
 
 def _migrate_fractional_opponent_rank() -> None:
@@ -47,6 +48,25 @@ def _migrate_fractional_opponent_rank() -> None:
                     "ALTER TABLE ranking_game_audits "
                     "ALTER COLUMN opponent_rank_used TYPE DOUBLE PRECISION "
                     "USING opponent_rank_used::double precision"
+                )
+            )
+
+
+def _migrate_site_points() -> None:
+    """Add production site-adjustment audit storage on existing installs."""
+    if engine.dialect.name != "postgresql":
+        return
+
+    columns = {
+        column["name"]
+        for column in inspect(engine).get_columns("ranking_game_audits")
+    }
+    if "site_points" not in columns:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE ranking_game_audits "
+                    "ADD COLUMN site_points DOUBLE PRECISION NOT NULL DEFAULT 0"
                 )
             )
 
