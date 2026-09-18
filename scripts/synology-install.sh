@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+export DOCKER_CLIENT_TIMEOUT="${DOCKER_CLIENT_TIMEOUT:-1200}"
+export COMPOSE_HTTP_TIMEOUT="${COMPOSE_HTTP_TIMEOUT:-1200}"
+
 REPO_ARCHIVE="https://github.com/larrybillinger/NCAA_BCS_RANKING_CALCULATOR/archive/refs/heads/main.tar.gz"
 ROOT="/volume1/rankings"
 APP="$ROOT/app"
@@ -126,8 +129,12 @@ rm -rf "$APP"
 mv "$APP.new" "$APP"
 
 cd "$APP"
-echo "Building and starting containers..."
-compose --env-file "$ENV_FILE" up -d --build --remove-orphans
+echo "Building shared application image once..."
+docker build -t ncaa-rankings-app:latest .
+echo "Starting containers..."
+compose --env-file "$ENV_FILE" up -d db
+compose --env-file "$ENV_FILE" up -d --no-deps --force-recreate web worker
+compose --env-file "$ENV_FILE" up -d --remove-orphans
 
 echo "Waiting for the web application to become healthy..."
 PORT="$(awk -F= '/^WEB_PORT=/{print $2}' "$ENV_FILE" | tail -n 1)"
