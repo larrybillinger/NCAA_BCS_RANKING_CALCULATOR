@@ -68,23 +68,25 @@ The multiplier applies to the visible game-score components:
 
 This means an FCS upset over an FBS team receives full credit, while ordinary FCS-vs-FCS results have half the ranking impact.
 
-## Week 1
+## Before Week 1 and the neutral tied baseline
 
-Week 1 establishes the first ranking.
+Before any current-season game is played, every Division I team is tied for first conceptually because there is no current-season evidence separating them.
 
-There is no previous current-season rank to use yet, so every in-pool Division I opponent receives:
+That T-1 state is **not published as a preseason opinion ranking**. It exists only to give every Week 1 Division I opponent the same neutral mathematical value.
 
-```text
-Opponent Rank Points = 0
-```
-
-The normal Week 1 score is therefore:
+For opponent scoring, a tie uses the average numerical rank of the positions occupied by the tie. Because all `N` teams are tied before Week 1, the neutral Week 1 scoring rank is:
 
 ```text
-Normal Week 1 Game Score = Win Bonus + Margin
+Neutral Week 1 Scoring Rank = (N + 1) / 2
 ```
 
-The FCS modifier is then applied when appropriate.
+For the 2026 pool of 266 teams:
+
+```text
+Neutral Week 1 Scoring Rank = 133.5
+```
+
+The normal Week 1 game score therefore uses that same rank for every in-pool Division I opponent before the normal FCS modifier is applied.
 
 ### FBS over FCS example
 
@@ -93,21 +95,21 @@ Kansas State 71, Nicholls 3
 Kansas State is FBS, so its score is not reduced:
 
 ```text
-Opponent Rank Points = 0
+Opponent Rank Points = 267 - 133.5 = 133.5
 Win Bonus            = 10
 Margin               = 68
-Kansas State Score   = 78
+Kansas State Score   = 211.5
 ```
 
 Nicholls is FCS and lost to an FBS team, so its negative score is halved:
 
 ```text
-Opponent Rank Points = 0
+Opponent Rank Points = -133.5
 Win Bonus            = 0
 Margin               = -68
-Normal Score         = -68
+Normal Score         = -201.5
 FCS Multiplier       = 0.5
-Nicholls Score       = -34
+Nicholls Score       = -100.75
 ```
 
 ### FCS vs FCS example
@@ -115,19 +117,25 @@ Nicholls Score       = -34
 If an FCS team wins 30-10 over another FCS team in Week 1:
 
 ```text
-Opponent Rank Points = 0
+Opponent Rank Points = 133.5
 Win Bonus            = 10
 Margin               = 20
-Normal Score         = 30
+Normal Score         = 163.5
 FCS Multiplier       = 0.5
-Final Game Score     = 15
+Final Game Score     = 81.75
 ```
 
 ## Week 2 and later
 
-Beginning in Week 2, each game uses the opponent's rank from the immediately preceding completed week of the same season.
+Beginning in Week 2, each game uses the opponent's scoring rank from the immediately preceding completed week of the same season.
 
-The opponent-rank formula uses the full combined Division I ranking. An FCS opponent ranked #25 and an FBS opponent ranked #25 therefore supply the same base opponent-rank value before any FCS-team scoring modifier is applied.
+Display order remains deterministic, but exact score ties do not receive artificial different values for opponent scoring. If three teams tie on score across display positions 10, 11, and 12, each carries scoring rank 11.0 into the next week:
+
+```text
+Tie Scoring Rank = (10 + 11 + 12) / 3 = 11
+```
+
+The opponent-rank formula uses the full combined Division I ranking. An FCS opponent with scoring rank 25 and an FBS opponent with scoring rank 25 therefore supply the same base opponent-rank value before any FCS-team scoring modifier is applied.
 
 Earlier games are not retroactively rescored when an opponent moves up or down later.
 
@@ -176,4 +184,4 @@ The older recursive engine and legacy FBS model remain available for historical 
 
 ## Guiding rule
 
-**Rank FBS and FCS together, give FCS teams half credit for FCS-vs-FCS games and FCS losses to FBS, and give FCS teams full credit when they beat FBS teams.**
+**Start every season from one neutral all-team tie, use average occupied ranks for exact ties, rank FBS and FCS together, give FCS teams half credit for FCS-vs-FCS games and FCS losses to FBS, and give FCS teams full credit when they beat FBS teams.**
