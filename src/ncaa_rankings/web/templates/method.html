@@ -7,7 +7,7 @@
 <p>For a Division I opponent ranked <em>R</em> in a pool of <em>N</em> teams:</p>
 <pre>Win  = (N + 1 - R) + 10 + scoring margin
 Loss = (-R) + scoring margin</pre>
-<p>Every Division I team enters its first game on the same neutral T-1 baseline because it has no current-season evidence yet. For scoring, that baseline is the average occupied rank <em>(N + 1) / 2</em>; in the current 266-team pool that is 133.5. Provider Week 0 games are treated as ranking Week 1. A team that has not played yet stays on the neutral baseline for opponent scoring; after its first completed game, the immediately preceding completed week's scoring rank takes over. Exact score ties share the average rank of their occupied positions. Earlier games stay frozen.</p>
+<p>Every Division I team enters its first game on the same neutral T-1 baseline because it has no current-season evidence yet. For scoring, that baseline is the average occupied rank <em>(N + 1) / 2</em>; in the current {{ team_count }}-team pool that is {{ neutral_rank|num }}. Provider Week 0 games are treated as ranking Week 1. A team that has not played yet stays on the neutral baseline for opponent scoring; after its first completed game, the immediately preceding completed week's scoring rank takes over. Exact score ties share the average rank of their occupied positions. Earlier games stay frozen.</p>
 <h2>FCS modifier</h2>
 <pre>FBS team vs Division I opponent = 100%
 FCS vs FCS                      = 50%
