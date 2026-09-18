@@ -11,6 +11,11 @@ from .config import get_settings
 from .models import RankingEntry, RankingSnapshot, Team, TeamSeason
 from .utils import slugify
 
+# The bundled 2026 CSVs were frozen under the prior production model. Do not
+# relabel them as a newer scoring model. New model versions are recalculated
+# from the synced game database by the worker.
+BUNDLED_MODEL_VERSION = "division_i_weighted_v3"
+
 
 def _unique_slug(session: Session, name: str) -> str:
     base = slugify(name)
@@ -153,6 +158,8 @@ def import_ranking_csv(
 def bootstrap_bundled_rankings(session: Session) -> list[int]:
     settings = get_settings()
     if not settings.bootstrap_rankings:
+        return []
+    if settings.model_version != BUNDLED_MODEL_VERSION:
         return []
     created: list[int] = []
     season_dir = settings.rankings_dir / str(settings.season)
