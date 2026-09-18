@@ -24,9 +24,10 @@ class DivisionIWeightedModel:
     - FCS loss to FBS: 50%
     - FCS win over FBS: 100%
 
-    The scale applies to the whole production game score, including opponent
-    rank points, margin points, and the site adjustment. Historical legacy
-    models remain unchanged and still retain their recovered +10 win bonus.
+    The FCS scale applies to opponent-rank and margin points. The seven-point
+    site adjustment is applied afterward at full value for every Division I
+    team, so a road win is always +7 and a home loss is always -7. Historical
+    legacy models remain unchanged and retain their recovered +10 win bonus.
     """
 
     loss_rank_penalty: bool = True
@@ -80,7 +81,7 @@ class DivisionIWeightedModel:
             opponent_points=opponent_points * scale,
             win_points=0.0,
             margin_points=margin_points * scale,
-            site_points=site_points * scale,
+            site_points=site_points,
         )
 
     def _game_scale(self, game: TeamGame) -> float:
