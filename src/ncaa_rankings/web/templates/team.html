@@ -4,7 +4,7 @@
 <header class="team-head">
   <div class="eyebrow">TEAM PAGE</div><h1>{{ team.name }}</h1>
   <div class="team-snapshot">
-    {% if current_entry %}<span><strong>#{{ current_entry.rank }}</strong> current rank</span><span><strong>{{ current_entry.wins }}–{{ current_entry.losses }}</strong> record</span><span><strong>{{ current_entry.score|num }}</strong> points</span>{% else %}<span>Not ranked yet</span>{% endif %}
+    {% if current_entry %}<span><strong>#{{ current_entry.rank }}</strong> current rank</span><span><strong>{{ current_entry.wins }}–{{ current_entry.losses }}</strong> record</span><span><strong>{{ current_entry.score|num }}</strong> avg score</span>{% else %}<span>Not ranked yet</span>{% endif %}
     <span><strong>{{ team_metrics.winner_accuracy|pct if team_metrics.games else '—' }}</strong> official winner accuracy</span>
   </div>
 </header>
@@ -64,7 +64,7 @@
     <p class="quiet-inline">Every team enters its first game tied at T-1. With {{ team_count }} teams, the neutral opponent-scoring rank is {{ neutral_rank|num }}.</p>
     <div class="history-list">
       <div class="baseline-row"><span>Season start</span><strong>T-1</strong><span>neutral scoring rank {{ neutral_rank|num }}</span></div>
-      {% for row in history %}<div><span>After Week {{ row.week }}</span><strong>#{{ row.rank }}</strong><span>{{ row.score|num }} pts · {{ row.record }}</span></div>{% else %}<p>No completed ranking history yet.</p>{% endfor %}
+      {% for row in history %}<div><span>After Week {{ row.week }}</span><strong>#{{ row.rank }}</strong><span>{{ row.score|num }} avg · {{ row.record }}</span></div>{% else %}<p>No completed ranking history yet.</p>{% endfor %}
     </div>
   </div>
 
