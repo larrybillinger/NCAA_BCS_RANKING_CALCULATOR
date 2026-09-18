@@ -29,6 +29,12 @@ Do not change these without an explicit approved decision:
 - FCS win over FBS receives full credit;
 - FBS games use full scoring.
 
+## Prediction rules
+- The projected winner must follow the ranking order.
+- Projected scoring margin must be based directly on the numerical rank gap.
+- Calibration may adjust the positive points-per-rank scale and uncertainty, but may not reverse the ranking order.
+- Home field or a free intercept may not flip the projected winner.
+
 ## Website rules
 - White background and text-first interface.
 - Primary navigation is plain text.
