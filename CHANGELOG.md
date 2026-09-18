@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.1 — 2026-09-17
+
+### Fixed
+- Synology's ordinary updater now synchronizes the active non-secret ranking and predictor model identifiers from GitHub instead of silently preserving a stale `MODEL_VERSION`.
+- This prevents a new code deployment from continuing to display older ranking snapshots such as `division_i_weighted_v1`.
+
+### Added
+- The Weekbook sidebar now shows the running application version, ranking model version, and predictor version.
+- The `/health` endpoint now reports those same versions for deployment verification.
+
 ## v0.5.0 — 2026-09-17
 
 ### Changed
