@@ -61,9 +61,9 @@
 <section id="history" class="split-section">
   <div>
     <div class="section-kicker">RANK HISTORY</div><h2>Season progression</h2>
-    <p class="quiet-inline">Every team enters its first game tied at T-1. With {{ 266 }} teams, the neutral opponent-scoring rank is 133.5.</p>
+    <p class="quiet-inline">Every team enters its first game tied at T-1. With {{ team_count }} teams, the neutral opponent-scoring rank is {{ neutral_rank|num }}.</p>
     <div class="history-list">
-      <div class="baseline-row"><span>Season start</span><strong>T-1</strong><span>neutral scoring rank 133.5</span></div>
+      <div class="baseline-row"><span>Season start</span><strong>T-1</strong><span>neutral scoring rank {{ neutral_rank|num }}</span></div>
       {% for row in history %}<div><span>After Week {{ row.week }}</span><strong>#{{ row.rank }}</strong><span>{{ row.score|num }} pts · {{ row.record }}</span></div>{% else %}<p>No completed ranking history yet.</p>{% endfor %}
     </div>
   </div>
