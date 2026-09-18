@@ -176,7 +176,7 @@ PostgreSQL stores:
 - official locked predictions;
 - source sync history.
 
-The bundled `rankings/2026/week_01.csv` and `week_02.csv` are the recalculated v0.5.0 snapshots using the tied-pool Week 1 baseline and averaged scoring ranks for exact ties. They are imported on a fresh install so the ranking pages work before the first API sync.
+The bundled `rankings/2026/week_01.csv` and `week_02.csv` are the current frozen snapshots. Under v0.6.0 they load as `division_i_weighted_v3`, using the neutral first-game baseline, Week 0-to-Week 1 normalization, and averaged scoring ranks for exact ties. The 2026 Week 1/2 values remain unchanged by the late-starter rule because the teams still awaiting a first result in that interval had not yet created an affected matchup.
 
 ## Project structure
 
