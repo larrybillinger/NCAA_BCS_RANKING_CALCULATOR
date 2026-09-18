@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ncaa-bcs-ranking-calculator"
-version = "0.6.2"
+version = "0.7.0"
 description = "Transparent NCAA Division I football ranking, prediction, and web application"
 requires-python = ">=3.11"
 dependencies = [
