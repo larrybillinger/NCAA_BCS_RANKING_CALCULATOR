@@ -1,6 +1,6 @@
-model: division_i_weighted_v2
+model: division_i_weighted_v3
 engine: WeeklySeasonRankingEngine
-version: 4
+version: 5
 scope:
   ranking_pool: NCAA_Division_I
   subdivisions: [FBS, FCS]
@@ -18,6 +18,8 @@ weekly_flow:
   publish_preseason_ranking: false
   first_published_ranking: week_1_complete
   pre_week_1_state: all_teams_tied_for_1
+  provider_week_0_maps_to_ranking_week_1: true
+  unplayed_team_scoring_rank: neutral_until_first_completed_game
   week_1_scoring_rank: average_occupied_rank_of_full_pool
   week_1_scoring_rank_formula: (N_plus_1)_div_2
   week_2_and_later_opponent_rank_source: previous_completed_week_current_season
