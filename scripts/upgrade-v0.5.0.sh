@@ -24,6 +24,10 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
+# The updater replaces $APP. Move out of it first so an SSH shell launched
+# from the app directory does not lose its current working directory.
+cd /
+
 compose() {
   if docker compose version >/dev/null 2>&1; then
     docker compose "$@"
