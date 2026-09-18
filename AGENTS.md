@@ -22,7 +22,9 @@ Do not change these without an explicit approved decision:
 - season starts from zero;
 - no preseason or prior-season seed;
 - no conference-strength scoring;
-- Week 2+ uses the previous completed week's ranking;
+- provider Week 0 is normalized into ranking Week 1;
+- an unplayed opponent remains on the neutral T-1 scoring baseline until its first completed current-season game;
+- after a team has played, later games use the previous completed week's scoring rank;
 - old games do not get recursively revalued;
 - FCS-vs-FCS score multiplier is 0.5;
 - FCS loss to FBS multiplier is 0.5;
