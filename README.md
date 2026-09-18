@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.7.0**
+**Current version: 0.8.0**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -39,6 +39,16 @@ home loss            = opponent_rank_score + scoring_margin - 7
 ```
 
 There is **no separate +10 win bonus**. Actual scoring margin is used directly. A road win earns seven additional ranking points; a home loss loses seven additional ranking points.
+
+### Season ranking value
+
+Individual game scores remain frozen once earned. The value used to rank a team is their **average game score**, not their cumulative point total:
+
+```text
+ranking_score = sum(frozen_game_scores) / games_played
+```
+
+This removes the built-in advantage of playing more games and makes bye weeks neutral. The raw cumulative total remains stored for audit purposes. Exact average-score ties use head-to-head, then win percentage, then average opponent strength, followed by a deterministic name fallback.
 
 Every Division I team enters its first current-season game tied at the same neutral T-1 baseline because there is no evidence about that team yet. For scoring, the baseline uses the average occupied rank of the full pool:
 
@@ -181,7 +191,7 @@ PostgreSQL stores:
 - official locked predictions;
 - source sync history.
 
-The bundled `rankings/2026/week_01.csv` and `week_02.csv` are retained as archived `division_i_weighted_v3` snapshots. They are **not** relabeled as v4. When `division_i_weighted_v4` is active, the worker rebuilds completed weekly snapshots from the synced PostgreSQL game data using the new no-win-bonus and road-win/home-loss rules.
+The bundled `rankings/2026/week_01.csv` and `week_02.csv` are retained as archived `division_i_weighted_v3` snapshots. They are **not** relabeled as newer models. When `division_i_weighted_v5` is active, the worker rebuilds completed weekly snapshots from the synced PostgreSQL game data using the no-win-bonus, road-win/home-loss, and average-game-score rules.
 
 ## Project structure
 
