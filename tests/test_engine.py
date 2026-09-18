@@ -110,9 +110,10 @@ def test_week_two_uses_week_one_ranks_and_full_fcs_upset_points():
 
     # D is FCS and beats the Week 1 #2 FBS team A. With N=4:
     # opponent points = 5 - 2 = 3, margin = 3, total = 6.
-    # FCS-over-FBS wins are not halved, so D rises from -21.25 to -15.25.
-    assert snapshots[2].scores["D"] == -15.25
-    assert snapshots[2].ranks["D"] == 4
+    # FCS-over-FBS wins are not halved. D's raw two-game total is -15.25,
+    # so its ranking score is the per-game average: -7.625.
+    assert snapshots[2].scores["D"] == -7.625
+    assert snapshots[2].ranks["D"] == 3
 
 
 
@@ -130,9 +131,10 @@ def test_tied_previous_week_scores_use_average_occupied_rank():
 
     # A and B tie on Week 1 score and occupy display positions 1 and 2.
     # Both therefore carry scoring rank 1.5 into Week 2. C starts Week 2
-    # at -12.5 and earns (5 - 1.5) + 1 = 4.5, finishing at -8.0.
+    # at -12.5 and earns (5 - 1.5) + 1 = 4.5. Its raw total becomes -8.0,
+    # and its two-game ranking average is therefore -4.0.
     assert snapshots[1].scores["A"] == snapshots[1].scores["B"] == 12.5
-    assert snapshots[2].scores["C"] == -8.0
+    assert snapshots[2].scores["C"] == -4.0
 
 
 
@@ -212,3 +214,18 @@ def test_postseason_backtest_uses_frozen_snapshot():
     assert ranking.ranks["A"] == 1
     assert len(predictions) == 2
     assert accuracy(predictions) == 1.0
+
+
+def test_ranking_score_is_average_not_cumulative_total():
+    games = [
+        TeamGame("A", "B", 21, 14, week=1),
+        TeamGame("B", "A", 14, 21, week=1),
+        TeamGame("A", "C", 28, 21, week=2),
+        TeamGame("C", "A", 21, 28, week=2),
+    ]
+    engine = WeeklySeasonRankingEngine(DivisionIWeightedModel())
+    snapshots = engine.rank_by_week(games, teams=["A", "B", "C"])
+
+    standing = next(s for s in snapshots[2].standings if s.team == "A")
+    assert standing.games_played == 2
+    assert standing.score == standing.raw_score / 2
