@@ -69,9 +69,10 @@ def test_week1_fbs_over_fcs_keeps_full_score():
     )
     score = model.score_game(game, opponent_rank=None, team_count=266)
     assert score.opponent_points == 0
-    assert score.win_points == 10
+    assert score.win_points == 0
     assert score.margin_points == 68
-    assert score.total == 78
+    assert score.site_points == 0
+    assert score.total == 68
 
 
 
@@ -89,9 +90,10 @@ def test_fractional_tied_opponent_rank_is_supported():
     )
     score = model.score_game(game, opponent_rank=133.5, team_count=266)
     assert score.opponent_points == 133.5
-    assert score.win_points == 10
+    assert score.win_points == 0
     assert score.margin_points == 68
-    assert score.total == 211.5
+    assert score.site_points == 0
+    assert score.total == 201.5
 
 
 def test_week1_fcs_loss_to_fbs_is_half_negative_score():
@@ -125,9 +127,10 @@ def test_fcs_vs_fcs_scores_half_of_normal_points():
     )
     score = model.score_game(game, opponent_rank=40, team_count=266)
     assert score.opponent_points == 113.5
-    assert score.win_points == 5
+    assert score.win_points == 0
     assert score.margin_points == 7
-    assert score.total == 125.5
+    assert score.site_points == 0
+    assert score.total == 120.5
 
 
 def test_fcs_loss_to_fbs_scores_half_of_negative_points():
@@ -159,9 +162,10 @@ def test_fcs_win_over_fbs_scores_full_points():
     )
     score = model.score_game(game, opponent_rank=40, team_count=266)
     assert score.opponent_points == 227
-    assert score.win_points == 10
+    assert score.win_points == 0
     assert score.margin_points == 14
-    assert score.total == 251
+    assert score.site_points == 0
+    assert score.total == 241
 
 
 def test_fbs_scores_full_points_against_fcs():
@@ -176,9 +180,69 @@ def test_fbs_scores_full_points_against_fcs():
     )
     score = model.score_game(game, opponent_rank=40, team_count=266)
     assert score.opponent_points == 227
-    assert score.win_points == 10
+    assert score.win_points == 0
     assert score.margin_points == 14
-    assert score.total == 251
+    assert score.site_points == 0
+    assert score.total == 241
+
+
+
+def test_away_win_gets_seven_site_points():
+    model = DivisionIWeightedModel()
+    game = TeamGame(
+        "A", "B", 31, 17,
+        site=Site.AWAY,
+        team_subdivision="FBS",
+        opponent_subdivision="FBS",
+    )
+    score = model.score_game(game, opponent_rank=40, team_count=266)
+    assert score.opponent_points == 227
+    assert score.margin_points == 14
+    assert score.site_points == 7
+    assert score.total == 248
+
+
+def test_home_loss_loses_seven_site_points():
+    model = DivisionIWeightedModel()
+    game = TeamGame(
+        "A", "B", 17, 31,
+        site=Site.HOME,
+        team_subdivision="FBS",
+        opponent_subdivision="FBS",
+    )
+    score = model.score_game(game, opponent_rank=40, team_count=266)
+    assert score.opponent_points == -40
+    assert score.margin_points == -14
+    assert score.site_points == -7
+    assert score.total == -61
+
+
+def test_away_loss_has_no_site_penalty():
+    model = DivisionIWeightedModel()
+    game = TeamGame(
+        "A", "B", 17, 31,
+        site=Site.AWAY,
+        team_subdivision="FBS",
+        opponent_subdivision="FBS",
+    )
+    score = model.score_game(game, opponent_rank=40, team_count=266)
+    assert score.site_points == 0
+    assert score.total == -54
+
+
+def test_fcs_home_loss_to_fbs_halves_site_penalty_too():
+    model = DivisionIWeightedModel()
+    game = TeamGame(
+        "FCS Team", "FBS Team", 17, 31,
+        site=Site.HOME,
+        team_subdivision="FCS",
+        opponent_subdivision="FBS",
+    )
+    score = model.score_game(game, opponent_rank=40, team_count=266)
+    assert score.opponent_points == -20
+    assert score.margin_points == -7
+    assert score.site_points == -3.5
+    assert score.total == -30.5
 
 
 def test_historical_legacy_model_remains_subdivision_neutral():
