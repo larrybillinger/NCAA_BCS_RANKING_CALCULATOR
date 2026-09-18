@@ -33,7 +33,7 @@ class LegacyFBSModel:
     def score_game(
         self,
         game: TeamGame,
-        opponent_rank: int | None,
+        opponent_rank: float | None,
         team_count: int,
         *,
         age_weeks: float = 0.0,
