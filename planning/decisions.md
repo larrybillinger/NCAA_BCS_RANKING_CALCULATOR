@@ -42,4 +42,4 @@ Completed games that never had an actual locked pregame prediction may be shown 
 
 
 ## 2026-09-18 — Remove win bonus and add site adjustment
-Production no longer awards a separate +10 for a win. The actual scoring margin remains a direct game-score component. An away win receives +7 ranking points, and a home loss receives -7 ranking points. Home wins, away losses, and neutral-site results receive no site adjustment. FBS-vs-FBS and FBS-vs-FCS are both explicitly 100%; FCS remains part of Division I. The FCS percentage applies to opponent-rank points, scoring margin, and site adjustment.
+Production no longer awards a separate +10 for a win. The actual scoring margin remains a direct game-score component. An away win receives +7 ranking points, and a home loss receives -7 ranking points. Home wins, away losses, and neutral-site results receive no site adjustment. FBS-vs-FBS and FBS-vs-FCS are both explicitly 100%; FCS remains part of Division I. The FCS percentage applies to opponent-rank points and scoring margin. The ±7 site adjustment is applied afterward at full value for every team.
