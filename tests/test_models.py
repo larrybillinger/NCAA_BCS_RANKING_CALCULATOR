@@ -74,6 +74,26 @@ def test_week1_fbs_over_fcs_keeps_full_score():
     assert score.total == 78
 
 
+
+def test_fractional_tied_opponent_rank_is_supported():
+    model = DivisionIWeightedModel()
+    game = TeamGame(
+        team="Kansas State",
+        opponent="Nicholls",
+        points_for=71,
+        points_against=3,
+        opponent_in_rank_pool=True,
+        week=1,
+        team_subdivision="FBS",
+        opponent_subdivision="FCS",
+    )
+    score = model.score_game(game, opponent_rank=133.5, team_count=266)
+    assert score.opponent_points == 133.5
+    assert score.win_points == 10
+    assert score.margin_points == 68
+    assert score.total == 211.5
+
+
 def test_week1_fcs_loss_to_fbs_is_half_negative_score():
     model = DivisionIWeightedModel()
     game = TeamGame(
