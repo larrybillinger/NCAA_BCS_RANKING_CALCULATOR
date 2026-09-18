@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.6.0 — 2026-09-17
+
+### Ranking
+- Provider Week 0 is normalized into ranking Week 1.
+- A Division I team with no completed current-season game remains on the neutral T-1 scoring baseline for opponent-value purposes, even if the calendar has advanced.
+- After that team's first completed game, later opponents use the immediately preceding completed week's scoring rank.
+- Production ranking model is now `division_i_weighted_v3`.
+
+### Weekbook
+- Team schedules now show projected points beside the team that owns each score instead of an ambiguous bare score pair.
+- Game Book projections now show each team's projected score by name and identify the projected winner and win chance.
+- Rank history now begins with the season-start T-1 baseline and labels snapshots as "After Week 1", "After Week 2", and so on.
+- Ranking pages now explicitly say they are post-week snapshots.
+- Future week numbers in the Weekbook dock open Game Book rather than silently falling back to the latest ranking.
+
+### Research validation
+- Added leakage-safe historical retrocasts for completed games that never had an actual locked pregame prediction.
+- Retrocasts use only the ranking snapshot that existed before the game and are labeled RESEARCH/RETROCAST.
+- Added separate overall and team retrocast accuracy metrics while preserving the official locked-prediction ledger unchanged.
+- Official-pending ticker now links to the separate research statistics rather than presenting blank metric placeholders.
+
+### Tests
+- Added Week 0 normalization coverage.
+- Added coverage proving an unplayed opponent remains on the neutral first-game baseline.
+
 ## v0.5.2 — 2026-09-17
 
 ### Changed
