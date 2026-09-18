@@ -10,8 +10,8 @@
 </form>
 {% if team_a and team_b %}
 <section class="compare-grid">
-  <div><h2><a href="/teams/{{ team_a.slug }}">{{ team_a.name }}</a></h2>{% if entry_a %}<strong>#{{ entry_a.rank }}</strong><span>{{ entry_a.wins }}–{{ entry_a.losses }}</span><span>{{ entry_a.score|num }} points</span>{% endif %}</div>
-  <div><h2><a href="/teams/{{ team_b.slug }}">{{ team_b.name }}</a></h2>{% if entry_b %}<strong>#{{ entry_b.rank }}</strong><span>{{ entry_b.wins }}–{{ entry_b.losses }}</span><span>{{ entry_b.score|num }} points</span>{% endif %}</div>
+  <div><h2><a href="/teams/{{ team_a.slug }}">{{ team_a.name }}</a></h2>{% if entry_a %}<strong>#{{ entry_a.rank }}</strong><span>{{ entry_a.wins }}–{{ entry_a.losses }}</span><span>{{ entry_a.score|num }} avg score</span>{% endif %}</div>
+  <div><h2><a href="/teams/{{ team_b.slug }}">{{ team_b.name }}</a></h2>{% if entry_b %}<strong>#{{ entry_b.rank }}</strong><span>{{ entry_b.wins }}–{{ entry_b.losses }}</span><span>{{ entry_b.score|num }} avg score</span>{% endif %}</div>
 </section>
 {% endif %}
 {% endblock %}
