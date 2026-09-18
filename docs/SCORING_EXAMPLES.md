@@ -76,10 +76,11 @@ An FCS team loses 17-31 at home to the prior-week #40 FBS team.
 ```text
 Opponent Rank Points = -40
 Scoring Margin       = -14
-Home-Loss Adjustment = -7
-Normal Score         = -61
+Rank + Margin        = -54
 FCS Multiplier       = 0.5
-Final Score          = -30.5
+Scaled Rank + Margin = -27
+Home-Loss Adjustment = -7
+Final Score          = -34
 ```
 
 ## FCS vs FCS
@@ -92,6 +93,8 @@ Scoring Margin       = +20
 Site Adjustment      = 0
 Normal Score         = 248
 FCS-vs-FCS Multiplier= 0.5
+Scaled Rank + Margin = 124
+Site Adjustment      = 0
 Final Score          = 124
 ```
 
