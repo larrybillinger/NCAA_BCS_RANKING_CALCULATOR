@@ -18,6 +18,17 @@ LOGGER = logging.getLogger(__name__)
 DIVISION_I = {"FBS", "FCS"}
 
 
+class CFBDRateLimitError(RuntimeError):
+    """Raised when CFBD refuses a request because the account is rate limited."""
+
+    def __init__(self, retry_after_seconds: int | None = None) -> None:
+        self.retry_after_seconds = retry_after_seconds
+        detail = "CFBD rate limit exceeded (HTTP 429)"
+        if retry_after_seconds is not None:
+            detail += f"; retry after {retry_after_seconds} seconds"
+        super().__init__(detail)
+
+
 class CFBDClient:
     """Small server-side client for the CollegeFootballData REST API."""
 
@@ -41,6 +52,14 @@ class CFBDClient:
             headers={"Authorization": f"Bearer {self.api_key}"},
             timeout=60.0,
         )
+        if response.status_code == 429:
+            retry_after = response.headers.get("Retry-After")
+            retry_after_seconds = (
+                int(retry_after)
+                if retry_after is not None and retry_after.isdigit()
+                else None
+            )
+            raise CFBDRateLimitError(retry_after_seconds)
         response.raise_for_status()
         return response.json()
 
@@ -245,16 +264,16 @@ def sync_games(
     session.commit()
     rows: dict[str, dict] = {}
     try:
-        for classification in ("fbs", "fcs"):
-            for game in client.games(
-                season,
-                week=week,
-                classification=classification,
-                season_type="regular",
-            ):
-                game_id = _game_payload_id(game)
-                if game_id:
-                    rows[game_id] = game
+        # One unfiltered /games request returns the complete weekly/season
+        # schedule. Filtering by FBS and FCS separately doubled API usage.
+        for game in client.games(
+            season,
+            week=week,
+            season_type="regular",
+        ):
+            game_id = _game_payload_id(game)
+            if game_id:
+                rows[game_id] = game
         for game in rows.values():
             upsert_game(session, game)
         _sync_run_finish(session, run, status="ok", rows=len(rows), payload=list(rows.values()))
@@ -285,11 +304,12 @@ def sync_game_team_stats(
     session.commit()
     payloads: dict[str, dict] = {}
     try:
-        for classification in ("fbs", "fcs"):
-            for item in client.game_team_stats(season, week, classification=classification):
-                game_id = str(item.get("id") or "")
-                if game_id:
-                    payloads[game_id] = item
+        # As with /games, one unfiltered request is sufficient and avoids
+        # spending two quota calls for the same ranking week.
+        for item in client.game_team_stats(season, week):
+            game_id = str(item.get("id") or "")
+            if game_id:
+                payloads[game_id] = item
 
         stat_count = 0
         for provider_game_id, item in payloads.items():
