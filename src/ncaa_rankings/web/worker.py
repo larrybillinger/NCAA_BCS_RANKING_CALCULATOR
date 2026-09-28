@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 import math
 import time
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -75,32 +76,33 @@ def _nearest_schedule_week(
     return (snapshot.week + 1) if snapshot else 1
 
 
-def _active_game_window(
-    session: Session,
-    season: int,
-    now: datetime | None = None,
-) -> bool:
-    """Return true when a Division I game is near kickoff or in a normal game window."""
-    now = now or datetime.now(timezone.utc)
-    lower = now - timedelta(hours=6)
-    upper = now + timedelta(hours=2)
-    game = session.scalar(
-        select(Game.id)
-        .where(
-            Game.season == season,
-            Game.season_type == "regular",
-            Game.start_time.is_not(None),
-            Game.start_time >= lower,
-            Game.start_time <= upper,
-            Game.completed.is_(False),
-            or_(
-                Game.home_subdivision.in_(DIVISION_I),
-                Game.away_subdivision.in_(DIVISION_I),
-            ),
-        )
-        .limit(1)
+def _scheduled_delay_minutes(
+    now: datetime,
+    settings: Settings,
+) -> int:
+    """Poll hourly on Saturday and once per day otherwise.
+
+    If the daily sleep would cross into Saturday, wake at local midnight so the
+    worker immediately switches to the Saturday hourly cadence.
+    """
+    local_now = now.astimezone(ZoneInfo(settings.timezone))
+    if local_now.weekday() == 5:
+        return settings.sync_saturday_minutes
+
+    next_midnight = (local_now + timedelta(days=1)).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
     )
-    return game is not None
+    if next_midnight.weekday() == 5:
+        minutes_until_saturday = max(
+            1,
+            math.ceil((next_midnight - local_now).total_seconds() / 60),
+        )
+        return min(settings.sync_other_days_minutes, minutes_until_saturday)
+
+    return settings.sync_other_days_minutes
 
 
 def _rate_limit_delay_minutes(
@@ -141,7 +143,7 @@ def _sync_cycle(full_schedule: bool = False) -> bool:
                 "CFBD_API_KEY is not configured. Bundled rankings are available, "
                 "but automatic schedules, scores, stats, and predictions are paused."
             )
-            return _active_game_window(session, settings.season)
+            return None
 
         if full_schedule:
             count = sync_games(session, client, settings.season)
@@ -186,7 +188,7 @@ def _sync_cycle(full_schedule: bool = False) -> bool:
         if rate_limit_error is not None:
             raise rate_limit_error
 
-        return _active_game_window(session, settings.season)
+        return None
 
 
 def main() -> None:
@@ -206,17 +208,16 @@ def main() -> None:
             or now - last_full_schedule_at
             >= timedelta(hours=settings.sync_full_schedule_hours)
         )
-        sleep_minutes = settings.sync_idle_minutes
+        sleep_minutes = _scheduled_delay_minutes(now, settings)
 
         try:
-            active = _sync_cycle(full_schedule=full_schedule)
+            _sync_cycle(full_schedule=full_schedule)
             if full_schedule:
                 last_full_schedule_at = now
             consecutive_rate_limits = 0
-            sleep_minutes = (
-                settings.sync_active_minutes
-                if active
-                else settings.sync_idle_minutes
+            sleep_minutes = _scheduled_delay_minutes(
+                datetime.now(timezone.utc),
+                settings,
             )
         except CFBDRateLimitError as exc:
             consecutive_rate_limits += 1
@@ -233,7 +234,10 @@ def main() -> None:
             )
         except Exception:
             LOGGER.exception("Automatic sync cycle failed")
-            sleep_minutes = settings.sync_idle_minutes
+            sleep_minutes = _scheduled_delay_minutes(
+                datetime.now(timezone.utc),
+                settings,
+            )
 
         if args.once:
             return
