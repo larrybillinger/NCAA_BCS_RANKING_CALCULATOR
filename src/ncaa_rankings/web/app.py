@@ -109,7 +109,17 @@ def _sync_state(session: Session) -> dict:
         finished = success.finished_at
         if finished.tzinfo is None:
             finished = finished.replace(tzinfo=timezone.utc)
-        stale_after = timedelta(minutes=max(settings.sync_idle_minutes * 2, 360))
+        local_now = now.astimezone(ZoneInfo(settings.timezone))
+        expected_minutes = (
+            settings.sync_saturday_minutes
+            if local_now.weekday() == 5
+            else settings.sync_other_days_minutes
+        )
+        # Allow some scheduling/network slack: about three hours on Saturday
+        # and 36 hours on the once-daily cadence.
+        stale_after = timedelta(
+            minutes=max(int(expected_minutes * 1.5), 180)
+        )
         status = "stale" if now - finished > stale_after else "ok"
 
     error = attempt.error_text if attempt and attempt.status == "error" else None
@@ -139,7 +149,7 @@ def _auto_refresh_seconds(rows: list[dict]) -> int | None:
         if start.tzinfo is None:
             start = start.replace(tzinfo=timezone.utc)
         if start <= now <= start + timedelta(hours=6):
-            return 120
+            return 300
     return None
 
 
