@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ title }}{% endblock %}</title>
   <meta name="description" content="Transparent NCAA Division I football rankings and predictions.">
+  {% if auto_refresh_seconds %}<meta http-equiv="refresh" content="{{ auto_refresh_seconds }}">{% endif %}
   <link rel="stylesheet" href="{{ url_for('static', path='site.css') }}">
 </head>
 <body>
@@ -33,8 +34,20 @@
 
     <section class="side-group side-status">
       <div class="side-label">DATA</div>
-      {% if cfbd_configured %}<span>CFBD connected</span>{% else %}<span>CFBD key needed</span>{% endif %}
-      {% if last_sync and last_sync.finished_at %}<span>Last sync {{ last_sync.finished_at.strftime('%b %d %H:%M UTC') }}</span>{% endif %}
+      {% if sync_status == 'ok' %}
+        <span>CFBD OK</span>
+      {% elif sync_status == 'syncing' %}
+        <span>CFBD syncing</span>
+      {% elif sync_status == 'error' %}
+        <span>CFBD error</span>
+      {% elif sync_status == 'stale' %}
+        <span>CFBD stale</span>
+      {% else %}
+        <span>CFBD key needed</span>
+      {% endif %}
+      {% if last_sync and last_sync.finished_at %}<span>Last OK {{ last_sync.finished_at|localdt }}</span>{% endif %}
+      {% if latest_sync_attempt %}<span>Last try {{ latest_sync_attempt.started_at|localdt }}</span>{% endif %}
+      {% if sync_error %}<span title="{{ sync_error }}">{{ sync_error }}</span>{% endif %}
     </section>
 
     <section class="side-group side-status">
