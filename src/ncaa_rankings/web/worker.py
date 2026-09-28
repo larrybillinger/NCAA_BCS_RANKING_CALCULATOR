@@ -125,7 +125,7 @@ def _rate_limit_delay_minutes(
     return calculated
 
 
-def _sync_cycle(full_schedule: bool = False) -> bool:
+def _sync_cycle(full_schedule: bool = False) -> None:
     settings = get_settings()
     client = CFBDClient()
     with SessionLocal() as session:
