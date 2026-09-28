@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -19,7 +20,8 @@ from .models import Team
 from .prediction_service import rank_matchup_projection
 from .ranking_service import get_snapshot, latest_snapshot
 from .stats_service import (
-    last_sync,
+    last_successful_sync,
+    latest_sync_attempt,
     overall_metrics,
     retrocast_metrics,
     team_metrics,
@@ -77,6 +79,70 @@ TEMPLATES.env.filters["num"] = _num
 TEMPLATES.env.filters["score"] = _score
 
 
+def _local_datetime(value: datetime | None) -> str:
+    if value is None:
+        return ""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(ZoneInfo(settings.timezone)).strftime("%b %d %H:%M %Z")
+
+
+TEMPLATES.env.filters["localdt"] = _local_datetime
+
+
+def _sync_state(session: Session) -> dict:
+    attempt = latest_sync_attempt(session)
+    success = last_successful_sync(session)
+    now = datetime.now(timezone.utc)
+
+    if not CFBDClient().configured:
+        status = "disabled"
+    elif attempt is None:
+        status = "stale"
+    elif attempt.status == "error":
+        status = "error"
+    elif attempt.status == "running":
+        status = "syncing"
+    elif success is None or success.finished_at is None:
+        status = "stale"
+    else:
+        finished = success.finished_at
+        if finished.tzinfo is None:
+            finished = finished.replace(tzinfo=timezone.utc)
+        stale_after = timedelta(minutes=max(settings.sync_idle_minutes * 2, 360))
+        status = "stale" if now - finished > stale_after else "ok"
+
+    error = attempt.error_text if attempt and attempt.status == "error" else None
+    if error:
+        if "429" in error:
+            error = "429 Too Many Requests"
+        elif "401" in error:
+            error = "401 Unauthorized"
+        else:
+            error = error.splitlines()[0][:120]
+
+    return {
+        "status": status,
+        "attempt": attempt,
+        "success": success,
+        "error": error,
+    }
+
+
+def _auto_refresh_seconds(rows: list[dict]) -> int | None:
+    now = datetime.now(timezone.utc)
+    for row in rows:
+        game = row.get("game")
+        if game is None or game.completed or game.start_time is None:
+            continue
+        start = game.start_time
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        if start <= now <= start + timedelta(hours=6):
+            return 120
+    return None
+
+
 def _base_context(session: Session, request: Request, *, week: int | None = None) -> dict:
     season = settings.season
     weeks = available_ranking_weeks(session, season)
@@ -85,7 +151,7 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
     neutral_rank = (team_count + 1) / 2.0 if team_count else None
     selected_week = week or (latest.week if latest else (weeks[-1] if weeks else 1))
     metrics = overall_metrics(session, season)
-    sync = last_sync(session)
+    sync = _sync_state(session)
     return {
         "request": request,
         "title": settings.web_title,
@@ -96,7 +162,10 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
         "team_count": team_count,
         "neutral_rank": neutral_rank,
         "metrics": metrics,
-        "last_sync": sync,
+        "last_sync": sync["success"],
+        "latest_sync_attempt": sync["attempt"],
+        "sync_status": sync["status"],
+        "sync_error": sync["error"],
         "cfbd_configured": CFBDClient().configured,
         "app_version": app.version,
         "model_version": settings.model_version,
@@ -109,6 +178,7 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
 def health(session: Session = Depends(get_session)) -> dict:
     session.execute(text("SELECT 1"))
     snapshot = latest_snapshot(session, settings.season)
+    sync = _sync_state(session)
     return {
         "status": "ok",
         "season": settings.season,
@@ -117,6 +187,18 @@ def health(session: Session = Depends(get_session)) -> dict:
         "model_version": settings.model_version,
         "predictor_version": settings.predictor_version,
         "cfbd_configured": CFBDClient().configured,
+        "data_sync_status": sync["status"],
+        "last_sync_attempt": (
+            sync["attempt"].started_at.isoformat()
+            if sync["attempt"] is not None
+            else None
+        ),
+        "last_successful_sync": (
+            sync["success"].finished_at.isoformat()
+            if sync["success"] is not None and sync["success"].finished_at is not None
+            else None
+        ),
+        "last_sync_error": sync["error"],
     }
 
 
@@ -170,7 +252,12 @@ def predictions(
     as_of_week = as_of or (latest.week if latest else None)
     games = game_rows_for_week(session, settings.season, selected_week, as_of_week=as_of_week)
     context = _base_context(session, request, week=latest.week if latest else None)
-    context.update({"prediction_week": selected_week, "as_of_week": as_of_week, "games": games})
+    context.update({
+        "prediction_week": selected_week,
+        "as_of_week": as_of_week,
+        "games": games,
+        "auto_refresh_seconds": _auto_refresh_seconds(games),
+    })
     return TEMPLATES.TemplateResponse(request=request, name="predictions.html", context=context)
 
 
@@ -227,6 +314,7 @@ def team_page(
         "team_metrics": tmetrics,
         "team_retro_metrics": tretro,
         "as_of_week": as_of_week,
+        "auto_refresh_seconds": _auto_refresh_seconds(schedule),
     })
     return TEMPLATES.TemplateResponse(request=request, name="team.html", context=context)
 
