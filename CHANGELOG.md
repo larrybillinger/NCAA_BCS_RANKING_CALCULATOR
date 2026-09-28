@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.8.1 — 2026-09-27
+
+### CFBD reliability
+- Reduced normal game syncing from separate FBS/FCS requests to one unfiltered `/games` request.
+- Reduced game-team-stat syncing to one unfiltered request per completed ranking week.
+- Added quota-aware polling defaults: hourly near active games, every three hours when idle, and one full-schedule refresh per day.
+- Added exponential HTTP 429 cooldowns from six hours up to one day, while honoring longer provider `Retry-After` values.
+- Changed targeted score syncing to follow the schedule week nearest the current time rather than depending only on the latest frozen ranking snapshot.
+- Daily full-schedule refreshes catch rescheduled or moved games.
+
+### Prediction integrity
+- Prediction locking now runs before any provider request, so CFBD outages or exhausted quota cannot stop eligible pregame predictions from becoming official.
+- If optional team-stat ingestion hits a rate limit after a ranking snapshot is created, local prediction generation completes before the worker enters cooldown.
+
+### Website
+- Sidebar now reports CFBD OK/stale/error state, last successful sync, latest attempt, and a short provider error.
+- `/health` now reports data-sync health and freshness details.
+- Game Book and team pages auto-refresh every two minutes only while a scheduled game is in its normal live window.
+- Sync timestamps are displayed in the configured local timezone.
+
+### Quality
+- Added regression tests for HTTP 429 handling, one-call game syncing, exponential backoff, and prediction locking before provider failure.
+- Added GitHub Actions pytest workflow.
+- Added `*.egg-info/` to `.gitignore`.
+
+### Ranking model
+- No ranking formula changes. Production remains `division_i_weighted_v5` under the Week 4 model freeze.
+
 ## v0.8.0 — 2026-09-18
 
 ### Ranking aggregation
