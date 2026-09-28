@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.8.2 — 2026-09-27
+
+### Simpler polling cadence
+- CFBD schedule/score syncing now runs once per day Sunday through Friday.
+- Saturday syncing runs once per hour.
+- The configured `TZ` determines the local day; production remains America/Chicago.
+- A Friday sleep that would cross into Saturday is shortened so the worker wakes at local midnight and switches immediately to hourly polling.
+- Full-season schedule refresh remains at least once every 24 hours.
+- Live Game Book and team pages refresh from PostgreSQL every five minutes without consuming CFBD API calls.
+
+### Deployment
+- Existing Synology installs automatically receive `SYNC_SATURDAY_MINUTES=60` and `SYNC_OTHER_DAYS_MINUTES=1440` if those settings are absent.
+- Fixed the updater's temporary environment-file suffix while adjusting the sync settings.
+
+### Ranking model
+- No ranking or prediction formula changes.
+- Production remains `division_i_weighted_v5` and `rank_gap_v3`.
+
 ## v0.8.1 — 2026-09-27
 
 ### CFBD reliability
