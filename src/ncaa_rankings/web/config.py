@@ -20,6 +20,11 @@ class Settings:
     cfbd_base_url: str
     season: int
     sync_minutes: int
+    sync_active_minutes: int
+    sync_idle_minutes: int
+    sync_full_schedule_hours: int
+    sync_rate_limit_base_minutes: int
+    sync_rate_limit_max_minutes: int
     timezone: str
     model_version: str
     predictor_version: str
@@ -40,7 +45,18 @@ def get_settings() -> Settings:
             "CFBD_BASE_URL", "https://api.collegefootballdata.com"
         ).rstrip("/"),
         season=int(os.getenv("SEASON", "2026")),
+        # SYNC_MINUTES remains for backwards compatibility but the worker now
+        # uses quota-aware active/idle intervals below.
         sync_minutes=max(int(os.getenv("SYNC_MINUTES", "15")), 5),
+        sync_active_minutes=max(int(os.getenv("SYNC_ACTIVE_MINUTES", "60")), 15),
+        sync_idle_minutes=max(int(os.getenv("SYNC_IDLE_MINUTES", "180")), 60),
+        sync_full_schedule_hours=max(int(os.getenv("SYNC_FULL_SCHEDULE_HOURS", "24")), 6),
+        sync_rate_limit_base_minutes=max(
+            int(os.getenv("SYNC_RATE_LIMIT_BASE_MINUTES", "360")), 60
+        ),
+        sync_rate_limit_max_minutes=max(
+            int(os.getenv("SYNC_RATE_LIMIT_MAX_MINUTES", "1440")), 360
+        ),
         timezone=os.getenv("TZ", "America/Chicago"),
         model_version=os.getenv("MODEL_VERSION", "division_i_weighted_v5"),
         predictor_version=os.getenv("PREDICTOR_VERSION", "rank_gap_v3"),
