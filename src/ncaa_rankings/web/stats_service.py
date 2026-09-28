@@ -186,10 +186,23 @@ def weekly_metrics(session: Session, season: int) -> list[dict]:
     return results
 
 
-def last_sync(session: Session) -> SourceSyncRun | None:
+def latest_sync_attempt(session: Session) -> SourceSyncRun | None:
+    return session.scalar(
+        select(SourceSyncRun)
+        .order_by(SourceSyncRun.started_at.desc(), SourceSyncRun.id.desc())
+        .limit(1)
+    )
+
+
+def last_successful_sync(session: Session) -> SourceSyncRun | None:
     return session.scalar(
         select(SourceSyncRun)
         .where(SourceSyncRun.status == "ok")
-        .order_by(SourceSyncRun.finished_at.desc())
+        .order_by(SourceSyncRun.finished_at.desc(), SourceSyncRun.id.desc())
         .limit(1)
     )
+
+
+# Backwards-compatible name for callers that only need the latest success.
+def last_sync(session: Session) -> SourceSyncRun | None:
+    return last_successful_sync(session)
