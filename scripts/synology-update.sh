@@ -57,7 +57,7 @@ download() {
 set_env_key() {
   key="$1"
   value="$2"
-  tmp_env="$ENV_FILE.tmp.$$"
+  tmp_env="$ENV_FILE.tmp.$"
 
   awk -v key="$key" -v value="$value" '
     BEGIN { found=0 }
@@ -74,6 +74,15 @@ set_env_key() {
 
   chmod 600 "$tmp_env"
   mv "$tmp_env" "$ENV_FILE"
+}
+
+ensure_env_key() {
+  key="$1"
+  value="$2"
+  if ! grep -q "^$key=" "$ENV_FILE"; then
+    printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
+  fi
 }
 
 mkdir -p "$BACKUPS" "$TMP/archive"
@@ -106,6 +115,14 @@ if [ -f "$SOURCE_DIR/.env.example" ]; then
     echo "Setting PREDICTOR_VERSION=$REQUIRED_PREDICTOR"
     set_env_key PREDICTOR_VERSION "$REQUIRED_PREDICTOR"
   fi
+
+  # Add quota-safe worker defaults to older installs without overwriting any
+  # values the administrator has explicitly customized.
+  ensure_env_key SYNC_ACTIVE_MINUTES 60
+  ensure_env_key SYNC_IDLE_MINUTES 180
+  ensure_env_key SYNC_FULL_SCHEDULE_HOURS 24
+  ensure_env_key SYNC_RATE_LIMIT_BASE_MINUTES 360
+  ensure_env_key SYNC_RATE_LIMIT_MAX_MINUTES 1440
 fi
 
 rm -rf "$APP.new"
