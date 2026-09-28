@@ -1,4 +1,6 @@
+from datetime import datetime
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 import httpx
 import pytest
@@ -104,3 +106,30 @@ def test_prediction_locking_happens_before_provider_failure(monkeypatch):
         worker._sync_cycle(full_schedule=True)
 
     assert order == ["lock", "sync"]
+
+
+
+def test_sync_schedule_is_hourly_on_saturday_and_daily_otherwise():
+    settings = SimpleNamespace(
+        timezone="America/Chicago",
+        sync_saturday_minutes=60,
+        sync_other_days_minutes=1440,
+    )
+
+    saturday_noon = datetime(2026, 9, 26, 12, 0, tzinfo=ZoneInfo("America/Chicago"))
+    sunday_noon = datetime(2026, 9, 27, 12, 0, tzinfo=ZoneInfo("America/Chicago"))
+
+    assert worker._scheduled_delay_minutes(saturday_noon, settings) == 60
+    assert worker._scheduled_delay_minutes(sunday_noon, settings) == 1440
+
+
+def test_friday_sleep_wakes_at_saturday_midnight():
+    settings = SimpleNamespace(
+        timezone="America/Chicago",
+        sync_saturday_minutes=60,
+        sync_other_days_minutes=1440,
+    )
+
+    friday_late = datetime(2026, 9, 25, 23, 30, tzinfo=ZoneInfo("America/Chicago"))
+
+    assert worker._scheduled_delay_minutes(friday_late, settings) == 30
