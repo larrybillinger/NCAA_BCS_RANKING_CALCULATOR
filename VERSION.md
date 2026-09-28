@@ -1,5 +1,17 @@
 # Version history
 
+## 0.8.1 — Quota-aware sync reliability
+
+- Keep `division_i_weighted_v5` unchanged.
+- Cut routine CFBD game requests in half by removing duplicate FBS/FCS calls.
+- Poll hourly near games, every three hours when idle, and refresh the complete schedule daily.
+- Back off aggressively after HTTP 429 quota responses.
+- Lock pregame predictions before provider access.
+- Follow the current schedule week even when ranking publication is delayed.
+- Surface provider health and freshness on the website and `/health`.
+- Auto-refresh Game Book and team pages during normal live-game windows.
+- Add sync regression tests and GitHub Actions pytest CI.
+
 ## 0.8.0 — Bye-week-neutral average ranking score
 
 - Rank teams by the arithmetic mean of their frozen game scores.
