@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.8.0**
+**Current version: 0.8.1**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -92,6 +92,10 @@ At kickoff, the latest pregame projection becomes the **official locked predicti
 ## Automatic data source
 
 The production pipeline uses the CollegeFootballData REST API server-side for schedules, scores, classifications, and game-team statistics.
+
+v0.8.1 makes the worker quota-aware. A normal targeted score refresh uses one unfiltered `/games` request instead of separate FBS and FCS calls. The worker polls hourly around active game windows, every three hours when idle, refreshes the full schedule once per day, and exponentially backs off from HTTP 429 responses from six hours up to one day. These defaults are intentionally conservative enough for the published 1,000-call/month free tier while remaining configurable in `.env`.
+
+Prediction locking is local database work and now runs before any provider request, so an upstream outage or exhausted API quota cannot prevent a valid pregame prediction from becoming official. The site also reports CFBD OK/stale/error status, the last successful sync, the latest attempt, and a short error message. Game Book and team pages reload themselves every two minutes only while a scheduled game is in its normal live window.
 
 The API key is stored only in `.env`. The public application displays ordinary factual game information and derived rankings/predictions; it does not expose a raw provider database mirror.
 
