@@ -118,8 +118,8 @@ if [ -f "$SOURCE_DIR/.env.example" ]; then
 
   # Add quota-safe worker defaults to older installs without overwriting any
   # values the administrator has explicitly customized.
-  ensure_env_key SYNC_ACTIVE_MINUTES 60
-  ensure_env_key SYNC_IDLE_MINUTES 180
+  ensure_env_key SYNC_SATURDAY_MINUTES 60
+  ensure_env_key SYNC_OTHER_DAYS_MINUTES 1440
   ensure_env_key SYNC_FULL_SCHEDULE_HOURS 24
   ensure_env_key SYNC_RATE_LIMIT_BASE_MINUTES 360
   ensure_env_key SYNC_RATE_LIMIT_MAX_MINUTES 1440
