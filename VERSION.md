@@ -1,5 +1,15 @@
 # Version history
 
+## 0.8.2 — Daily polling with hourly Saturdays
+
+- Keep `division_i_weighted_v5` and `rank_gap_v3` unchanged.
+- Poll CollegeFootballData once per day Sunday-Friday.
+- Poll once per hour on Saturday.
+- Switch to the Saturday cadence at local midnight using the configured timezone.
+- Keep one full-season schedule refresh at least every 24 hours.
+- Refresh live browser pages every five minutes from PostgreSQL only.
+- Preserve 429 cooldowns and provider-health reporting introduced in v0.8.1.
+
 ## 0.8.1 — Quota-aware sync reliability
 
 - Keep `division_i_weighted_v5` unchanged.
