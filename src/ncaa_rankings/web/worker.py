@@ -62,10 +62,13 @@ def _nearest_schedule_week(
         )
     )
     if rows:
-        week, _ = min(
-            rows,
-            key=lambda row: abs((row.start_time - now).total_seconds()),
-        )
+        def distance(row) -> float:
+            start = row.start_time
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            return abs((start - now).total_seconds())
+
+        week, _ = min(rows, key=distance)
         return int(week)
 
     snapshot = latest_snapshot(session, season)
@@ -152,17 +155,18 @@ def _sync_cycle(full_schedule: bool = False) -> bool:
         # A successful score/schedule refresh may make one or more sequential
         # weeks complete. Ranking rules themselves are unchanged.
         created_weeks = calculate_all_new_complete_weeks(session, settings.season)
+        rate_limit_error: CFBDRateLimitError | None = None
         if created_weeks:
             LOGGER.info("Created official ranking snapshots: %s", created_weeks)
             for week in created_weeks:
                 try:
                     stats = sync_game_team_stats(session, client, settings.season, week)
                     LOGGER.info("Week %s team stats sync: %s rows", week, stats)
-                except CFBDRateLimitError:
-                    # Team stats are optional for ranking publication. Preserve
-                    # the completed ranking and let the outer 429 handler cool
-                    # down the worker before its next provider request.
-                    raise
+                except CFBDRateLimitError as exc:
+                    # Team stats are optional. Finish local prediction work
+                    # before handing the 429 to the outer cooldown logic.
+                    rate_limit_error = exc
+                    break
                 except Exception:
                     LOGGER.exception(
                         "Week %s team-stat sync failed; rankings remain valid",
@@ -178,6 +182,9 @@ def _sync_cycle(full_schedule: bool = False) -> bool:
                     created,
                     current_snapshot.week,
                 )
+
+        if rate_limit_error is not None:
+            raise rate_limit_error
 
         return _active_game_window(session, settings.season)
 
