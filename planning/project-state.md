@@ -1,7 +1,7 @@
 # Project state
 
 ## Current release
-v0.8.1
+v0.8.2
 
 ## Production model
 division_i_weighted_v5
@@ -27,7 +27,7 @@ Keep `division_i_weighted_v5` as the production control model through the end of
 After Week 4 is complete, review the accumulated evidence before deciding whether any experimental ideas should move into a separate research model. Candidate experiments may include early-season stabilization, capped or damped scoring margin, prediction from rating-score gaps rather than ordinal rank gaps, and a small one-hop frozen opponent-strength term. None of these are approved production changes yet.
 
 ## Current sync state
-v0.8.1 is an operational reliability release only. It does not change division_i_weighted_v5. The CFBD worker is quota-aware, prediction locking is independent of provider success, the site exposes sync health, and live-window pages auto-refresh from PostgreSQL.
+v0.8.1 is an operational reliability release only. It does not change division_i_weighted_v5. The CFBD worker is quota-aware, prediction locking is independent of provider success, the site exposes sync health, and live-window pages auto-refresh from PostgreSQL. Provider polling is intentionally simple: once per day Sunday-Friday and once per hour Saturday, using the configured local timezone.
 
 ## Current next milestone
 Run v0.8.1 / division_i_weighted_v5 unchanged through Week 4, allow CFBD quota access to recover or upgrade the account tier, verify the Week 4 snapshot after scores are available, track prediction accuracy, and conduct the next ranking-method review only after Week 4 is complete.
