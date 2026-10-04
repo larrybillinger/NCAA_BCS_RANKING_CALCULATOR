@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Manual score desk · {{ title }}{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <div class="eyebrow">ADMIN</div>
+    <h1>Manual score desk</h1>
+    <p>Use this only when CFBD is delayed, unavailable, or wrong. A manual override stays authoritative until you release it back to CFBD.</p>
+  </div>
+</header>
+
+<section class="chapter-nav">
+  {% if admin_week > 1 %}<a href="/admin/games?week={{ admin_week - 1 }}">← Week {{ admin_week - 1 }}</a>{% endif %}
+  <a class="active" href="/admin/games?week={{ admin_week }}">Week {{ admin_week }}</a>
+  <a href="/admin/games?week={{ admin_week + 1 }}">Week {{ admin_week + 1 }} →</a>
+</section>
+
+<div class="ranking-tools">
+  <form method="get" action="/admin/games" class="search-form">
+    <input type="hidden" name="week" value="{{ admin_week }}">
+    <input class="bare-input" type="search" name="q" value="{{ admin_search }}" placeholder="Find a team">
+  </form>
+  <div class="muted">Signed in as {{ admin_actor }}</div>
+</div>
+
+{% if message %}<div class="quiet-note admin-success">{{ message }}</div>{% endif %}
+{% if error %}<div class="quiet-note admin-error">{{ error }}</div>{% endif %}
+
+<div class="quiet-note">
+  Final manual results can trigger the normal weekly ranking pipeline. Once Week {{ admin_week }} has an official {{ model_version }} snapshot, its scores are locked here and cannot be changed.
+</div>
+
+<div class="admin-game-list">
+{% for row in admin_games %}
+  {% set g = row.game %}
+  <article class="admin-game-row">
+    <div class="admin-game-meta">
+      <strong>{{ row.away.name }} at {{ row.home.name }}</strong>
+      <span>{% if g.start_time %}{{ g.start_time|localdt }}{% else %}TBD{% endif %}</span>
+      {% if g.manual_score_override %}
+        <span class="admin-status">MANUAL OVERRIDE</span>
+      {% elif g.completed %}
+        <span class="admin-status">PROVIDER FINAL</span>
+      {% else %}
+        <span class="admin-status">PROVIDER</span>
+      {% endif %}
+      {% if g.manual_score_updated_at %}
+        <span>Manual update {{ g.manual_score_updated_at|localdt }}</span>
+      {% endif %}
+    </div>
+
+    {% if row.week_frozen %}
+      <div class="admin-frozen">
+        <span>Week frozen</span>
+        <strong>{{ row.away.name }} {{ g.away_points if g.away_points is not none else '—' }} · {{ row.home.name }} {{ g.home_points if g.home_points is not none else '—' }}</strong>
+      </div>
+    {% else %}
+      <form method="post" action="/admin/games/{{ g.id }}/score" class="admin-score-form">
+        <input type="hidden" name="week" value="{{ admin_week }}">
+        <input type="hidden" name="q" value="{{ admin_search }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <label>
+          <span>{{ row.away.name }}</span>
+          <input class="bare-number admin-score-input" type="number" min="0" max="255" name="away_points" value="{{ g.away_points if g.away_points is not none else '' }}">
+        </label>
+
+        <label>
+          <span>{{ row.home.name }}</span>
+          <input class="bare-number admin-score-input" type="number" min="0" max="255" name="home_points" value="{{ g.home_points if g.home_points is not none else '' }}">
+        </label>
+
+        <label class="admin-final-check">
+          <input type="checkbox" name="completed" value="1" {% if g.completed %}checked{% endif %}>
+          <span>Final</span>
+        </label>
+
+        <label class="admin-note-label">
+          <span>Note</span>
+          <input class="bare-input admin-note" type="text" maxlength="1000" name="note" value="{{ g.manual_score_note or '' }}" placeholder="Optional">
+        </label>
+
+        <button class="text-submit" type="submit">Save score</button>
+      </form>
+
+      {% if g.manual_score_override %}
+        <form method="post" action="/admin/games/{{ g.id }}/release" class="admin-release-form">
+          <input type="hidden" name="week" value="{{ admin_week }}">
+          <input type="hidden" name="q" value="{{ admin_search }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="note" value="Released from manual score desk">
+          <button class="text-submit muted" type="submit">Release to CFBD</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </article>
+{% else %}
+  <div class="empty-panel">No games match Week {{ admin_week }}{% if admin_search %} and “{{ admin_search }}”{% endif %}.</div>
+{% endfor %}
+</div>
+{% endblock %}
