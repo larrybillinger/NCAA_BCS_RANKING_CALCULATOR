@@ -6,7 +6,7 @@
 - Added an admin-only manual score page at `/admin/games`.
 - Admin can enter home/away scores, mark a game final or in progress, and add an operational note.
 - Manual overrides take precedence over CFBD score/final fields until explicitly released.
-- Admin can release an override back to CFBD control before the ranking week is frozen.
+- Admin can release an override back to CFBD control before the ranking week is frozen; release clears the local score/final state until CFBD repopulates it.
 - Public Game Book and team pages label active manual final scores.
 
 ### Integrity and audit
