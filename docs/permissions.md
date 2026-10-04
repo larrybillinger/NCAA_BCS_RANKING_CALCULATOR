@@ -43,7 +43,7 @@ While a game has an active manual score override, CFBD may still update ordinary
 - home score;
 - away score.
 
-After the admin releases the override, CFBD resumes authority over those fields on the next successful provider sync.
+After the admin releases the override, the local score/final state is cleared immediately. CFBD then resumes authority over those fields and repopulates them on the next successful provider sync.
 
 ## Audit
 
