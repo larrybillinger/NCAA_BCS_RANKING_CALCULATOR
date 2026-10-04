@@ -47,3 +47,7 @@ Production no longer awards a separate +10 for a win. The actual scoring margin 
 
 ## 2026-09-18 — Rank by average frozen game score
 Production ranking position is based on the arithmetic mean of each team's frozen game scores rather than the cumulative point total. This removes the automatic advantage of playing more games and makes bye weeks neutral. Raw cumulative points remain available for auditing. Exact average-score ties use head-to-head, then win percentage, then average opponent strength per game, then deterministic team-name fallback.
+
+
+## 2026-10-04 — Admin-only manual score desk
+Add a secure operational score desk at `/admin/games` so Larry can enter or correct game scores when CFBD is unavailable, delayed, or wrong. The public site remains read-only. The score desk uses environment-backed admin credentials plus CSRF protection. A manual score becomes authoritative over the provider score fields until explicitly released back to CFBD. Manual score writes and releases are audited. An official ranking week remains immutable: once the active production model has frozen a week, the score desk may not edit or release that week's results.
