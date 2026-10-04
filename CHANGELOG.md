@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.9.0 — 2026-10-04
+
+### Manual score desk
+- Added an admin-only manual score page at `/admin/games`.
+- Admin can enter home/away scores, mark a game final or in progress, and add an operational note.
+- Manual overrides take precedence over CFBD score/final fields until explicitly released.
+- Admin can release an override back to CFBD control before the ranking week is frozen.
+- Public Game Book and team pages label active manual final scores.
+
+### Integrity and audit
+- Every manual score save/release creates an append-only audit record.
+- Prediction locking runs before a manual score is applied.
+- Manual edits/releases are rejected after the active production ranking model has frozen the week.
+- A completed manual result runs through the same normal week-complete ranking/prediction pipeline as provider results.
+- Ranking and prediction formulas are unchanged: `division_i_weighted_v5` / `rank_gap_v3`.
+
+### Security
+- Added environment-backed HTTP Basic credentials for the score desk.
+- Added CSRF protection for admin write forms.
+- Fresh Synology installs generate a score-desk password automatically.
+- Existing Synology installs receive a generated score-desk password on update if one is not already configured.
+- Public website routes remain read-only.
+
+### Database and deployment
+- Added manual override metadata to `games` with automatic PostgreSQL migration.
+- Added `manual_score_audits`.
+- Added `python-multipart` for form handling.
+- Updated Synology install/update scripts and project documentation.
+
 ## v0.8.2 — 2026-09-27
 
 ### Simpler polling cadence
