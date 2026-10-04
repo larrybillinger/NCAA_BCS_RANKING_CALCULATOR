@@ -491,7 +491,7 @@ def admin_release_score(
             note=note,
             actor=actor,
         )
-        params["message"] = "Manual override released. CFBD may update this score on the next sync."
+        params["message"] = "Manual override released. The local score was cleared and CFBD will repopulate it on the next sync."
     except ManualScoreError as exc:
         params["error"] = str(exc)
 
