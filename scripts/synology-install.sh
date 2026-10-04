@@ -88,8 +88,10 @@ else
 
   if command -v openssl >/dev/null 2>&1; then
     DB_PASSWORD="$(openssl rand -hex 24)"
+    ADMIN_PASSWORD="$(openssl rand -hex 12)"
   else
-    DB_PASSWORD="rankings-$(date +%s)-$$"
+    DB_PASSWORD="rankings-$(date +%s)-$"
+    ADMIN_PASSWORD="scoredesk-$(date +%s)-$"
   fi
 
   cat > "$ENV_FILE" <<EOF
@@ -102,6 +104,8 @@ WEB_TITLE=D1 Rank
 TZ=America/Chicago
 SEASON=$SEASON
 BOOTSTRAP_RANKINGS=true
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=$ADMIN_PASSWORD
 MODEL_VERSION=division_i_weighted_v5
 PREDICTOR_VERSION=rank_gap_v3
 CFBD_API_KEY=$CFBD_KEY
@@ -161,6 +165,9 @@ echo "Local URL: http://${HOST_IP:-YOUR-SYNOLOGY-IP}:$PORT"
 echo "App folder: $APP"
 echo "PostgreSQL data: $ROOT/postgres"
 echo "Environment/secrets: $ENV_FILE"
+echo "Manual score desk: http://${HOST_IP:-YOUR-SYNOLOGY-IP}:$PORT/admin/games"
+echo "Manual score username: admin"
+echo "Manual score password: run  grep '^ADMIN_PASSWORD=' $ENV_FILE  as root"
 echo
 echo "Useful commands:"
 echo "  cd $APP"
