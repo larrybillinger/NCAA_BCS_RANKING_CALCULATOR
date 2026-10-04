@@ -18,6 +18,8 @@ class Settings:
     database_url: str
     cfbd_api_key: str
     cfbd_base_url: str
+    admin_username: str
+    admin_password: str
     season: int
     sync_saturday_minutes: int
     sync_other_days_minutes: int
@@ -43,6 +45,8 @@ def get_settings() -> Settings:
         cfbd_base_url=os.getenv(
             "CFBD_BASE_URL", "https://api.collegefootballdata.com"
         ).rstrip("/"),
+        admin_username=os.getenv("ADMIN_USERNAME", "admin").strip() or "admin",
+        admin_password=os.getenv("ADMIN_PASSWORD", ""),
         season=int(os.getenv("SEASON", "2026")),
         sync_saturday_minutes=max(
             int(os.getenv("SYNC_SATURDAY_MINUTES", "60")), 30
