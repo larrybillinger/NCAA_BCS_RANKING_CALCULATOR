@@ -30,6 +30,7 @@ def init_db() -> None:
     _migrate_fractional_opponent_rank()
     _migrate_site_points()
     _migrate_average_ranking_fields()
+    _migrate_manual_score_fields()
 
 
 def _migrate_fractional_opponent_rank() -> None:
@@ -94,6 +95,49 @@ def _migrate_average_ranking_fields() -> None:
                 text(
                     "ALTER TABLE ranking_entries "
                     "ADD COLUMN games_played INTEGER NOT NULL DEFAULT 0"
+                )
+            )
+
+
+def _migrate_manual_score_fields() -> None:
+    """Add manual score override metadata to existing PostgreSQL game tables."""
+    if engine.dialect.name != "postgresql":
+        return
+
+    columns = {
+        column["name"]
+        for column in inspect(engine).get_columns("games")
+    }
+    with engine.begin() as connection:
+        if "manual_score_override" not in columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE games "
+                    "ADD COLUMN manual_score_override BOOLEAN NOT NULL DEFAULT FALSE"
+                )
+            )
+            connection.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_games_manual_score_override "
+                    "ON games (manual_score_override)"
+                )
+            )
+        if "manual_score_updated_at" not in columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE games "
+                    "ADD COLUMN manual_score_updated_at TIMESTAMP WITH TIME ZONE"
+                )
+            )
+        if "manual_score_note" not in columns:
+            connection.execute(
+                text("ALTER TABLE games ADD COLUMN manual_score_note TEXT")
+            )
+        if "manual_score_actor" not in columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE games "
+                    "ADD COLUMN manual_score_actor VARCHAR(120)"
                 )
             )
 
