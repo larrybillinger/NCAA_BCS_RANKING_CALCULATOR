@@ -147,6 +147,9 @@ def test_release_override_returns_game_to_provider_control():
         )
 
         assert released.manual_score_override is False
+        assert released.home_points is None
+        assert released.away_points is None
+        assert released.completed is False
         audits = list(
             session.scalars(
                 select(ManualScoreAudit).where(ManualScoreAudit.game_id == game.id)
