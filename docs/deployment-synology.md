@@ -24,6 +24,14 @@ sh /tmp/install-rankings.sh
 
 Default port: `8765`.
 
+The installer also generates a manual score-desk credential in `/volume1/rankings/.env`. Retrieve it as root with:
+
+```bash
+grep '^ADMIN_' /volume1/rankings/.env
+```
+
+The protected score desk is available at `/admin/games`. Use it through the HTTPS reverse-proxy hostname, not a public unencrypted HTTP connection.
+
 ## Container Manager project
 After the SSH install, Container Manager will show the Compose project named `ncaa-rankings` with `db`, `web`, and `worker` services.
 
@@ -41,6 +49,8 @@ Use a DSM-managed certificate for the public hostname. No public port needs to b
 ```bash
 sudo sh /volume1/rankings/app/scripts/synology-update.sh
 ```
+
+For an older install that does not yet have admin credentials, the updater adds `ADMIN_USERNAME=admin` and generates a random `ADMIN_PASSWORD` once. Future updates preserve the same credential.
 
 ## Logs
 
