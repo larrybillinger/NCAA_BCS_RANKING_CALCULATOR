@@ -237,15 +237,16 @@ def upsert_game(session: Session, payload: dict) -> Game | None:
     row.week = max(1, source_week)
     row.season_type = str(payload.get("seasonType") or "regular")
     row.start_time = parse_iso_datetime(payload.get("startDate"))
-    row.completed = bool(payload.get("completed"))
     row.neutral_site = bool(payload.get("neutralSite"))
     row.conference_game = bool(payload.get("conferenceGame"))
     row.home_team_id = home.id
     row.away_team_id = away.id
     row.home_subdivision = subdivision(payload.get("homeClassification"))
     row.away_subdivision = subdivision(payload.get("awayClassification"))
-    row.home_points = payload.get("homePoints")
-    row.away_points = payload.get("awayPoints")
+    if not row.manual_score_override:
+        row.completed = bool(payload.get("completed"))
+        row.home_points = payload.get("homePoints")
+        row.away_points = payload.get("awayPoints")
     row.venue = payload.get("venue")
     row.fetched_at = datetime.now(timezone.utc)
     session.add(row)
