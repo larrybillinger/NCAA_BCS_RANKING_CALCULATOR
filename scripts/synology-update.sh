@@ -85,6 +85,14 @@ ensure_env_key() {
   fi
 }
 
+generate_secret() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 12
+  else
+    printf 'scoredesk-%s-%s' "$(date +%s)" "$"
+  fi
+}
+
 mkdir -p "$BACKUPS" "$TMP/archive"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 if [ -d "$APP" ]; then
@@ -114,6 +122,13 @@ if [ -f "$SOURCE_DIR/.env.example" ]; then
   if [ -n "$REQUIRED_PREDICTOR" ]; then
     echo "Setting PREDICTOR_VERSION=$REQUIRED_PREDICTOR"
     set_env_key PREDICTOR_VERSION "$REQUIRED_PREDICTOR"
+  fi
+
+  # Add admin score-desk credentials to older installs once. Preserve them on
+  # every future update just like the API and database secrets.
+  ensure_env_key ADMIN_USERNAME admin
+  if ! grep -q '^ADMIN_PASSWORD=' "$ENV_FILE"; then
+    ensure_env_key ADMIN_PASSWORD "$(generate_secret)"
   fi
 
   # Add quota-safe worker defaults to older installs without overwriting any
