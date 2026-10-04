@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+import hashlib
+import hmac
 from pathlib import Path
+import secrets
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
@@ -16,6 +21,12 @@ from .bootstrap import bootstrap_bundled_rankings
 from .cfbd import CFBDClient
 from .config import get_settings
 from .db import SessionLocal, get_session, init_db
+from .manual_score_service import (
+    ManualScoreError,
+    admin_game_rows,
+    release_manual_score,
+    set_manual_score,
+)
 from .models import Team
 from .prediction_service import rank_matchup_projection
 from .ranking_service import get_snapshot, latest_snapshot
@@ -41,6 +52,7 @@ from .view_service import (
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+ADMIN_SECURITY = HTTPBasic(auto_error=False)
 
 
 @asynccontextmanager
@@ -88,6 +100,57 @@ def _local_datetime(value: datetime | None) -> str:
 
 
 TEMPLATES.env.filters["localdt"] = _local_datetime
+
+
+def _admin_csrf_token() -> str:
+    return hmac.new(
+        settings.admin_password.encode("utf-8"),
+        b"d1-rank-manual-score-v1",
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _require_admin(
+    credentials: HTTPBasicCredentials | None = Depends(ADMIN_SECURITY),
+) -> str:
+    if not settings.admin_password:
+        raise HTTPException(
+            status_code=503,
+            detail="Manual score desk is disabled until ADMIN_PASSWORD is configured.",
+        )
+
+    username_ok = (
+        credentials is not None
+        and secrets.compare_digest(credentials.username, settings.admin_username)
+    )
+    password_ok = (
+        credentials is not None
+        and secrets.compare_digest(credentials.password, settings.admin_password)
+    )
+    if not (username_ok and password_ok):
+        raise HTTPException(
+            status_code=401,
+            detail="Admin credentials required.",
+            headers={"WWW-Authenticate": 'Basic realm="D1 Rank Score Desk"'},
+        )
+    return credentials.username
+
+
+def _verify_admin_csrf(token: str) -> None:
+    expected = _admin_csrf_token()
+    if not token or not secrets.compare_digest(token, expected):
+        raise HTTPException(status_code=403, detail="Invalid admin form token.")
+
+
+def _optional_score(value: str) -> int | None:
+    clean = value.strip()
+    if not clean:
+        return None
+    try:
+        return int(clean)
+    except ValueError as exc:
+        raise ManualScoreError("Scores must be whole numbers.") from exc
+
 
 
 def _sync_state(session: Session) -> dict:
@@ -327,6 +390,115 @@ def team_page(
         "auto_refresh_seconds": _auto_refresh_seconds(schedule),
     })
     return TEMPLATES.TemplateResponse(request=request, name="team.html", context=context)
+
+
+@app.get("/admin/games", response_class=HTMLResponse)
+def admin_games(
+    request: Request,
+    week: int | None = Query(default=None, ge=1, le=25),
+    q: str | None = Query(default=None),
+    message: str | None = Query(default=None),
+    error: str | None = Query(default=None),
+    actor: str = Depends(_require_admin),
+    session: Session = Depends(get_session),
+):
+    latest = latest_snapshot(session, settings.season)
+    selected_week = week or ((latest.week + 1) if latest else 1)
+    rows = admin_game_rows(
+        session,
+        settings.season,
+        selected_week,
+        search=q,
+    )
+    context = _base_context(session, request, week=latest.week if latest else None)
+    context.update({
+        "admin_actor": actor,
+        "admin_week": selected_week,
+        "admin_search": q or "",
+        "admin_games": rows,
+        "csrf_token": _admin_csrf_token(),
+        "message": message,
+        "error": error,
+    })
+    return TEMPLATES.TemplateResponse(
+        request=request,
+        name="admin_games.html",
+        context=context,
+    )
+
+
+@app.post("/admin/games/{game_id}/score")
+def admin_set_score(
+    game_id: int,
+    week: int = Form(...),
+    q: str = Form(default=""),
+    home_points: str = Form(default=""),
+    away_points: str = Form(default=""),
+    completed: str | None = Form(default=None),
+    note: str = Form(default=""),
+    csrf_token: str = Form(...),
+    actor: str = Depends(_require_admin),
+    session: Session = Depends(get_session),
+):
+    _verify_admin_csrf(csrf_token)
+    params = {"week": week}
+    if q:
+        params["q"] = q
+
+    try:
+        _, created_weeks = set_manual_score(
+            session,
+            game_id=game_id,
+            home_points=_optional_score(home_points),
+            away_points=_optional_score(away_points),
+            completed=completed is not None,
+            note=note,
+            actor=actor,
+        )
+        message = "Manual score saved."
+        if created_weeks:
+            weeks = ", ".join(str(value) for value in created_weeks)
+            message += f" Created official ranking Week {weeks}."
+        params["message"] = message
+    except ManualScoreError as exc:
+        params["error"] = str(exc)
+
+    return RedirectResponse(
+        "/admin/games?" + urlencode(params),
+        status_code=303,
+    )
+
+
+@app.post("/admin/games/{game_id}/release")
+def admin_release_score(
+    game_id: int,
+    week: int = Form(...),
+    q: str = Form(default=""),
+    note: str = Form(default=""),
+    csrf_token: str = Form(...),
+    actor: str = Depends(_require_admin),
+    session: Session = Depends(get_session),
+):
+    _verify_admin_csrf(csrf_token)
+    params = {"week": week}
+    if q:
+        params["q"] = q
+
+    try:
+        release_manual_score(
+            session,
+            game_id=game_id,
+            note=note,
+            actor=actor,
+        )
+        params["message"] = "Manual override released. CFBD may update this score on the next sync."
+    except ManualScoreError as exc:
+        params["error"] = str(exc)
+
+    return RedirectResponse(
+        "/admin/games?" + urlencode(params),
+        status_code=303,
+    )
 
 
 @app.get("/method", response_class=HTMLResponse)
