@@ -148,20 +148,29 @@ def release_manual_score(
     game = _editable_game(session, game_id)
     clean_note = (note or "").strip()[:1000] or None
 
+    previous_home = game.home_points
+    previous_away = game.away_points
+    previous_completed = bool(game.completed)
     session.add(
         ManualScoreAudit(
             game_id=game.id,
             action="release_override",
             actor=actor,
             note=clean_note,
-            previous_home_points=game.home_points,
-            previous_away_points=game.away_points,
-            previous_completed=bool(game.completed),
-            new_home_points=game.home_points,
-            new_away_points=game.away_points,
-            new_completed=bool(game.completed),
+            previous_home_points=previous_home,
+            previous_away_points=previous_away,
+            previous_completed=previous_completed,
+            new_home_points=None,
+            new_away_points=None,
+            new_completed=False,
         )
     )
+    # Clear the released score immediately so another manual edit cannot
+    # accidentally freeze the week using a score that the admin explicitly
+    # returned to provider control. CFBD repopulates it on the next sync.
+    game.home_points = None
+    game.away_points = None
+    game.completed = False
     game.manual_score_override = False
     game.manual_score_updated_at = datetime.now(timezone.utc)
     game.manual_score_note = clean_note
