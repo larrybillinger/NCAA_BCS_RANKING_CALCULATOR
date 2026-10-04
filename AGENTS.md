@@ -47,6 +47,11 @@ Do not change these without an explicit approved decision:
 - Home field or a free intercept may not flip the projected winner.
 
 ## Website rules
+- Public routes are read-only.
+- The manual score desk at `/admin/games` is admin-only and uses secrets from `.env`.
+- Manual score writes require CSRF protection and append-only audit records.
+- An active manual score override takes precedence over provider score fields until explicitly released.
+- Do not permit score-desk edits or releases after the active production model has frozen that ranking week.
 - White background and text-first interface.
 - Primary navigation is plain text.
 - Avoid outlined decorative buttons.
