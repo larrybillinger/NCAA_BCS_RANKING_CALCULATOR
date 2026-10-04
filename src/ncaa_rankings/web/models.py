@@ -82,9 +82,39 @@ class Game(Base):
     venue: Mapped[str | None] = mapped_column(String(200), nullable=True)
     source_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    manual_score_override: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    manual_score_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    manual_score_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    manual_score_actor: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     home_team: Mapped[Team] = relationship(foreign_keys=[home_team_id])
     away_team: Mapped[Team] = relationship(foreign_keys=[away_team_id])
+
+
+class ManualScoreAudit(Base):
+    __tablename__ = "manual_score_audits"
+    __table_args__ = (
+        Index("ix_manual_score_audit_game", "game_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    game_id: Mapped[int] = mapped_column(
+        ForeignKey("games.id", ondelete="CASCADE"), index=True
+    )
+    action: Mapped[str] = mapped_column(String(40))
+    actor: Mapped[str] = mapped_column(String(120))
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    previous_home_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    previous_away_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    previous_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    new_home_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    new_away_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    new_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    game: Mapped[Game] = relationship()
 
 
 class GameTeamStat(Base):
