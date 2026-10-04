@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.8.2**
+**Current version: 0.9.0**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -18,7 +18,8 @@ The home page is the complete weekly Division I ranking. The site also provides:
 - team-specific prediction accuracy;
 - a rank-to-score matchup calculator;
 - team comparison;
-- transparent method and data-source notes.
+- transparent method and data-source notes;
+- an admin-only manual score desk for provider outages or corrections.
 
 The visual design is intentionally simple: white background, plain text navigation, minimal decoration, and no ornamental outlined buttons.
 
@@ -98,6 +99,29 @@ v0.8.2 keeps the worker deliberately simple and quota-friendly. A normal targete
 Prediction locking is local database work and now runs before any provider request, so an upstream outage or exhausted API quota cannot prevent a valid pregame prediction from becoming official. The site also reports CFBD OK/stale/error status, the last successful sync, the latest attempt, and a short error message. Game Book and team pages reload themselves every five minutes while a scheduled game is in its normal live window. Browser reloads read PostgreSQL only and do not consume CFBD API calls.
 
 The API key is stored only in `.env`. The public application displays ordinary factual game information and derived rankings/predictions; it does not expose a raw provider database mirror.
+
+### Manual score desk
+
+When CFBD is delayed, unavailable, or incorrect, the administrator can open:
+
+```text
+/admin/games
+```
+
+The page uses HTTP Basic credentials stored in the production `.env`:
+
+```text
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=<secret>
+```
+
+A manual score can be saved as in-progress or final and can include an operational note. Once saved, the game is marked as a manual override so later CFBD syncs cannot silently replace its score or final state. Before the ranking week is frozen, the administrator can release the game back to CFBD control.
+
+Every manual save/release is audited. Once the active ranking model has created the official snapshot for that week, the score desk becomes read-only for those games so historical rankings cannot be rewritten accidentally.
+
+Public visitors still have no write permissions. Use the score desk only through the production HTTPS endpoint.
+
+See `docs/permissions.md` for the permission model.
 
 See `docs/data-source.md`.
 
