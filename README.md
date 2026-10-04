@@ -115,7 +115,7 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=<secret>
 ```
 
-A manual score can be saved as in-progress or final and can include an operational note. Once saved, the game is marked as a manual override so later CFBD syncs cannot silently replace its score or final state. Before the ranking week is frozen, the administrator can release the game back to CFBD control.
+A manual score can be saved as in-progress or final and can include an operational note. Once saved, the game is marked as a manual override so later CFBD syncs cannot silently replace its score or final state. Before the ranking week is frozen, the administrator can release the game back to CFBD control. Releasing clears the local manual score/final state immediately so it cannot accidentally participate in a ranking before CFBD repopulates the result on the next successful sync.
 
 Every manual save/release is audited. Once the active ranking model has created the official snapshot for that week, the score desk becomes read-only for those games so historical rankings cannot be rewritten accidentally.
 
