@@ -1,5 +1,17 @@
 # Version history
 
+## 0.9.0 — Manual score desk
+
+- Add admin-only manual score entry at `/admin/games`.
+- Protect writes with environment-backed HTTP Basic credentials and CSRF validation.
+- Keep public routes read-only.
+- Preserve manual score/final fields across later CFBD syncs until the override is released.
+- Audit every manual save/release.
+- Prevent score-desk edits after the active ranking week is frozen.
+- Feed completed manual results through the existing ranking and prediction pipeline.
+- Label active manual finals on Game Book and team pages.
+- Keep `division_i_weighted_v5` and `rank_gap_v3` unchanged.
+
 ## 0.8.2 — Daily polling with hourly Saturdays
 
 - Keep `division_i_weighted_v5` and `rank_gap_v3` unchanged.
