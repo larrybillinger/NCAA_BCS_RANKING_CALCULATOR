@@ -20,7 +20,7 @@ CFBD may continue updating schedule metadata. While `manual_score_override` is t
 - `home_points`;
 - `away_points`.
 
-Releasing the override restores provider authority over those fields on the next sync.
+Releasing the override clears the local score/final state immediately and restores provider authority over those fields on the next sync. This prevents another manual edit from freezing the week with a score that was explicitly released.
 
 ## Admin workflow
 `/admin/games`
