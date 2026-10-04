@@ -51,7 +51,7 @@
             {% else %}<strong>Even</strong><br>50.0%{% endif %}
           {% else %}—{% endif %}
         </td>
-        <td>{% if g.completed %}{% if row.is_home %}<strong>{{ team.name }} {{ g.home_points }}</strong><br>{{ row.opponent.name }} {{ g.away_points }}{% else %}<strong>{{ team.name }} {{ g.away_points }}</strong><br>{{ row.opponent.name }} {{ g.home_points }}{% endif %}{% else %}<span class="muted">upcoming</span>{% endif %}</td>
+        <td>{% if g.completed %}{% if row.is_home %}<strong>{{ team.name }} {{ g.home_points }}</strong><br>{{ row.opponent.name }} {{ g.away_points }}{% else %}<strong>{{ team.name }} {{ g.away_points }}</strong><br>{{ row.opponent.name }} {{ g.home_points }}{% endif %}{% if g.manual_score_override %}<span class="subline">MANUAL SCORE</span>{% endif %}{% else %}<span class="muted">upcoming</span>{% endif %}</td>
       </tr>
     {% else %}<tr><td colspan="6" class="empty">Schedule will populate automatically after CFBD is connected.</td></tr>{% endfor %}
     </tbody>
