@@ -51,6 +51,10 @@ class TeamSeason(Base):
     subdivision: Mapped[str] = mapped_column(String(20), default="OTHER")
     conference: Mapped[str | None] = mapped_column(String(120), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    home_venue_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    home_venue: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    home_timezone: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    home_elevation_ft: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     team: Mapped[Team] = relationship(back_populates="seasons")
 
