@@ -170,3 +170,5 @@ def test_team_context_sync_stores_home_timezone_and_elevation():
         assert row.home_venue == "Context Stadium"
         assert row.home_timezone == "America/Denver"
         assert row.home_elevation_ft == 5280.0
+        assert row.home_context_source == "cfbd:/teams"
+        assert row.home_context_updated_at is not None
