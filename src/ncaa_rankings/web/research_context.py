@@ -79,7 +79,7 @@ WEATHER_ONLY = ContextVariant(
 
 
 def stadium_grade_from_sell_through_rank(
-    position: int,
+    position: float,
     team_count: int,
 ) -> str:
     """Map a conference-relative sell-through position into A/B/C/D/F."""
@@ -115,11 +115,26 @@ def stadium_demand_grades(
         team_id: None
         for team_id in sell_through_by_team
     }
-    for position, (team_id, _) in enumerate(known, start=1):
-        grades[team_id] = stadium_grade_from_sell_through_rank(
-            position,
+    # Equal sell-through percentages share the same competition rank so a
+    # deterministic team-id fallback never splits identical demand into
+    # different letter grades.
+    position = 1
+    index = 0
+    while index < len(known):
+        value = known[index][1]
+        tied_team_ids: list[int] = []
+        while index < len(known) and known[index][1] == value:
+            tied_team_ids.append(known[index][0])
+            index += 1
+
+        grade = stadium_grade_from_sell_through_rank(
+            float(position),
             len(known),
         )
+        for team_id in tied_team_ids:
+            grades[team_id] = grade
+        position += len(tied_team_ids)
+
     return grades
 
 
