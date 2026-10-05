@@ -172,3 +172,66 @@ def test_team_context_sync_stores_home_timezone_and_elevation():
         assert row.home_elevation_ft == 5280.0
         assert row.home_context_source == "cfbd:/teams"
         assert row.home_context_updated_at is not None
+
+
+
+def test_full_schedule_cycle_refreshes_static_team_context(monkeypatch):
+    calls = []
+
+    class FakeSessionContext:
+        def __enter__(self):
+            return object()
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class FakeClient:
+        configured = True
+
+    settings = SimpleNamespace(season=2026)
+    snapshot = SimpleNamespace(week=5)
+
+    monkeypatch.setattr(worker, "get_settings", lambda: settings)
+    monkeypatch.setattr(worker, "SessionLocal", lambda: FakeSessionContext())
+    monkeypatch.setattr(worker, "CFBDClient", lambda: FakeClient())
+    monkeypatch.setattr(worker, "bootstrap_bundled_rankings", lambda session: None)
+    monkeypatch.setattr(worker, "lock_started_predictions", lambda session: 0)
+    monkeypatch.setattr(
+        worker,
+        "lock_started_research_predictions",
+        lambda session: 0,
+    )
+    monkeypatch.setattr(
+        worker,
+        "sync_games",
+        lambda session, client, season: calls.append("games") or 0,
+    )
+    monkeypatch.setattr(
+        worker,
+        "sync_team_context",
+        lambda session, client, season: calls.append("context") or 1,
+    )
+    monkeypatch.setattr(
+        worker,
+        "calculate_all_new_complete_weeks",
+        lambda session, season: [],
+    )
+    monkeypatch.setattr(
+        worker,
+        "latest_snapshot",
+        lambda session, season: snapshot,
+    )
+    monkeypatch.setattr(
+        worker,
+        "generate_predictions_for_snapshot",
+        lambda session, current: 0,
+    )
+    monkeypatch.setattr(
+        worker,
+        "generate_research_predictions_for_snapshot",
+        lambda session, current: 0,
+    )
+
+    worker._sync_cycle(full_schedule=True)
+
+    assert calls == ["games", "context"]
