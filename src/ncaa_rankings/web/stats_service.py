@@ -113,7 +113,7 @@ def _metrics(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
             "display_away_points",
             int(round(prediction.projected_away_points)),
         )
-        if display_home == display_away and prediction.projected_margin != 0:
+        if display_home == display_away:
             display_ties += 1
         outcome = 1.0 if actual_home_win else 0.0
         brier_values.append((prediction.home_win_probability - outcome) ** 2)
