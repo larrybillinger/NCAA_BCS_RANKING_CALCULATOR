@@ -10,6 +10,7 @@ from .models import (
     RankingSnapshot,
     ResearchPredictionSnapshot,
 )
+from .research_context_service import build_static_game_context
 from .research_prediction_service import HYBRID_VERSION, hybrid_project_game
 
 DIVISION_I = ("FBS", "FCS")
@@ -60,6 +61,16 @@ def generate_research_predictions_for_snapshot(
         if projection is None:
             continue
 
+        static_context = build_static_game_context(session, game)
+        feature_snapshot = dict(static_context.features)
+        feature_snapshot.update({
+            "ranking_week": snapshot.week,
+            "context_version": "static_capture_v1",
+            "captured_at": now.isoformat(),
+            "pregame_only": True,
+            "used_by_model": False,
+        })
+
         session.add(
             ResearchPredictionSnapshot(
                 game_id=game.id,
@@ -76,11 +87,7 @@ def generate_research_predictions_for_snapshot(
                 projected_total=projection.projected_total,
                 home_win_probability=projection.home_win_probability,
                 sample_size=projection.sample_size,
-                feature_snapshot={
-                    "ranking_week": snapshot.week,
-                    "context_version": "none_v1",
-                    "pregame_only": True,
-                },
+                feature_snapshot=feature_snapshot,
                 model_detail=projection.detail,
             )
         )
