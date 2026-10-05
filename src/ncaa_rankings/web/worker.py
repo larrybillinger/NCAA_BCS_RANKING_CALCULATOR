@@ -16,6 +16,7 @@ from .cfbd import (
     CFBDRateLimitError,
     sync_game_team_stats,
     sync_games,
+    sync_team_context,
 )
 from .config import Settings, get_settings
 from .db import SessionLocal, init_db
