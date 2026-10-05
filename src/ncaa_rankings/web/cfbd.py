@@ -240,6 +240,8 @@ def sync_team_context(
             season_row.home_elevation_ft = _optional_float(
                 location.get("elevation")
             )
+            season_row.home_context_source = "cfbd:/teams"
+            season_row.home_context_updated_at = datetime.now(timezone.utc)
             session.add(season_row)
             updated += 1
 
