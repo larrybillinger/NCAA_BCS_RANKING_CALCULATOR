@@ -181,6 +181,20 @@ def _migrate_context_fields() -> None:
                     "ADD COLUMN home_elevation_ft DOUBLE PRECISION"
                 )
             )
+        if "home_context_source" not in team_season_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE team_seasons "
+                    "ADD COLUMN home_context_source VARCHAR(120)"
+                )
+            )
+        if "home_context_updated_at" not in team_season_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE team_seasons "
+                    "ADD COLUMN home_context_updated_at TIMESTAMP WITH TIME ZONE"
+                )
+            )
 
 
 def get_session() -> Generator[Session, None, None]:
