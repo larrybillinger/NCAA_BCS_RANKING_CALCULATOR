@@ -79,6 +79,10 @@ class CFBDClient:
         result = self._get("/games", params)
         return list(result) if isinstance(result, list) else []
 
+    def teams(self, year: int) -> list[dict]:
+        result = self._get("/teams", {"year": year})
+        return list(result) if isinstance(result, list) else []
+
     def game_team_stats(
         self,
         year: int,
@@ -186,6 +190,85 @@ def upsert_team(
     return team
 
 
+def _optional_float(value: object) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def sync_team_context(
+    session: Session,
+    client: CFBDClient,
+    season: int,
+) -> int:
+    """Refresh season-specific home venue, time-zone, and elevation metadata."""
+    endpoint = "/teams"
+    run = _sync_run_start(session, endpoint, season, None)
+    session.commit()
+    payloads: list[dict] = []
+    try:
+        payloads = client.teams(season)
+        updated = 0
+        for payload in payloads:
+            name = str(payload.get("school") or "").strip()
+            if not name:
+                continue
+            team = upsert_team(
+                session,
+                cfbd_id=payload.get("id"),
+                name=name,
+                season=season,
+                classification=payload.get("classification"),
+                conference=payload.get("conference"),
+            )
+            season_row = session.scalar(
+                select(TeamSeason).where(
+                    TeamSeason.team_id == team.id,
+                    TeamSeason.season == season,
+                )
+            )
+            if season_row is None:
+                continue
+
+            location = payload.get("location") or {}
+            season_row.home_venue_id = location.get("id")
+            season_row.home_venue = location.get("name")
+            season_row.home_timezone = location.get("timezone")
+            season_row.home_elevation_ft = _optional_float(
+                location.get("elevation")
+            )
+            season_row.home_context_source = "cfbd:/teams"
+            season_row.home_context_updated_at = datetime.now(timezone.utc)
+            session.add(season_row)
+            updated += 1
+
+        _sync_run_finish(
+            session,
+            run,
+            status="ok",
+            rows=updated,
+            payload=payloads,
+        )
+        session.commit()
+        return updated
+    except Exception as exc:
+        session.rollback()
+        run = session.get(SourceSyncRun, run.id)
+        if run is not None:
+            _sync_run_finish(
+                session,
+                run,
+                status="error",
+                rows=0,
+                error=str(exc),
+            )
+            session.commit()
+        raise
+
+
 def _game_payload_id(game: dict) -> str:
     return str(game.get("id") or game.get("gameId") or "")
 
@@ -243,6 +326,7 @@ def upsert_game(session: Session, payload: dict) -> Game | None:
     row.away_team_id = away.id
     row.home_subdivision = subdivision(payload.get("homeClassification"))
     row.away_subdivision = subdivision(payload.get("awayClassification"))
+    row.venue_id = payload.get("venueId")
     if not row.manual_score_override:
         row.completed = bool(payload.get("completed"))
         row.home_points = payload.get("homePoints")

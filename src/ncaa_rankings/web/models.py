@@ -51,6 +51,15 @@ class TeamSeason(Base):
     subdivision: Mapped[str] = mapped_column(String(20), default="OTHER")
     conference: Mapped[str | None] = mapped_column(String(120), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    home_venue_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    home_venue: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    home_timezone: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    home_elevation_ft: Mapped[float | None] = mapped_column(Float, nullable=True)
+    home_context_source: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    home_context_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     team: Mapped[Team] = relationship(back_populates="seasons")
 
@@ -79,6 +88,7 @@ class Game(Base):
     away_subdivision: Mapped[str] = mapped_column(String(20), default="OTHER")
     home_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
     away_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    venue_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     venue: Mapped[str | None] = mapped_column(String(200), nullable=True)
     source_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -224,6 +234,48 @@ class PredictionSnapshot(Base):
     projected_margin: Mapped[float] = mapped_column(Float)
     home_win_probability: Mapped[float] = mapped_column(Float)
     sample_size: Mapped[int] = mapped_column(Integer, default=0)
+    model_detail: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+
+    game: Mapped[Game] = relationship()
+    ranking_snapshot: Mapped[RankingSnapshot] = relationship()
+
+
+class ResearchPredictionSnapshot(Base):
+    """Immutable research/shadow prediction ledger.
+
+    This table is intentionally separate from prediction_snapshots so a
+    research model can never be mistaken for the official Game Book ledger.
+    """
+    __tablename__ = "research_prediction_snapshots"
+    __table_args__ = (
+        UniqueConstraint(
+            "game_id",
+            "ranking_snapshot_id",
+            "model_version",
+            name="uq_research_prediction_snapshot",
+        ),
+        Index("ix_research_prediction_game", "game_id", "created_at"),
+        Index("ix_research_prediction_lock", "game_id", "model_version", "locked_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    game_id: Mapped[int] = mapped_column(ForeignKey("games.id", ondelete="CASCADE"))
+    ranking_snapshot_id: Mapped[int] = mapped_column(ForeignKey("ranking_snapshots.id"))
+    model_version: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    locks_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    home_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    away_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    projected_home_points: Mapped[float] = mapped_column(Float)
+    projected_away_points: Mapped[float] = mapped_column(Float)
+    display_home_points: Mapped[int] = mapped_column(Integer)
+    display_away_points: Mapped[int] = mapped_column(Integer)
+    projected_margin: Mapped[float] = mapped_column(Float)
+    projected_total: Mapped[float] = mapped_column(Float)
+    home_win_probability: Mapped[float] = mapped_column(Float)
+    sample_size: Mapped[int] = mapped_column(Integer, default=0)
+    feature_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     model_detail: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     game: Mapped[Game] = relationship()

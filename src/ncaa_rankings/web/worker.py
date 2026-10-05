@@ -16,12 +16,17 @@ from .cfbd import (
     CFBDRateLimitError,
     sync_game_team_stats,
     sync_games,
+    sync_team_context,
 )
 from .config import Settings, get_settings
 from .db import SessionLocal, init_db
 from .models import Game
 from .prediction_service import generate_predictions_for_snapshot, lock_started_predictions
 from .ranking_service import calculate_all_new_complete_weeks, latest_snapshot
+from .research_prediction_ledger import (
+    generate_research_predictions_for_snapshot,
+    lock_started_research_predictions,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -138,6 +143,18 @@ def _sync_cycle(full_schedule: bool = False) -> None:
         if locked:
             LOGGER.info("Locked %s pregame predictions", locked)
 
+        # Research shadow locking is also local-only and runs before provider
+        # access. Experimental failures must never block the official worker.
+        try:
+            research_locked = lock_started_research_predictions(session)
+            if research_locked:
+                LOGGER.info(
+                    "Locked %s pregame research predictions",
+                    research_locked,
+                )
+        except Exception:
+            LOGGER.exception("Research prediction locking failed")
+
         if not client.configured:
             LOGGER.warning(
                 "CFBD_API_KEY is not configured. Bundled rankings are available, "
@@ -145,10 +162,30 @@ def _sync_cycle(full_schedule: bool = False) -> None:
             )
             return None
 
+        rate_limit_error: CFBDRateLimitError | None = None
         if full_schedule:
             count = sync_games(session, client, settings.season)
             LOGGER.info("Full %s schedule sync: %s games", settings.season, count)
             synced_week = None
+            try:
+                context_rows = sync_team_context(
+                    session,
+                    client,
+                    settings.season,
+                )
+                LOGGER.info(
+                    "Season %s team venue context sync: %s teams",
+                    settings.season,
+                    context_rows,
+                )
+            except CFBDRateLimitError as exc:
+                # Static context is research-only. Preserve local ranking and
+                # prediction work, then hand the 429 to normal cooldown logic.
+                rate_limit_error = exc
+            except Exception:
+                LOGGER.exception(
+                    "Team venue context sync failed; official work remains valid"
+                )
         else:
             synced_week = _nearest_schedule_week(session, settings.season)
             count = sync_games(session, client, settings.season, week=synced_week)
@@ -157,8 +194,7 @@ def _sync_cycle(full_schedule: bool = False) -> None:
         # A successful score/schedule refresh may make one or more sequential
         # weeks complete. Ranking rules themselves are unchanged.
         created_weeks = calculate_all_new_complete_weeks(session, settings.season)
-        rate_limit_error: CFBDRateLimitError | None = None
-        if created_weeks:
+        if created_weeks and rate_limit_error is None:
             LOGGER.info("Created official ranking snapshots: %s", created_weeks)
             for week in created_weeks:
                 try:
@@ -184,6 +220,19 @@ def _sync_cycle(full_schedule: bool = False) -> None:
                     created,
                     current_snapshot.week,
                 )
+            try:
+                research_created = generate_research_predictions_for_snapshot(
+                    session,
+                    current_snapshot,
+                )
+                if research_created:
+                    LOGGER.info(
+                        "Created %s hybrid research projections from Week %s ranking",
+                        research_created,
+                        current_snapshot.week,
+                    )
+            except Exception:
+                LOGGER.exception("Research prediction generation failed")
 
         if rate_limit_error is not None:
             raise rate_limit_error

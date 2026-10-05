@@ -1,0 +1,21 @@
+# Sprint 003 acceptance criteria — Scoped rankings and research prediction foundation
+
+- [x] FBS filtering shows sequential FBS ranks without gaps from FCS teams.
+- [x] FCS filtering shows sequential FCS ranks without gaps from FBS teams.
+- [x] Conference rank follows combined national order rather than record.
+- [x] Scope ranks are calculated before team search.
+- [x] Combined D-I rank remains visible in filtered views.
+- [x] Production ranking remains division_i_weighted_v5.
+- [x] Official predictor remains rank_gap_v3.
+- [x] hybrid_core_v1 is research-only.
+- [x] Research predictions are stored separately from official prediction snapshots.
+- [x] A shadow prediction created after kickoff cannot lock.
+- [x] Research locking runs before provider access and failures are isolated.
+- [x] Negative projected scores use equal translation that preserves margin.
+- [x] Non-zero continuous margins cannot render as integer ties.
+- [x] Accuracy metrics include total MAE and display-tie rate.
+- [x] Context engine covers stadium, neutral, time-zone, altitude, weather, and capped-travel variants.
+- [x] Missing stadium sell-through remains explicitly missing.
+- [x] CFBD team home venue/time-zone/elevation metadata is synced with provenance and copied into pregame shadow feature snapshots when available.
+- [x] Context-adjusted variants remain disabled in the worker until neutral-site venue, season-ticket sell-through, and pregame forecast data gates are complete.
+- [x] Remaining dynamic context ingestion is explicitly deferred to Sprint 004 rather than treated as part of the v0.10.0 production release.

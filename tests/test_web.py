@@ -1,5 +1,6 @@
 from ncaa_rankings.web.prediction_service import Calibration, Projection, _projection_from_ranks
 from ncaa_rankings.web.utils import slugify, subdivision
+from ncaa_rankings.web.view_service import _assign_scope_ranks
 
 
 def test_slugify_handles_punctuation_and_apostrophes():
@@ -85,3 +86,28 @@ def test_retrocast_projection_matches_saved_prediction_field_names():
     assert projection.projected_home_points == 31.5
     assert projection.projected_away_points == 24.5
     assert projection.projected_margin == 7.0
+
+
+
+def test_scope_ranks_follow_national_order_before_filtering():
+    rows = [
+        {"rank": 1, "subdivision": "FCS", "conference": "Big Sky"},
+        {"rank": 2, "subdivision": "FBS", "conference": "SEC"},
+        {"rank": 3, "subdivision": "FBS", "conference": "Big Ten"},
+        {"rank": 4, "subdivision": "FCS", "conference": "Big Sky"},
+        {"rank": 5, "subdivision": "FBS", "conference": "SEC"},
+        {"rank": 6, "subdivision": "FCS", "conference": None},
+    ]
+
+    ranked = _assign_scope_ranks(rows)
+
+    assert [row["subdivision_rank"] for row in ranked] == [1, 1, 2, 2, 3, 3]
+    assert [row["conference_rank"] for row in ranked] == [1, 1, 1, 2, 2, None]
+    assert [row["division_i_rank"] for row in ranked] == [1, 2, 3, 4, 5, 6]
+
+    fbs = [row for row in ranked if row["subdivision"] == "FBS"]
+    assert [row["subdivision_rank"] for row in fbs] == [1, 2, 3]
+
+    sec = [row for row in ranked if row["conference"] == "SEC"]
+    assert [row["conference_rank"] for row in sec] == [1, 2]
+    assert [row["division_i_rank"] for row in sec] == [2, 5]

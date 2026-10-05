@@ -31,6 +31,7 @@ def init_db() -> None:
     _migrate_site_points()
     _migrate_average_ranking_fields()
     _migrate_manual_score_fields()
+    _migrate_context_fields()
 
 
 def _migrate_fractional_opponent_rank() -> None:
@@ -138,6 +139,60 @@ def _migrate_manual_score_fields() -> None:
                 text(
                     "ALTER TABLE games "
                     "ADD COLUMN manual_score_actor VARCHAR(120)"
+                )
+            )
+
+
+def _migrate_context_fields() -> None:
+    """Add static team/venue context columns to existing PostgreSQL installs."""
+    if engine.dialect.name != "postgresql":
+        return
+
+    game_columns = {
+        column["name"]
+        for column in inspect(engine).get_columns("games")
+    }
+    team_season_columns = {
+        column["name"]
+        for column in inspect(engine).get_columns("team_seasons")
+    }
+
+    with engine.begin() as connection:
+        if "venue_id" not in game_columns:
+            connection.execute(
+                text("ALTER TABLE games ADD COLUMN venue_id INTEGER")
+            )
+        if "home_venue_id" not in team_season_columns:
+            connection.execute(
+                text("ALTER TABLE team_seasons ADD COLUMN home_venue_id INTEGER")
+            )
+        if "home_venue" not in team_season_columns:
+            connection.execute(
+                text("ALTER TABLE team_seasons ADD COLUMN home_venue VARCHAR(200)")
+            )
+        if "home_timezone" not in team_season_columns:
+            connection.execute(
+                text("ALTER TABLE team_seasons ADD COLUMN home_timezone VARCHAR(80)")
+            )
+        if "home_elevation_ft" not in team_season_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE team_seasons "
+                    "ADD COLUMN home_elevation_ft DOUBLE PRECISION"
+                )
+            )
+        if "home_context_source" not in team_season_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE team_seasons "
+                    "ADD COLUMN home_context_source VARCHAR(120)"
+                )
+            )
+        if "home_context_updated_at" not in team_season_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE team_seasons "
+                    "ADD COLUMN home_context_updated_at TIMESTAMP WITH TIME ZONE"
                 )
             )
 

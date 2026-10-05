@@ -24,28 +24,59 @@ def available_ranking_weeks(session: Session, season: int) -> list[int]:
     ))
 
 
+def _assign_scope_ranks(rows: list[dict]) -> list[dict]:
+    """Add sequential subdivision/conference ranks from canonical D-I order.
+
+    The incoming rows must already be in the official national display order.
+    Scope ranks are assigned before any page filter/search so filtering never
+    creates gaps caused by teams outside the selected scope.
+    """
+    subdivision_counts: dict[str, int] = {}
+    conference_counts: dict[str, int] = {}
+    ranked: list[dict] = []
+
+    for row in rows:
+        item = dict(row)
+        subdivision = item["subdivision"]
+        conference = item["conference"]
+
+        subdivision_counts[subdivision] = subdivision_counts.get(subdivision, 0) + 1
+        item["subdivision_rank"] = subdivision_counts[subdivision]
+
+        if conference:
+            conference_counts[conference] = conference_counts.get(conference, 0) + 1
+            item["conference_rank"] = conference_counts[conference]
+        else:
+            item["conference_rank"] = None
+
+        item["division_i_rank"] = item["rank"]
+        ranked.append(item)
+
+    return ranked
+
+
 def ranking_rows(
     session: Session,
     snapshot: RankingSnapshot,
     *,
     subdivision: str | None = None,
+    conference: str | None = None,
     search: str | None = None,
 ) -> list[dict]:
+    # Always load the canonical D-I order first. Subdivision and conference
+    # ranks are derived from that order, then filters are applied. This keeps
+    # FBS/FCS and conference numbering sequential and independent of search.
     query = (
         select(RankingEntry, Team, TeamSeason)
         .join(Team, Team.id == RankingEntry.team_id)
         .join(TeamSeason, (TeamSeason.team_id == Team.id) & (TeamSeason.season == snapshot.season))
         .where(RankingEntry.snapshot_id == snapshot.id)
-        .order_by(RankingEntry.rank)
+        .order_by(RankingEntry.rank, Team.name)
     )
-    if subdivision in {"FBS", "FCS"}:
-        query = query.where(TeamSeason.subdivision == subdivision)
-    if search:
-        query = query.where(Team.name.ilike(f"%{search.strip()}%"))
 
-    rows = []
+    canonical_rows: list[dict] = []
     for entry, team, team_season in session.execute(query):
-        rows.append({
+        canonical_rows.append({
             "rank": entry.rank,
             "team": team,
             "subdivision": team_season.subdivision,
@@ -55,6 +86,26 @@ def ranking_rows(
             "movement": entry.movement,
             "opponent_strength": entry.opponent_strength,
         })
+
+    rows = _assign_scope_ranks(canonical_rows)
+
+    if subdivision in {"FBS", "FCS"}:
+        rows = [row for row in rows if row["subdivision"] == subdivision]
+    if conference:
+        rows = [row for row in rows if row["conference"] == conference]
+    if search:
+        needle = search.strip().casefold()
+        if needle:
+            rows = [row for row in rows if needle in row["team"].name.casefold()]
+
+    for row in rows:
+        if conference:
+            row["view_rank"] = row["conference_rank"]
+        elif subdivision in {"FBS", "FCS"}:
+            row["view_rank"] = row["subdivision_rank"]
+        else:
+            row["view_rank"] = row["division_i_rank"]
+
     return rows
 
 

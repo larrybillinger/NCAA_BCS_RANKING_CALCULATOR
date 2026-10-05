@@ -51,3 +51,12 @@ Production ranking position is based on the arithmetic mean of each team's froze
 
 ## 2026-10-04 — Admin-only manual score desk
 Add a secure operational score desk at `/admin/games` so Larry can enter or correct game scores when CFBD is unavailable, delayed, or wrong. The public site remains read-only. The score desk uses environment-backed admin credentials plus CSRF protection. A manual score becomes authoritative over the provider score fields until explicitly released back to CFBD. Manual score writes and releases are audited. An official ranking week remains immutable: once the active production model has frozen a week, the score desk may not edit or release that week's results.
+
+
+
+## 2026-10-05 — Scoped ranking views are display derivatives
+Keep one canonical Division I national ranking. FBS rank, FCS rank, and conference rank are sequential display derivatives of that national order and are calculated before page filtering or team search. Conference order follows national ranking order rather than conference record. These views do not create separate ranking models or scoring pools.
+
+
+## 2026-10-05 — Context-aware predictions remain a separate shadow system
+Keep rank_gap_v3 as the official predictor under the protected monotonic rule. Experimental hybrid offense/defense and context-aware predictions may select a different winner, but they must be stored in a separate research ledger, clearly labeled, and locked only from information captured before kickoff. Research failures may not block official prediction locking or provider synchronization. No research model becomes official without a later explicit decision.

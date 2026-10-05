@@ -9,8 +9,9 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .models import Game, PredictionSnapshot, SourceSyncRun
+from .models import Game, PredictionSnapshot, ResearchPredictionSnapshot, SourceSyncRun
 from .prediction_service import retrocast_game
+from .research_prediction_service import HYBRID_VERSION
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +21,8 @@ class AccuracyMetrics:
     spread_mae: float | None = None
     spread_rmse: float | None = None
     score_mae: float | None = None
+    total_mae: float | None = None
+    display_tie_rate: float | None = None
     brier: float | None = None
     upset_hit_rate: float | None = None
     rank_result_correlation: float | None = None
@@ -69,6 +72,8 @@ def _metrics(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
     winner_correct = 0
     spread_errors: list[float] = []
     score_errors: list[float] = []
+    total_errors: list[float] = []
+    display_ties = 0
     brier_values: list[float] = []
     rank_gaps: list[float] = []
     actual_margins: list[float] = []
@@ -89,6 +94,27 @@ def _metrics(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
                 + abs(prediction.projected_away_points - float(game.away_points))
             ) / 2.0
         )
+        total_errors.append(
+            abs(
+                (
+                    prediction.projected_home_points
+                    + prediction.projected_away_points
+                )
+                - float(game.home_points + game.away_points)
+            )
+        )
+        display_home = getattr(
+            prediction,
+            "display_home_points",
+            int(round(prediction.projected_home_points)),
+        )
+        display_away = getattr(
+            prediction,
+            "display_away_points",
+            int(round(prediction.projected_away_points)),
+        )
+        if display_home == display_away:
+            display_ties += 1
         outcome = 1.0 if actual_home_win else 0.0
         brier_values.append((prediction.home_win_probability - outcome) ** 2)
 
@@ -111,6 +137,8 @@ def _metrics(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
         spread_mae=statistics.fmean(spread_errors),
         spread_rmse=rmse,
         score_mae=statistics.fmean(score_errors),
+        total_mae=statistics.fmean(total_errors),
+        display_tie_rate=display_ties / len(rows),
         brier=statistics.fmean(brier_values),
         upset_hit_rate=(predicted_actual_upsets / actual_upsets) if actual_upsets else None,
         rank_result_correlation=_corr(rank_gaps, actual_margins),
@@ -143,6 +171,63 @@ def _retrocast_rows(
         if projection is not None:
             rows.append((projection, game))
     return rows
+
+
+
+def _research_prediction_rows(
+    session: Session,
+    season: int,
+    *,
+    model_version: str = HYBRID_VERSION,
+) -> list[tuple[ResearchPredictionSnapshot, Game]]:
+    return list(
+        session.execute(
+            select(ResearchPredictionSnapshot, Game)
+            .join(Game, Game.id == ResearchPredictionSnapshot.game_id)
+            .where(
+                Game.season == season,
+                Game.completed.is_(True),
+                Game.home_points.is_not(None),
+                Game.away_points.is_not(None),
+                ResearchPredictionSnapshot.model_version == model_version,
+                ResearchPredictionSnapshot.locked_at.is_not(None),
+            )
+        ).all()
+    )
+
+
+def research_metrics(
+    session: Session,
+    season: int,
+    *,
+    model_version: str = HYBRID_VERSION,
+) -> AccuracyMetrics:
+    return _metrics(
+        _research_prediction_rows(
+            session,
+            season,
+            model_version=model_version,
+        )
+    )
+
+
+def weekly_research_metrics(
+    session: Session,
+    season: int,
+    *,
+    model_version: str = HYBRID_VERSION,
+) -> list[dict]:
+    grouped: dict[int, list[tuple[ResearchPredictionSnapshot, Game]]] = defaultdict(list)
+    for prediction, game in _research_prediction_rows(
+        session,
+        season,
+        model_version=model_version,
+    ):
+        grouped[game.week].append((prediction, game))
+    return [
+        {"week": week, "metrics": _metrics(grouped[week])}
+        for week in sorted(grouped)
+    ]
 
 
 def retrocast_metrics(session: Session, season: int) -> AccuracyMetrics:

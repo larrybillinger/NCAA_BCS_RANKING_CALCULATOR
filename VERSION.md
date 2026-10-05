@@ -1,5 +1,16 @@
 # Version history
 
+## 0.10.0 — Scoped rankings and research shadow predictions
+
+- Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.
+- Add sequential FBS, FCS, and conference ranks derived from the canonical Division I order before filtering or search.
+- Add conference filtering to the ranking page while preserving combined D-I rank context.
+- Add the research-only `hybrid_core_v1` offense/defense predictor.
+- Store research predictions in a separate shadow ledger and lock only rows created before kickoff.
+- Run research locking before provider access, isolated so experimental failures cannot block the official worker.
+- Add total-score MAE and displayed-tie-rate metrics.
+- Add shadow-only stadium, travel, altitude, and weather adjustment variants plus regression tests.
+
 ## 0.9.0 — Manual score desk
 
 - Add admin-only manual score entry at `/admin/games`.

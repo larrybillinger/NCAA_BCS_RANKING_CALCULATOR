@@ -34,10 +34,12 @@ from .stats_service import (
     last_successful_sync,
     latest_sync_attempt,
     overall_metrics,
+    research_metrics,
     retrocast_metrics,
     team_metrics,
     team_retrocast_metrics,
     weekly_metrics,
+    weekly_research_metrics,
     weekly_retrocast_metrics,
 )
 from .view_service import (
@@ -64,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.web_title, version="0.9.0", lifespan=lifespan)
+app = FastAPI(title=settings.web_title, version="0.10.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
@@ -280,6 +282,7 @@ def home(
     request: Request,
     week: int | None = Query(default=None, ge=1, le=25),
     subdivision: str | None = Query(default=None),
+    conference: str | None = Query(default=None),
     q: str | None = Query(default=None),
     session: Session = Depends(get_session),
 ):
@@ -289,17 +292,28 @@ def home(
     if snapshot is None and latest is not None:
         snapshot = latest
         selected_week = latest.week
+    subdivision_filter = (subdivision or "").upper() or None
+    conference_filter = (conference or "").strip() or None
+    all_rows = ranking_rows(session, snapshot) if snapshot else []
+    conferences = sorted({
+        row["conference"]
+        for row in all_rows
+        if row["conference"]
+    })
     rows = ranking_rows(
         session,
         snapshot,
-        subdivision=(subdivision or "").upper() or None,
+        subdivision=subdivision_filter,
+        conference=conference_filter,
         search=q,
     ) if snapshot else []
     context = _base_context(session, request, week=selected_week)
     context.update({
         "snapshot": snapshot,
         "ranking_rows": rows,
-        "subdivision_filter": (subdivision or "").upper(),
+        "subdivision_filter": subdivision_filter or "",
+        "conference_filter": conference_filter or "",
+        "conferences": conferences,
         "search_query": q or "",
     })
     return TEMPLATES.TemplateResponse(request=request, name="rankings.html", context=context)
@@ -343,11 +357,15 @@ def stats(
     weekly = weekly_metrics(session, settings.season)
     retro = retrocast_metrics(session, settings.season)
     retro_weekly = weekly_retrocast_metrics(session, settings.season)
+    shadow = research_metrics(session, settings.season)
+    shadow_weekly = weekly_research_metrics(session, settings.season)
     context = _base_context(session, request)
     context.update({
         "weekly_metrics": weekly,
         "retro_metrics": retro,
         "retro_weekly_metrics": retro_weekly,
+        "shadow_metrics": shadow,
+        "shadow_weekly_metrics": shadow_weekly,
         "metric": metric,
     })
     return TEMPLATES.TemplateResponse(request=request, name="stats.html", context=context)
