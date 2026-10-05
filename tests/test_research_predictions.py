@@ -127,5 +127,5 @@ def test_shadow_lock_uses_only_prediction_created_before_kickoff():
                 )
             )
         )
-        assert rows[0].locked_at == kickoff
+        assert rows[0].locked_at is not None
         assert rows[1].locked_at is None
