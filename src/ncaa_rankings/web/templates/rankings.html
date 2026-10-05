@@ -22,6 +22,8 @@
 <section class="ranking-tools">
   <form class="search-form" action="/" method="get">
     <input type="hidden" name="week" value="{{ selected_week }}">
+    {% if subdivision_filter %}<input type="hidden" name="subdivision" value="{{ subdivision_filter }}">{% endif %}
+    {% if conference_filter %}<input type="hidden" name="conference" value="{{ conference_filter }}">{% endif %}
     <input class="bare-input" type="search" name="q" value="{{ search_query }}" placeholder="Find a team" aria-label="Find a team">
   </form>
   <div class="text-filters">
@@ -29,24 +31,56 @@
     <a class="{% if subdivision_filter == 'FBS' %}active{% endif %}" href="/?week={{ selected_week }}&subdivision=FBS">FBS</a>
     <a class="{% if subdivision_filter == 'FCS' %}active{% endif %}" href="/?week={{ selected_week }}&subdivision=FCS">FCS</a>
   </div>
+  <form class="conference-filter" action="/" method="get">
+    <input type="hidden" name="week" value="{{ selected_week }}">
+    {% if subdivision_filter %}<input type="hidden" name="subdivision" value="{{ subdivision_filter }}">{% endif %}
+    {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+    <label for="conference">Conference</label>
+    <select id="conference" name="conference" class="bare-select" onchange="this.form.submit()">
+      <option value="">All conferences</option>
+      {% for name in conferences %}
+      <option value="{{ name }}" {% if conference_filter == name %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit">Apply</button></noscript>
+  </form>
 </section>
 
-<div class="quiet-note">Ranking score is the average of each team's frozen game scores, so bye weeks and unequal games played do not add or remove ranking opportunities.</div>
+<div class="quiet-note">Ranking score is the average of each team's frozen game scores, so bye weeks and unequal games played do not add or remove ranking opportunities. FBS, FCS, and conference ranks are derived from the same national Division I order before filters or team search are applied.</div>
 {% if selected_week == 1 %}<div class="quiet-note">This is the ranking <strong>after</strong> Week 1 results. Every team entered its first game at the neutral T-1 baseline (scoring rank {{ neutral_rank|num }} in the {{ team_count }}-team pool). Provider Week 0 games are treated as ranking Week 1.</div>{% endif %}
 {% if not cfbd_configured %}<div class="quiet-note">The bundled rankings are available now. Add a CFBD API key on the Synology server to populate schedules, future games, stats, and automatic weekly updates.</div>{% endif %}
 
 <div class="table-wrap">
 <table class="ranking-table">
-  <thead><tr><th>Rank</th><th>Team</th><th>Div.</th><th>Record</th><th class="right">Avg score</th><th class="right">Move</th></tr></thead>
+  <thead>
+    <tr>
+      <th>Rank</th>
+      {% if subdivision_filter or conference_filter %}<th>D-I</th>{% endif %}
+      <th>Subdiv.</th>
+      <th>Conf.</th>
+      <th>Team</th>
+      <th>Div.</th>
+      <th>Record</th>
+      <th class="right">Avg score</th>
+      <th class="right">Move</th>
+    </tr>
+  </thead>
   <tbody>
     {% for row in ranking_rows %}
     <tr>
-      <td class="rank">{{ row.rank }}</td>
+      <td class="rank">{{ row.view_rank }}</td>
+      {% if subdivision_filter or conference_filter %}<td>{{ row.division_i_rank }}</td>{% endif %}
+      <td>{{ row.subdivision_rank }}</td>
+      <td>{% if row.conference_rank %}{{ row.conference_rank }}{% else %}—{% endif %}</td>
       <td class="team-name"><a href="/teams/{{ row.team.slug }}">{{ row.team.name }}</a>{% if row.conference %}<span>{{ row.conference }}</span>{% endif %}</td>
-      <td>{{ row.subdivision }}</td><td>{{ row.record }}</td><td class="right score">{{ row.score|num }}</td>
+      <td>{{ row.subdivision }}</td>
+      <td>{{ row.record }}</td>
+      <td class="right score">{{ row.score|num }}</td>
       <td class="right movement {% if row.movement and row.movement > 0 %}up{% elif row.movement and row.movement < 0 %}down{% endif %}">{% if row.movement is none %}—{% elif row.movement > 0 %}↑{{ row.movement }}{% elif row.movement < 0 %}↓{{ row.movement|abs }}{% else %}—{% endif %}</td>
     </tr>
-    {% else %}<tr><td colspan="6" class="empty">No ranking rows match this view.</td></tr>{% endfor %}
+    {% else %}
+    <tr><td colspan="{% if subdivision_filter or conference_filter %}9{% else %}8{% endif %}" class="empty">No ranking rows match this view.</td></tr>
+    {% endfor %}
   </tbody>
 </table>
 </div>
