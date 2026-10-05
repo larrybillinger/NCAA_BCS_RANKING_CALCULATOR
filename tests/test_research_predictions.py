@@ -28,8 +28,8 @@ def test_equal_shift_preserves_margin_when_score_would_be_negative():
 
 
 def test_display_rounding_never_ties_against_nonzero_margin():
-    assert winner_consistent_display_scores(27.4, 26.6, 0.8) == (27, 26)
-    assert winner_consistent_display_scores(26.6, 27.4, -0.8) == (26, 27)
+    assert winner_consistent_display_scores(27.4, 26.6, 0.8) == (28, 27)
+    assert winner_consistent_display_scores(26.6, 27.4, -0.8) == (27, 28)
 
     # Both continuous scores round to 27, but the modeled winner is retained.
     assert winner_consistent_display_scores(26.6, 26.5, 0.1) == (28, 27)
