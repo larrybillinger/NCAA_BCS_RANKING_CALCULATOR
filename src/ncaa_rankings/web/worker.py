@@ -22,6 +22,10 @@ from .db import SessionLocal, init_db
 from .models import Game
 from .prediction_service import generate_predictions_for_snapshot, lock_started_predictions
 from .ranking_service import calculate_all_new_complete_weeks, latest_snapshot
+from .research_prediction_ledger import (
+    generate_research_predictions_for_snapshot,
+    lock_started_research_predictions,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -138,6 +142,18 @@ def _sync_cycle(full_schedule: bool = False) -> None:
         if locked:
             LOGGER.info("Locked %s pregame predictions", locked)
 
+        # Research shadow locking is also local-only and runs before provider
+        # access. Experimental failures must never block the official worker.
+        try:
+            research_locked = lock_started_research_predictions(session)
+            if research_locked:
+                LOGGER.info(
+                    "Locked %s pregame research predictions",
+                    research_locked,
+                )
+        except Exception:
+            LOGGER.exception("Research prediction locking failed")
+
         if not client.configured:
             LOGGER.warning(
                 "CFBD_API_KEY is not configured. Bundled rankings are available, "
@@ -184,6 +200,19 @@ def _sync_cycle(full_schedule: bool = False) -> None:
                     created,
                     current_snapshot.week,
                 )
+            try:
+                research_created = generate_research_predictions_for_snapshot(
+                    session,
+                    current_snapshot,
+                )
+                if research_created:
+                    LOGGER.info(
+                        "Created %s hybrid research projections from Week %s ranking",
+                        research_created,
+                        current_snapshot.week,
+                    )
+            except Exception:
+                LOGGER.exception("Research prediction generation failed")
 
         if rate_limit_error is not None:
             raise rate_limit_error
