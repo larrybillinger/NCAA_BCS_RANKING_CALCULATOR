@@ -29,7 +29,15 @@ An active manual score override has precedence over CFBD for `completed`, `home_
 
 ## Prediction model
 
-The ranking model and score predictor are separate systems. Rankings remain governed by the documented BCS-derived formula. Score predictions fit current-season actual margins to prior-week rank gaps and current-season average total scoring.
+The ranking model and score predictor are separate systems. Rankings remain governed by the documented BCS-derived formula. Official score predictions fit current-season actual margins to prior-week rank gaps and current-season average total scoring.
+
+### Research shadow ledger
+
+Research predictors use `research_prediction_snapshots`, a separate table from the official `prediction_snapshots` Game Book ledger. The initial `hybrid_core_v1` model blends the official rank-gap margin component with shrunk current-season offense/defense scoring profiles. The worker locks the latest eligible research row at kickoff only when that row was created before kickoff. Research generation/locking failures are caught separately so they cannot block official prediction work.
+
+Research score rendering keeps continuous scores for evaluation. If a score would be negative, both scores are translated upward by the same amount so the modeled margin is preserved. Integer display scores use winner-consistent rounding when the continuous margin is non-zero.
+
+Stadium-demand, time-zone, altitude, and weather adjustments are implemented as research-only context variants. They are not production ranking inputs and are not allowed to alter the official `rank_gap_v3` ledger. Dynamic context must be captured before kickoff with provenance before it can be used by a locked shadow prediction.
 
 ## No client-side API key
 
