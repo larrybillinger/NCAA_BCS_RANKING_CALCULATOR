@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.9.0**
+**Current version: 0.10.0**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -11,6 +11,7 @@ The historical repository name is retained from the original BCS-era project. Th
 The home page is the complete weekly Division I ranking. The site also provides:
 
 - current-week and future-week game predictions;
+- FBS, FCS, and conference ranking views derived from the same national Division I order;
 - locked historical pregame predictions;
 - team pages with complete schedules and projections;
 - week-by-week ranking history;
@@ -89,6 +90,8 @@ For each future game the site stores:
 - ranking snapshot and predictor version.
 
 At kickoff, the latest pregame projection becomes the **official locked prediction**. It is never replaced after the result is known. For earlier completed games that never had a live locked prediction, the website can calculate a **research retrocast using only the ranking available before that game**. Retrocasts are labeled separately and never alter the official accuracy ledger.
+
+v0.10.0 also introduces a separate `hybrid_core_v1` research ledger. It blends the existing rank-gap margin with shrunk current-season offense/defense scoring profiles, stores research projections outside the official Game Book table, and locks only predictions that existed before kickoff. The official predictor remains `rank_gap_v3`. Research context rules for stadium demand, time-zone travel, altitude, and rain/snow are implemented as shadow-only variants and are not production ranking or official prediction inputs.
 
 ## Automatic data source
 
@@ -217,6 +220,7 @@ PostgreSQL stores:
 - per-game ranking scoring audits;
 - provisional prediction snapshots;
 - official locked predictions;
+- a separate locked research/shadow prediction ledger;
 - source sync history.
 
 The bundled `rankings/2026/week_01.csv` and `week_02.csv` are retained as archived `division_i_weighted_v3` snapshots. They are **not** relabeled as newer models. When `division_i_weighted_v5` is active, the worker rebuilds completed weekly snapshots from the synced PostgreSQL game data using the no-win-bonus, road-win/home-loss, and average-game-score rules.
