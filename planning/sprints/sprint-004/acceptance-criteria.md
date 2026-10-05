@@ -1,0 +1,10 @@
+# Sprint 004 acceptance criteria — Dynamic context snapshots
+
+- [ ] Neutral-site venue time zone/elevation is resolved with provenance when the site is not a participant's home venue.
+- [ ] Season-ticket sell-through snapshots store source and as-of time and never infer from attendance/capacity.
+- [ ] Conference-relative stadium grades are reproducible from the stored sell-through snapshot.
+- [ ] Pregame forecast snapshots store source and as-of time no later than kickoff.
+- [ ] Missing dynamic context remains explicit and neutral.
+- [ ] Context-adjusted shadow variants lock only from pre-kickoff feature snapshots.
+- [ ] Larry-rule, capped/fitted, and single-factor variants can be compared on common locked games.
+- [ ] Official division_i_weighted_v5 and rank_gap_v3 behavior remains unchanged.
