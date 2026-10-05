@@ -95,3 +95,17 @@ def test_stadium_grades_are_conference_relative_and_missing_stays_missing():
         5: "F",
         6: None,
     }
+
+
+
+def test_equal_sell_through_values_share_the_same_grade():
+    grades = stadium_demand_grades({
+        10: 1.00,
+        20: 1.00,
+        30: 0.80,
+        40: 0.60,
+        50: 0.40,
+    })
+
+    assert grades[10] == "A"
+    assert grades[20] == "A"
