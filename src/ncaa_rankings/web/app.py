@@ -280,6 +280,7 @@ def home(
     request: Request,
     week: int | None = Query(default=None, ge=1, le=25),
     subdivision: str | None = Query(default=None),
+    conference: str | None = Query(default=None),
     q: str | None = Query(default=None),
     session: Session = Depends(get_session),
 ):
@@ -289,17 +290,28 @@ def home(
     if snapshot is None and latest is not None:
         snapshot = latest
         selected_week = latest.week
+    subdivision_filter = (subdivision or "").upper() or None
+    conference_filter = (conference or "").strip() or None
+    all_rows = ranking_rows(session, snapshot) if snapshot else []
+    conferences = sorted({
+        row["conference"]
+        for row in all_rows
+        if row["conference"]
+    })
     rows = ranking_rows(
         session,
         snapshot,
-        subdivision=(subdivision or "").upper() or None,
+        subdivision=subdivision_filter,
+        conference=conference_filter,
         search=q,
     ) if snapshot else []
     context = _base_context(session, request, week=selected_week)
     context.update({
         "snapshot": snapshot,
         "ranking_rows": rows,
-        "subdivision_filter": (subdivision or "").upper(),
+        "subdivision_filter": subdivision_filter or "",
+        "conference_filter": conference_filter or "",
+        "conferences": conferences,
         "search_query": q or "",
     })
     return TEMPLATES.TemplateResponse(request=request, name="rankings.html", context=context)
