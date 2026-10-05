@@ -16,7 +16,8 @@
 - [x] Accuracy metrics include total MAE and display-tie rate.
 - [x] Context engine covers stadium, neutral, time-zone, altitude, weather, and capped-travel variants.
 - [x] Missing stadium sell-through remains explicitly missing.
-- [ ] Provenance-backed venue/time-zone/elevation snapshots are populated.
+- [x] CFBD team home venue/time-zone/elevation metadata is synced with provenance and copied into pregame shadow feature snapshots when available.
+- [ ] Neutral-site venue metadata is populated when the venue is not a participant's normal home venue.
 - [ ] Current-season season-ticket sell-through snapshots are populated.
 - [ ] Pregame forecast snapshots are populated before kickoff.
 - [ ] Context-adjusted variants are enabled in the worker only after the three data gates above are satisfied.
