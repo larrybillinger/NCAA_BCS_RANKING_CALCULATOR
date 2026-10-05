@@ -45,6 +45,7 @@ Do not change these without an explicit approved decision:
 - Projected scoring margin must be based directly on the numerical rank gap.
 - Calibration may adjust the positive points-per-rank scale and uncertainty, but may not reverse the ranking order.
 - Home field or a free intercept may not flip the projected winner.
+- Any predictor that can violate the monotonic official rule must remain research/shadow-only, use separate persistence, and may not be presented as an official Game Book prediction.
 
 ## Website rules
 - Public routes are read-only.
