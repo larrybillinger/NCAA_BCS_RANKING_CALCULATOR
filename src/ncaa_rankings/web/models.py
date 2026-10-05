@@ -88,6 +88,7 @@ class Game(Base):
     away_subdivision: Mapped[str] = mapped_column(String(20), default="OTHER")
     home_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
     away_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    venue_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     venue: Mapped[str | None] = mapped_column(String(200), nullable=True)
     source_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
