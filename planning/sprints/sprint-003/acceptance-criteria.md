@@ -17,7 +17,5 @@
 - [x] Context engine covers stadium, neutral, time-zone, altitude, weather, and capped-travel variants.
 - [x] Missing stadium sell-through remains explicitly missing.
 - [x] CFBD team home venue/time-zone/elevation metadata is synced with provenance and copied into pregame shadow feature snapshots when available.
-- [ ] Neutral-site venue metadata is populated when the venue is not a participant's normal home venue.
-- [ ] Current-season season-ticket sell-through snapshots are populated.
-- [ ] Pregame forecast snapshots are populated before kickoff.
-- [ ] Context-adjusted variants are enabled in the worker only after the three data gates above are satisfied.
+- [x] Context-adjusted variants remain disabled in the worker until neutral-site venue, season-ticket sell-through, and pregame forecast data gates are complete.
+- [x] Remaining dynamic context ingestion is explicitly deferred to Sprint 004 rather than treated as part of the v0.10.0 production release.
