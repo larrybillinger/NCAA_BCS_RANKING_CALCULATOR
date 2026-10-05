@@ -161,10 +161,30 @@ def _sync_cycle(full_schedule: bool = False) -> None:
             )
             return None
 
+        rate_limit_error: CFBDRateLimitError | None = None
         if full_schedule:
             count = sync_games(session, client, settings.season)
             LOGGER.info("Full %s schedule sync: %s games", settings.season, count)
             synced_week = None
+            try:
+                context_rows = sync_team_context(
+                    session,
+                    client,
+                    settings.season,
+                )
+                LOGGER.info(
+                    "Season %s team venue context sync: %s teams",
+                    settings.season,
+                    context_rows,
+                )
+            except CFBDRateLimitError as exc:
+                # Static context is research-only. Preserve local ranking and
+                # prediction work, then hand the 429 to normal cooldown logic.
+                rate_limit_error = exc
+            except Exception:
+                LOGGER.exception(
+                    "Team venue context sync failed; official work remains valid"
+                )
         else:
             synced_week = _nearest_schedule_week(session, settings.season)
             count = sync_games(session, client, settings.season, week=synced_week)
@@ -173,8 +193,7 @@ def _sync_cycle(full_schedule: bool = False) -> None:
         # A successful score/schedule refresh may make one or more sequential
         # weeks complete. Ranking rules themselves are unchanged.
         created_weeks = calculate_all_new_complete_weeks(session, settings.season)
-        rate_limit_error: CFBDRateLimitError | None = None
-        if created_weeks:
+        if created_weeks and rate_limit_error is None:
             LOGGER.info("Created official ranking snapshots: %s", created_weeks)
             for week in created_weeks:
                 try:
