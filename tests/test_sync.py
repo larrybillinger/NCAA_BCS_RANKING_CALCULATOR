@@ -12,8 +12,10 @@ from ncaa_rankings.web.cfbd import (
     CFBDClient,
     CFBDRateLimitError,
     sync_games,
+    sync_team_context,
 )
 from ncaa_rankings.web.db import Base
+from ncaa_rankings.web.models import TeamSeason
 from ncaa_rankings.web import models as _models  # noqa: F401
 
 
@@ -133,3 +135,38 @@ def test_friday_sleep_wakes_at_saturday_midnight():
     friday_late = datetime(2026, 9, 25, 23, 30, tzinfo=ZoneInfo("America/Chicago"))
 
     assert worker._scheduled_delay_minutes(friday_late, settings) == 30
+
+
+
+def test_team_context_sync_stores_home_timezone_and_elevation():
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    SessionFactory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+
+    class FakeClient:
+        def teams(self, year):
+            assert year == 2026
+            return [
+                {
+                    "id": 123,
+                    "school": "Context State",
+                    "classification": "fbs",
+                    "conference": "Test",
+                    "location": {
+                        "id": 456,
+                        "name": "Context Stadium",
+                        "timezone": "America/Denver",
+                        "elevation": "5280",
+                    },
+                }
+            ]
+
+    with SessionFactory() as session:
+        updated = sync_team_context(session, FakeClient(), 2026)
+        row = session.query(TeamSeason).one()
+
+        assert updated == 1
+        assert row.home_venue_id == 456
+        assert row.home_venue == "Context Stadium"
+        assert row.home_timezone == "America/Denver"
+        assert row.home_elevation_ft == 5280.0
