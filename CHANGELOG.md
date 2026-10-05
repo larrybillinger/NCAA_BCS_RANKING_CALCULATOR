@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.10.0 — 2026-10-05
+
+### Ranking views
+- Added sequential FBS and FCS ranks derived from the canonical combined Division I ordering.
+- Added conference ranks derived from national ordering rather than conference record.
+- Added conference filtering while retaining combined D-I and subdivision rank context.
+- Scope ranks are calculated before search/filtering, so hidden teams do not create numbering gaps.
+
+### Research prediction foundation
+- Added research-only `hybrid_core_v1`, blending the existing rank-gap margin with shrunk current-season offense/defense scoring profiles.
+- Added equal-shift nonnegative score normalization so a negative projected score never changes the modeled margin.
+- Added winner-consistent integer score rendering so rounding cannot display a tie against a non-zero modeled margin.
+- Added a separate research prediction table; shadow rows cannot become official Game Book predictions.
+- Shadow locking runs before provider access and accepts only rows created before kickoff.
+- Experimental failures are isolated from the official worker path.
+
+### Research context variants
+- Added shadow-only stadium A/B/C/D/F adjustments based on conference-relative sell-through rank inputs.
+- Added time-zone, altitude, rain/snow, neutral-site, capped-travel, and single-factor variant support.
+- These context rules are research infrastructure only; no context adjustment is promoted to the official predictor.
+
+### Accuracy
+- Added total-score MAE and displayed-tie-rate metrics.
+- Added a separate hybrid shadow-model section on the Accuracy page.
+
+### Production safety
+- Production ranking remains `division_i_weighted_v5`.
+- Official predictor remains `rank_gap_v3` and its protected monotonic winner rule is unchanged.
+
 ## v0.9.0 — 2026-10-04
 
 ### Manual score desk
