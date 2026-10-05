@@ -34,10 +34,12 @@ from .stats_service import (
     last_successful_sync,
     latest_sync_attempt,
     overall_metrics,
+    research_metrics,
     retrocast_metrics,
     team_metrics,
     team_retrocast_metrics,
     weekly_metrics,
+    weekly_research_metrics,
     weekly_retrocast_metrics,
 )
 from .view_service import (
@@ -355,11 +357,15 @@ def stats(
     weekly = weekly_metrics(session, settings.season)
     retro = retrocast_metrics(session, settings.season)
     retro_weekly = weekly_retrocast_metrics(session, settings.season)
+    shadow = research_metrics(session, settings.season)
+    shadow_weekly = weekly_research_metrics(session, settings.season)
     context = _base_context(session, request)
     context.update({
         "weekly_metrics": weekly,
         "retro_metrics": retro,
         "retro_weekly_metrics": retro_weekly,
+        "shadow_metrics": shadow,
+        "shadow_weekly_metrics": shadow_weekly,
         "metric": metric,
     })
     return TEMPLATES.TemplateResponse(request=request, name="stats.html", context=context)
