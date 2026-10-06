@@ -46,6 +46,18 @@ Use a DSM-managed certificate for the public hostname. No public port needs to b
 
 ## Update
 
+From a workstation that can SSH to the Synology:
+
+```bash
+sh scripts/deploy.sh <ssh-host> [ssh-user]
+```
+
+The launcher connects over SSH and runs the repository-backed updater already installed on the NAS. The updater backs up the current app, downloads `main` from GitHub, rebuilds the shared application image, recreates web/worker, and verifies the local health endpoint. After SSH completes, the launcher also checks the public HTTPS `/health` endpoint and verifies the expected application version.
+
+The launcher intentionally does not contain a NAS hostname, username, password, SSH key, or other secret. For repeat use, the workstation may set `DEPLOY_HOST` and `DEPLOY_USER` instead of passing arguments.
+
+From an SSH session already on the NAS, the underlying update command remains:
+
 ```bash
 sudo sh /volume1/rankings/app/scripts/synology-update.sh
 ```
