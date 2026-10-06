@@ -35,12 +35,11 @@ from .stats_service import (
     latest_sync_attempt,
     overall_metrics,
     research_metrics,
-    retrocast_metrics,
+    retrocast_summary,
     team_metrics,
     team_retrocast_metrics,
     weekly_metrics,
     weekly_research_metrics,
-    weekly_retrocast_metrics,
 )
 from .view_service import (
     all_teams,
@@ -66,7 +65,7 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.web_title, version="0.10.0", lifespan=lifespan)
+app = FastAPI(title=settings.web_title, version="0.10.1", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
@@ -93,12 +92,12 @@ TEMPLATES.env.filters["num"] = _num
 TEMPLATES.env.filters["score"] = _score
 
 
-def _local_datetime(value: datetime | None) -> str:
+def _local_datetime(value: datetime | None, fmt: str = "%b %d %H:%M %Z") -> str:
     if value is None:
         return ""
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(ZoneInfo(settings.timezone)).strftime("%b %d %H:%M %Z")
+    return value.astimezone(ZoneInfo(settings.timezone)).strftime(fmt)
 
 
 TEMPLATES.env.filters["localdt"] = _local_datetime
@@ -348,15 +347,29 @@ def predictions(
     return TEMPLATES.TemplateResponse(request=request, name="predictions.html", context=context)
 
 
+STATS_METRICS = {
+    "winner_accuracy": "Winner accuracy",
+    "spread_mae": "Margin MAE",
+    "spread_rmse": "Margin RMSE",
+    "score_mae": "Score MAE",
+    "total_mae": "Total MAE",
+    "display_tie_rate": "Display ties",
+    "brier": "Brier score",
+    "upset_hit_rate": "Upset hits",
+    "rank_result_correlation": "Rank–result correlation",
+}
+
+
 @app.get("/stats", response_class=HTMLResponse)
 def stats(
     request: Request,
     metric: str = Query(default="winner_accuracy"),
     session: Session = Depends(get_session),
 ):
+    if metric not in STATS_METRICS:
+        metric = "winner_accuracy"
     weekly = weekly_metrics(session, settings.season)
-    retro = retrocast_metrics(session, settings.season)
-    retro_weekly = weekly_retrocast_metrics(session, settings.season)
+    retro, retro_weekly = retrocast_summary(session, settings.season)
     shadow = research_metrics(session, settings.season)
     shadow_weekly = weekly_research_metrics(session, settings.season)
     context = _base_context(session, request)
@@ -367,6 +380,7 @@ def stats(
         "shadow_metrics": shadow,
         "shadow_weekly_metrics": shadow_weekly,
         "metric": metric,
+        "metric_label": STATS_METRICS[metric],
     })
     return TEMPLATES.TemplateResponse(request=request, name="stats.html", context=context)
 
@@ -530,14 +544,13 @@ def rank_calculator(
     request: Request,
     rank_a: int | None = Query(default=None, ge=1, le=400),
     rank_b: int | None = Query(default=None, ge=1, le=400),
-    neutral: bool = Query(default=False),
     session: Session = Depends(get_session),
 ):
     result = None
     if rank_a is not None and rank_b is not None:
-        result = rank_matchup_projection(session, settings.season, home_rank=rank_a, away_rank=rank_b, neutral=neutral)
+        result = rank_matchup_projection(session, settings.season, home_rank=rank_a, away_rank=rank_b)
     context = _base_context(session, request)
-    context.update({"rank_a": rank_a, "rank_b": rank_b, "neutral": neutral, "calculator_result": result})
+    context.update({"rank_a": rank_a, "rank_b": rank_b, "calculator_result": result})
     return TEMPLATES.TemplateResponse(request=request, name="rank_calculator.html", context=context)
 
 

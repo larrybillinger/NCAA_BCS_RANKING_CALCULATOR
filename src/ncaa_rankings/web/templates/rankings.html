@@ -16,7 +16,7 @@
 <section class="chapter-nav">
   <a class="active" href="/?week={{ selected_week }}">Ranking</a>
   <a href="/predictions?week={{ selected_week + 1 }}&as_of={{ selected_week }}">Next-week preview</a>
-  <a href="/stats">Model stats</a>
+  <a href="/stats">Accuracy</a>
 </section>
 
 <section class="ranking-tools">
@@ -46,20 +46,23 @@
   </form>
 </section>
 
-<div class="quiet-note">Ranking score is the average of each team's frozen game scores, so bye weeks and unequal games played do not add or remove ranking opportunities. FBS, FCS, and conference ranks are derived from the same national Division I order before filters or team search are applied.</div>
+<div class="quiet-note">Ranking score is the average of each team's frozen game scores, so bye weeks and unequal games played do not add or remove ranking opportunities.{% if subdivision_filter or conference_filter %} {% if conference_filter %}Conference{% else %}{{ subdivision_filter }}{% endif %} ranks come straight from the national Division I order with other teams removed; the D-I column shows each team's national rank.{% endif %}</div>
 {% if selected_week == 1 %}<div class="quiet-note">This is the ranking <strong>after</strong> Week 1 results. Every team entered its first game at the neutral T-1 baseline (scoring rank {{ neutral_rank|num }} in the {{ team_count }}-team pool). Provider Week 0 games are treated as ranking Week 1.</div>{% endif %}
 {% if not cfbd_configured %}<div class="quiet-note">The bundled rankings are available now. Add a CFBD API key on the Synology server to populate schedules, future games, stats, and automatic weekly updates.</div>{% endif %}
 
+{% set scoped = subdivision_filter or conference_filter %}
+{% if conference_filter %}{% set rank_label = 'Conf. rank' %}{% elif subdivision_filter %}{% set rank_label = subdivision_filter ~ ' rank' %}{% else %}{% set rank_label = 'Rank' %}{% endif %}
+{% set columns = 5 + (1 if scoped else 0) + (1 if conference_filter else 0) + (0 if scoped else 1) %}
+{% set conference_subdivision = ranking_rows[0].subdivision if conference_filter and ranking_rows else 'FBS/FCS' %}
 <div class="table-wrap">
 <table class="ranking-table">
   <thead>
     <tr>
-      <th>Rank</th>
-      {% if subdivision_filter or conference_filter %}<th>D-I</th>{% endif %}
-      <th>Subdiv.</th>
-      <th>Conf.</th>
+      <th>{{ rank_label }}</th>
+      {% if conference_filter %}<th title="Rank among {{ conference_subdivision }} teams">{{ conference_subdivision }}</th>{% endif %}
+      {% if scoped %}<th title="Rank among all Division I teams">D-I</th>{% endif %}
       <th>Team</th>
-      <th>Div.</th>
+      {% if not scoped %}<th>Div.</th>{% endif %}
       <th>Record</th>
       <th class="right">Avg score</th>
       <th class="right">Move</th>
@@ -69,17 +72,16 @@
     {% for row in ranking_rows %}
     <tr>
       <td class="rank">{{ row.view_rank }}</td>
-      {% if subdivision_filter or conference_filter %}<td>{{ row.division_i_rank }}</td>{% endif %}
-      <td>{{ row.subdivision_rank }}</td>
-      <td>{% if row.conference_rank %}{{ row.conference_rank }}{% else %}—{% endif %}</td>
+      {% if conference_filter %}<td class="scope-rank">{{ row.subdivision_rank }}</td>{% endif %}
+      {% if scoped %}<td class="scope-rank">{{ row.division_i_rank }}</td>{% endif %}
       <td class="team-name"><a href="/teams/{{ row.team.slug }}">{{ row.team.name }}</a>{% if row.conference %}<span>{{ row.conference }}</span>{% endif %}</td>
-      <td>{{ row.subdivision }}</td>
+      {% if not scoped %}<td>{{ row.subdivision }}</td>{% endif %}
       <td>{{ row.record }}</td>
       <td class="right score">{{ row.score|num }}</td>
       <td class="right movement {% if row.movement and row.movement > 0 %}up{% elif row.movement and row.movement < 0 %}down{% endif %}">{% if row.movement is none %}—{% elif row.movement > 0 %}↑{{ row.movement }}{% elif row.movement < 0 %}↓{{ row.movement|abs }}{% else %}—{% endif %}</td>
     </tr>
     {% else %}
-    <tr><td colspan="{% if subdivision_filter or conference_filter %}9{% else %}8{% endif %}" class="empty">No ranking rows match this view.</td></tr>
+    <tr><td colspan="{{ columns }}" class="empty">No ranking rows match this view.</td></tr>
     {% endfor %}
   </tbody>
 </table>

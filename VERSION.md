@@ -1,5 +1,16 @@
 # Version history
 
+## 0.10.1 — Site cleanup
+
+- Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.
+- Show FBS/FCS, conference, and D-I rank columns only when a subdivision or conference view is selected.
+- Make the Accuracy page load in well under a second instead of timing out.
+- Count only predictions built from the active ranking model in the official accuracy ledger.
+- Lock the active model's own pregame prediction even when a retired model's row was locked first.
+- Show Game Book kickoff times in local time and replace calibration jargon with game status.
+- Remove the rank calculator's neutral-site checkbox, which never changed the projection.
+- Add site-wide page regression tests.
+
 ## 0.10.0 — Scoped rankings and research shadow predictions
 
 - Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.

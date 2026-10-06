@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.10.1 — 2026-10-06
+
+### Ranking page
+- The default view shows national rank only; subdivision and conference rank columns appear only when FBS, FCS, or a conference is selected.
+- FBS/FCS views show the subdivision rank plus a D-I column; conference views show the conference rank, the conference's FBS or FCS rank, and the D-I rank.
+- The redundant Div. column is hidden in filtered views.
+
+### Accuracy page
+- Fixed the page timing out. Rank-gap calibration, ranking lookups, and hybrid scoring profiles are now computed once per request instead of once per game (about 17 s down to under 1 s with five completed weeks).
+- Season and weekly retrocast metrics come from one pass over the games instead of two.
+- Unknown `metric` values fall back to winner accuracy; added a rank-correlation tile.
+- The duplicated chart markup is now one template macro.
+
+### Official ledger
+- Official accuracy (Accuracy page, footer ticker, team pages) now counts only predictions built from the active `MODEL_VERSION` ranking snapshots. Locked rows from retired models (v1–v4) remain stored but no longer mix into v5 results.
+- Kickoff locking now considers only the active model's prediction rows, so a retired model's earlier lock no longer prevents the active model's pregame prediction from locking.
+
+### Cleanup
+- Game Book kickoff times use the configured local timezone instead of UTC.
+- Unplayed games show UPCOMING or IN PROGRESS instead of the calibration sample size.
+- Removed the rank calculator's neutral-site checkbox; the v3 predictor ignores site by design.
+- Fixed a CSS rule that forced the four-column Game Book layout onto phones; the Accuracy metric strip now wraps cleanly.
+- Renamed the ranking page's "Model stats" tab to "Accuracy" to match the sidebar.
+- Method notes explain how FBS, FCS, and conference views are derived.
+- Kickoff comparisons are timezone-safe for local SQLite development.
+
+### Tests
+- Added `tests/test_site.py`: every public page renders, ranking columns follow the selected view, retired-model predictions stay out of the official ledger and locking, and the request cache resets on commit.
+
+### Production safety
+- No ranking or prediction formula changes: `division_i_weighted_v5` / `rank_gap_v3`.
+
 ## v0.10.0 — 2026-10-05
 
 ### Ranking views

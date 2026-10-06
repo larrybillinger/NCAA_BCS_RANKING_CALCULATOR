@@ -35,3 +35,10 @@ def subdivision(value: str | None) -> str:
     if cleaned in {"III", "DIII", "DIVISION III", "II/III"}:
         return "III"
     return cleaned or "OTHER"
+
+
+def as_utc(value: datetime | None) -> datetime | None:
+    """Treat a naive timestamp as UTC so it compares safely with aware ones."""
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=timezone.utc)

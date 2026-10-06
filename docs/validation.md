@@ -18,7 +18,7 @@
 - [x] Worker tests verify Saturday-hourly and Sunday-Friday daily polling.
 - [x] `.env` is ignored by Git.
 - [x] VERSION, CHANGELOG, and release notes are maintained per release.
-- [ ] Docker Compose v0.10.0 must be smoke-tested on the target Synology after deployment.
+- [ ] Docker Compose v0.10.1 must be smoke-tested on the target Synology after deployment.
 - [ ] The production `/admin/games` page must be smoke-tested over HTTPS with the generated admin credentials.
 - [ ] A live CFBD sync should be confirmed after the Tier 1 quota upgrade is active.
 

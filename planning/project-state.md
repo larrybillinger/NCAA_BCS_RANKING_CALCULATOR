@@ -1,7 +1,7 @@
 # Project state
 
 ## Current release
-v0.10.0
+v0.10.1
 
 ## Production model
 division_i_weighted_v5
@@ -35,4 +35,4 @@ v0.10.0 keeps division_i_weighted_v5 unchanged. The CFBD worker is quota-aware, 
 The admin-only manual score desk at `/admin/games` can supply scores during a provider outage or correction. Manual overrides are audited, survive provider syncs until released, and cannot alter a week after the production ranking snapshot is frozen.
 
 ## Current next milestone
-Deploy and smoke-test v0.10.0 on Synology and begin collecting locked hybrid_core_v1 shadow predictions. Sprint 004 then resolves neutral-site venue context and adds provenance-backed season-ticket sell-through and pregame forecast snapshots before any context-adjusted shadow variant is enabled. Production remains division_i_weighted_v5 / rank_gap_v3 unless a later explicit decision promotes a research model.
+Deploy and smoke-test v0.10.1 on Synology (confirm the Accuracy page loads and official accuracy now reflects only division_i_weighted_v5 predictions) and begin collecting locked hybrid_core_v1 shadow predictions. Sprint 004 then resolves neutral-site venue context and adds provenance-backed season-ticket sell-through and pregame forecast snapshots before any context-adjusted shadow variant is enabled. Production remains division_i_weighted_v5 / rank_gap_v3 unless a later explicit decision promotes a research model.

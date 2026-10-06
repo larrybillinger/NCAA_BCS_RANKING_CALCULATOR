@@ -6,6 +6,7 @@ import math
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .memo import session_memo
 from .models import Game, RankingSnapshot
 from .prediction_service import (
     _entry_map,
@@ -91,6 +92,19 @@ def fit_scoring_profiles(
     are used. Each team is shrunk toward the season-wide mean team score by a
     configurable number of pseudo-games.
     """
+    return session_memo(
+        session,
+        ("scoring_profiles", season, through_week, prior_games),
+        lambda: _fit_scoring_profiles(session, season, through_week, prior_games),
+    )
+
+
+def _fit_scoring_profiles(
+    session: Session,
+    season: int,
+    through_week: int,
+    prior_games: float,
+) -> tuple[dict[int, ScoringProfile], float, int]:
     games = list(
         session.scalars(
             select(Game)

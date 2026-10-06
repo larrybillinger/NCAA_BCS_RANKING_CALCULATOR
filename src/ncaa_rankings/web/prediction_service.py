@@ -9,6 +9,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .memo import session_memo
 from .models import Game, PredictionSnapshot, RankingEntry, RankingSnapshot
 from .ranking_service import get_snapshot, latest_snapshot
 
@@ -57,12 +58,16 @@ class Projection:
 
 
 def _entry_map(session: Session, snapshot_id: int) -> dict[int, RankingEntry]:
-    return {
-        entry.team_id: entry
-        for entry in session.scalars(
-            select(RankingEntry).where(RankingEntry.snapshot_id == snapshot_id)
-        )
-    }
+    return session_memo(
+        session,
+        ("entry_map", snapshot_id),
+        lambda: {
+            entry.team_id: entry
+            for entry in session.scalars(
+                select(RankingEntry).where(RankingEntry.snapshot_id == snapshot_id)
+            )
+        },
+    )
 
 
 def _clamp_slope(value: float) -> float:
@@ -82,6 +87,14 @@ def _monotonic_margin(rank_gap: float, rank_slope: float) -> float:
 
 
 def fit_calibration(session: Session, season: int, through_week: int) -> Calibration:
+    return session_memo(
+        session,
+        ("calibration", get_settings().model_version, season, through_week),
+        lambda: _fit_calibration(session, season, through_week),
+    )
+
+
+def _fit_calibration(session: Session, season: int, through_week: int) -> Calibration:
     samples: list[tuple[float, float]] = []
     totals: list[float] = []
 
@@ -289,9 +302,16 @@ def lock_started_predictions(session: Session, now: datetime | None = None) -> i
         Game.start_time <= now,
         or_(Game.home_subdivision.in_(tuple(DIVISION_I)), Game.away_subdivision.in_(tuple(DIVISION_I))),
     )))
+    # Rows from retired ranking models are never locked or treated as the
+    # active model's official prediction.
+    active_model_rows = (
+        select(PredictionSnapshot)
+        .join(RankingSnapshot, RankingSnapshot.id == PredictionSnapshot.ranking_snapshot_id)
+        .where(RankingSnapshot.model_version == settings.model_version)
+    )
     locked = 0
     for game in games:
-        already = session.scalar(select(PredictionSnapshot).where(
+        already = session.scalar(active_model_rows.where(
             PredictionSnapshot.game_id == game.id,
             PredictionSnapshot.predictor_version == settings.predictor_version,
             PredictionSnapshot.official.is_(True),
@@ -299,7 +319,7 @@ def lock_started_predictions(session: Session, now: datetime | None = None) -> i
         if already is not None:
             continue
         candidate = session.scalar(
-            select(PredictionSnapshot)
+            active_model_rows
             .where(
                 PredictionSnapshot.game_id == game.id,
                 PredictionSnapshot.predictor_version == settings.predictor_version,
@@ -347,11 +367,9 @@ def rank_matchup_projection(
     season: int,
     home_rank: int,
     away_rank: int,
-    *,
-    neutral: bool = False,
 ) -> Projection | None:
-    # neutral is retained for backwards compatibility. The v3 predictor
-    # deliberately ignores game site: ranking gap alone determines margin.
+    # The v3 predictor deliberately ignores game site: ranking gap alone
+    # determines margin.
     snapshot = latest_snapshot(session, season)
     if snapshot is None:
         return None
