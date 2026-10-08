@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.web_title, version="0.11.0", lifespan=lifespan)
+app = FastAPI(title=settings.web_title, version="0.11.1", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
