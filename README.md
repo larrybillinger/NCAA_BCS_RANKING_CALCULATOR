@@ -2,29 +2,31 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.10.3**
+**Current version: 0.11.0**
 
-The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
+The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and publishes the **D1 Rank Weekbook** website.
 
 ## What the website does
 
 The home page is the complete weekly Division I ranking. The site also provides:
 
-- current-week and future-week game predictions;
+- current-week and future-week hybrid game predictions;
 - FBS, FCS, and conference ranking views derived from the same national Division I order;
 - locked historical pregame predictions;
-- team pages with complete schedules and projections;
+- team pages with complete schedules and hybrid projections;
 - week-by-week ranking history;
-- model accuracy and error statistics;
+- official hybrid accuracy and leakage-safe historical hybrid retrocasts;
 - team-specific prediction accuracy;
-- a rank-to-score matchup calculator;
+- a team-vs-team hybrid matchup calculator;
 - team comparison;
 - transparent method and data-source notes;
 - an admin-only manual score desk for provider outages or corrections.
 
-The visual design is intentionally simple: white background, plain text navigation, minimal decoration, and no ornamental outlined buttons.
+The visual design is intentionally simple: white background, plain text navigation, generous whitespace, and no ornamental outlined buttons.
 
 ## Production ranking rules
+
+The ranking formula remains separate from the prediction model.
 
 For a ranking pool containing `N` teams and an opponent ranked `R`:
 
@@ -40,25 +42,25 @@ away or neutral loss = opponent_rank_score + scoring_margin
 home loss            = opponent_rank_score + scoring_margin - 7
 ```
 
-There is **no separate +10 win bonus**. Actual scoring margin is used directly. A road win earns seven additional ranking points; a home loss loses seven additional ranking points.
+There is no separate +10 win bonus. Actual scoring margin is used directly. A road win earns seven additional ranking points; a home loss loses seven additional ranking points.
 
 ### Season ranking value
 
-Individual game scores remain frozen once earned. The value used to rank a team is their **average game score**, not their cumulative point total:
+Individual game scores remain frozen once earned. The value used to rank a team is its average frozen game score:
 
 ```text
 ranking_score = sum(frozen_game_scores) / games_played
 ```
 
-This removes the built-in advantage of playing more games and makes bye weeks neutral. The raw cumulative total remains stored for audit purposes. Exact average-score ties use head-to-head, then win percentage, then average opponent strength, followed by a deterministic name fallback.
+This removes the built-in advantage of playing more games and makes bye weeks neutral. The raw cumulative total remains stored for audit. Exact average-score ties use head-to-head, then win percentage, then average opponent strength, followed by a deterministic fallback.
 
-Every Division I team enters its first current-season game tied at the same neutral T-1 baseline because there is no evidence about that team yet. For scoring, the baseline uses the average occupied rank of the full pool:
+Every Division I team enters its first current-season game tied at the same neutral T-1 baseline because there is no evidence separating teams yet. For scoring, the baseline uses:
 
 ```text
 Week 1 neutral scoring rank = (N + 1) / 2
 ```
 
-The live site calculates that neutral rank from the current pool size. Provider Week 0 is normalized into ranking Week 1. A team remains on the neutral scoring baseline until it completes its first game; after that, the immediately preceding completed week's current-season scoring rank is used. If teams are exactly tied on season score, they share the average rank of the positions occupied by that tie for the next week's opponent scoring.
+Provider Week 0 is normalized into ranking Week 1. A team remains on the neutral scoring baseline until it completes its first game; after that, later opponents use the immediately preceding completed week's current-season scoring rank. Old games are never recursively revalued.
 
 ### FCS modifier
 
@@ -70,44 +72,64 @@ FCS loss to FBS  = 50%
 FCS win over FBS = 100%
 ```
 
-FCS is NCAA Division I. FBS-vs-FBS and FBS-vs-FCS are written separately only to make the multiplier explicit. The FCS percentage applies to opponent-rank points and scoring margin. The seven-point road-win/home-loss adjustment is then applied at full value for every team.
+FCS is NCAA Division I. The FCS percentage applies to opponent-rank points and scoring margin. The seven-point road-win/home-loss adjustment is applied afterward at full value.
 
 There is no conference-strength value, previous-season carryover, preseason seed, or same-week recursive revaluation.
 
-## Prediction model
+## Official prediction model — hybrid_core_v1
 
-Predictions are derived from ranked position, not from an external betting line.
+Beginning with v0.11.0, `hybrid_core_v1` is the official Game Book predictor. The production ranking remains `division_i_weighted_v5`.
 
-The current predictor is deliberately **monotonic**: the higher-ranked team is always the projected winner, and the projected scoring margin is based directly on the gap between the two ranks. The current-season data calibrates only the positive points-per-rank scale and residual uncertainty. The fit goes through the origin, blends toward a conservative early-season fallback, and is constrained to a documented reasonable range. Home field, an intercept, or another free adjustment may not reverse the ranking order. The season's average scoring total is used only to translate the projected margin into a projected final score.
+The hybrid combines two current-season signals:
+
+```text
+official projected margin
+    = 40% calibrated rank-gap margin
+    + 60% shrunk offense/defense matchup margin
+```
+
+The rank-gap component uses the existing positive current-season points-per-rank calibration. The offense/defense component uses only completed current-season Division I games and shrinks each team's scoring profile toward the Division I scoring mean with three pseudo-games. That shrinkage keeps a single early-season result from dominating the model.
+
+For a matchup, the model combines each team's shrunk offense with the opponent's shrunk defense to estimate the scoring total and offense/defense margin. The blended margin is then split around that total into projected team scores and a win probability.
+
+Unlike retired `rank_gap_v3`, the official hybrid is not forced to choose the higher-ranked team. A lower-ranked team may be projected to win when its current-season matchup profile outweighs the ranking-gap signal. This changes predictions only; it does not alter ranking points, ranking order, or frozen weekly rankings.
+
+Home-field, stadium-demand, travel, time-zone, altitude, weather, and other context adjustments are not part of base `hybrid_core_v1`. They remain research-only until separately validated and approved.
+
+## Prediction integrity and history
 
 For each future game the site stores:
 
 - ranks used;
-- projected score;
-- expected margin;
+- projected team scores;
+- projected margin;
 - win probability;
 - calibration sample size;
 - ranking snapshot and predictor version.
 
-At kickoff, the latest pregame projection becomes the **official locked prediction**. It is never replaced after the result is known. For earlier completed games that never had a live locked prediction, the website can calculate a **research retrocast using only the ranking available before that game**. Retrocasts are labeled separately and never alter the official accuracy ledger.
+The newest eligible hybrid projection available before kickoff becomes the official locked prediction and is never replaced after the result is known.
 
-v0.10.0 also introduces a separate `hybrid_core_v1` research ledger. It blends the existing rank-gap margin with shrunk current-season offense/defense scoring profiles, stores research projections outside the official Game Book table, and locks only predictions that existed before kickoff. The official predictor remains `rank_gap_v3`. Research context rules for stadium demand, time-zone travel, altitude, and rain/snow are implemented as shadow-only variants and are not production ranking or official prediction inputs.
+Previously locked `rank_gap_v3` predictions remain in PostgreSQL exactly as they were. They are retired historical records and are not rewritten into hybrid predictions or mixed into the active hybrid accuracy ledger.
+
+For earlier completed games that lack an official hybrid lock, the site calculates a clearly labeled hybrid retrocast using only the prior weekly ranking snapshot and completed-game scoring information available before that game. Retrocasts never count as official locked predictions.
+
+Pre-promotion `hybrid_core_v1` shadow rows also remain stored for audit. Once hybrid is official, the worker no longer creates a duplicate base-hybrid shadow row.
 
 ## Automatic data source
 
 The production pipeline uses the CollegeFootballData REST API server-side for schedules, scores, classifications, and game-team statistics.
 
-A normal targeted score refresh uses one unfiltered `/games` request instead of separate FBS and FCS calls. Since v0.10.2 the cadence follows the schedule rather than the day of the week: while idle, the worker wakes at the next Division I kickoff so eligible predictions lock immediately; while any Division I game is in progress it polls every `SYNC_LIVE_MINUTES` (default 60), including weeknight games and Saturday games that end after midnight; with no upcoming/live game it sleeps no longer than `SYNC_IDLE_MINUTES` (default 1440). A full schedule refresh is still performed at least once every 24 hours, and HTTP 429 responses use the existing quota backoff.
+A normal targeted score refresh uses one unfiltered `/games` request. The cadence follows the schedule rather than the day of the week: while idle, the worker wakes at the next Division I kickoff so eligible predictions lock immediately; while any Division I game is in progress it polls every `SYNC_LIVE_MINUTES` (default 60); otherwise it sleeps no longer than `SYNC_IDLE_MINUTES` (default 1440). A full schedule refresh is performed at least once every 24 hours, and HTTP 429 responses use quota backoff.
 
-Prediction locking is local database work and runs before any provider request, so an upstream outage or exhausted API quota cannot prevent a valid pregame prediction from becoming official on the kickoff cycle. The site also reports CFBD OK/stale/error status, the last successful sync, the latest attempt, and a short error message. Game Book and team pages reload themselves every five minutes while a scheduled game is in its normal live window. Browser reloads read PostgreSQL only and do not consume CFBD API calls.
+Prediction locking is local database work and runs before any provider request, so an upstream outage or exhausted API quota cannot prevent an eligible pregame prediction from becoming official on the kickoff cycle.
 
-Full-season schedule syncs also reconcile current Division I membership using CFBD's FBS/FCS classifications. Provider identity is anchored to CFBD team IDs, with explicit historical aliases where a legacy row predates its durable provider ID. Reconciliation fails closed when the schedule is missing more than roughly 2% of the existing active pool, preventing a partial provider response from mass-deactivating schools.
+Full-season schedule syncs reconcile current Division I membership using provider classifications. Provider identity is anchored to CFBD team IDs, with explicit historical aliases where a legacy row predates its durable provider ID. Reconciliation fails closed if provider coverage is materially incomplete.
 
-The API key is stored only in `.env`. The public application displays ordinary factual game information and derived rankings/predictions; it does not expose a raw provider database mirror.
+The API key is stored only in `.env`. The public application displays ordinary factual game information and independently derived rankings/predictions; it does not expose a raw provider database mirror.
 
-### Manual score desk
+## Manual score desk
 
-When CFBD is delayed, unavailable, or incorrect, the administrator can open:
+When CFBD is delayed, unavailable, or incorrect, the administrator can use:
 
 ```text
 /admin/games
@@ -120,15 +142,9 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=<secret>
 ```
 
-A manual score can be saved as in-progress or final and can include an operational note. Once saved, the game is marked as a manual override so later CFBD syncs cannot silently replace its score or final state. Before the ranking week is frozen, the administrator can release the game back to CFBD control. Releasing clears the local manual score/final state immediately so it cannot accidentally participate in a ranking before CFBD repopulates the result on the next successful sync.
+A manual score can be saved as in-progress or final and can include an operational note. An active manual override takes precedence over provider score/final fields until explicitly released. Every manual save/release is audited. Once the active ranking model has frozen a week, the score desk becomes read-only for those games.
 
-Every manual save/release is audited. Once the active ranking model has created the official snapshot for that week, the score desk becomes read-only for those games so historical rankings cannot be rewritten accidentally.
-
-Public visitors still have no write permissions. Use the score desk only through the production HTTPS endpoint.
-
-See `docs/permissions.md` for the permission model.
-
-See `docs/data-source.md`.
+Public visitors have no write permissions.
 
 ## Synology Container Manager installation
 
@@ -144,48 +160,41 @@ Production path:
 
 ### One-time SSH install
 
-SSH into the Synology, become root, and run:
-
 ```bash
 sudo -i
 curl -fsSL https://raw.githubusercontent.com/larrybillinger/NCAA_BCS_RANKING_CALCULATOR/main/scripts/synology-install.sh -o /tmp/install-rankings.sh
 sh /tmp/install-rankings.sh
 ```
 
-The installer will:
-
-1. create `/volume1/rankings`;
-2. ask for the CFBD API key;
-3. generate a PostgreSQL password;
-4. download the latest repository source;
-5. build the web/worker containers;
-6. start PostgreSQL;
-7. wait for the `/health` endpoint;
-8. print the local site URL.
-
 Default local port: **8765**.
-
-### Upgrade an existing pre-v0.5.0 installation
-
-The v0.5.0 ranking change requires switching the model identifier and preserving fractional tied ranks in PostgreSQL:
-
-```bash
-sudo -i
-curl -fsSL https://raw.githubusercontent.com/larrybillinger/NCAA_BCS_RANKING_CALCULATOR/main/scripts/upgrade-v0.5.0.sh -o /tmp/upgrade-rankings-v050.sh
-sh /tmp/upgrade-rankings-v050.sh
-```
 
 ### Production update workflow
 
-GitHub is the source of truth. Normal changes are committed to this repository first, then the Synology website is updated from GitHub over SSH. Avoid editing `/volume1/rankings/app` directly.
+GitHub is the source of truth. Normal changes are committed here first, then production is updated from GitHub over SSH. Avoid editing `/volume1/rankings/app` directly.
 
-Ordinary source updates use the GitHub-backed updater:
+Ordinary updates use:
 
 ```bash
 sudo sh /volume1/rankings/app/scripts/synology-update.sh
 ```
 
-The updater synchronizes the active non-secret `MODEL_VERSION` and `PREDICTOR_VERSION` from GitHub's committed `.env.example`, while preserving the NAS's API keys and database credentials. For v0.10.2 it also takes application, PostgreSQL, and protected `.env` backups before the controlled Penn/Pennsylvania identity repair; web and worker are stopped during that repair, the empty legacy Penn row is merged into Pennsylvania going forward (frozen weeks and locked predictions are left as published), and then the updater recreates the application containers and verifies that `/health` reports the exact GitHub application/model/predictor versions before declaring success.
+For major updates, it is safest to download the newest updater from `main` first:
+
+```bash
+sudo -i
+curl -fsSL https://raw.githubusercontent.com/larrybillinger/NCAA_BCS_RANKING_CALCULATOR/main/scripts/synology-update.sh -o /tmp/update-rankings.sh
+sh /tmp/update-rankings.sh
+```
+
+The updater preserves secrets, synchronizes the committed `MODEL_VERSION` and `PREDICTOR_VERSION`, backs up the application/PostgreSQL/protected `.env` as applicable, rebuilds the shared application image, recreates web/worker, and verifies `/health` reports the exact expected application/model/predictor versions.
+
+For v0.11.0 that means production must report:
+
+```text
+app_version       0.11.0
+model_version     division_i_weighted_v5
+predictor_version hybrid_core_v1
+```
 
 ### Back up
 
@@ -198,7 +207,7 @@ sudo sh /volume1/rankings/app/scripts/synology-backup.sh
 ```text
 ncaa-rankings-db       PostgreSQL 17
 ncaa-rankings-web      FastAPI + Jinja website
-ncaa-rankings-worker   CFBD sync, ranking freeze, predictions, locks
+ncaa-rankings-worker   CFBD sync, ranking freeze, hybrid predictions, kickoff locks
 ```
 
 Useful commands:
@@ -208,7 +217,6 @@ cd /volume1/rankings/app
 docker compose --env-file /volume1/rankings/.env ps
 docker compose --env-file /volume1/rankings/.env logs -f web
 docker compose --env-file /volume1/rankings/.env logs -f worker
-docker compose --env-file /volume1/rankings/.env up -d --build
 ```
 
 ## Database behavior
@@ -220,12 +228,12 @@ PostgreSQL stores:
 - team game statistics;
 - immutable weekly ranking snapshots;
 - per-game ranking scoring audits;
-- provisional prediction snapshots;
-- official locked predictions;
-- a separate locked research/shadow prediction ledger;
+- provisional production prediction snapshots;
+- official locked predictions by predictor version;
+- a separate research/shadow prediction ledger;
 - source sync history.
 
-The bundled `rankings/2026/week_01.csv` and `week_02.csv` are retained as archived `division_i_weighted_v3` snapshots. They are **not** relabeled as newer models. When `division_i_weighted_v5` is active, the worker rebuilds completed weekly snapshots from the synced PostgreSQL game data using the no-win-bonus, road-win/home-loss, and average-game-score rules.
+The bundled `rankings/2026/week_01.csv` and `week_02.csv` remain archived `division_i_weighted_v3` snapshots. They are not relabeled as newer models. Production `division_i_weighted_v5` ranking snapshots are calculated from the synced PostgreSQL game database using the documented current-season rules.
 
 ## Project structure
 
@@ -245,8 +253,6 @@ notes/release-notes/       Release notes
 ```
 
 ## Development run
-
-With PostgreSQL available and `.env` populated:
 
 ```bash
 pip install -e '.[dev]'
