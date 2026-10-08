@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .models import Game, GameTeamStat, SourceSyncRun, Team, TeamSeason
+from .team_identity import find_provider_team, reconcile_active_roster
 from .utils import parse_iso_datetime, slugify, subdivision
 
 LOGGER = logging.getLogger(__name__)
@@ -153,11 +154,7 @@ def upsert_team(
     classification: str | None,
     conference: str | None,
 ) -> Team:
-    team = None
-    if cfbd_id is not None:
-        team = session.scalar(select(Team).where(Team.cfbd_id == cfbd_id))
-    if team is None:
-        team = session.scalar(select(Team).where(Team.name == name))
+    team = find_provider_team(session, cfbd_id=cfbd_id, name=name)
     if team is None:
         team = Team(
             cfbd_id=cfbd_id,
@@ -170,7 +167,11 @@ def upsert_team(
         if team.cfbd_id is None and cfbd_id is not None:
             team.cfbd_id = cfbd_id
         if team.name != name:
-            team.name = name
+            conflict = session.scalar(
+                select(Team).where(Team.name == name, Team.id != team.id)
+            )
+            if conflict is None:
+                team.name = name
         session.add(team)
         session.flush()
 
@@ -211,6 +212,7 @@ def sync_team_context(
     try:
         payloads = client.teams(season)
         updated = 0
+        seen_team_ids: set[int] = set()
         for payload in payloads:
             name = str(payload.get("school") or "").strip()
             if not name:
@@ -223,6 +225,7 @@ def sync_team_context(
                 classification=payload.get("classification"),
                 conference=payload.get("conference"),
             )
+            seen_team_ids.add(team.id)
             season_row = session.scalar(
                 select(TeamSeason).where(
                     TeamSeason.team_id == team.id,
@@ -243,6 +246,17 @@ def sync_team_context(
             season_row.home_context_updated_at = datetime.now(timezone.utc)
             session.add(season_row)
             updated += 1
+
+        deactivated = reconcile_active_roster(
+            session,
+            season=season,
+            seen_team_ids=seen_team_ids,
+        )
+        if deactivated:
+            LOGGER.warning(
+                "Deactivated %s Division I season rows missing from the CFBD roster",
+                deactivated,
+            )
 
         _sync_run_finish(
             session,
