@@ -60,7 +60,6 @@ health_ok() {
   fi
 }
 
-# Fail early if no Compose implementation is available.
 compose version >/dev/null 2>&1 || {
   echo "Docker Compose is not available. Update/install Synology Container Manager."
   exit 1
@@ -107,7 +106,7 @@ BOOTSTRAP_RANKINGS=true
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=$ADMIN_PASSWORD
 MODEL_VERSION=division_i_weighted_v5
-PREDICTOR_VERSION=rank_gap_v3
+PREDICTOR_VERSION=hybrid_core_v1
 CFBD_API_KEY=$CFBD_KEY
 CFBD_BASE_URL=https://api.collegefootballdata.com
 SYNC_LIVE_MINUTES=60
