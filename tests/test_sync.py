@@ -31,6 +31,7 @@ from ncaa_rankings.web.sync_schedule import (
     schedule_state,
     stale_after,
 )
+from ncaa_rankings.web.team_identity import reconcile_active_roster
 
 
 def test_cfbd_429_is_exposed_as_rate_limit(monkeypatch):
@@ -294,41 +295,67 @@ def test_known_provider_alias_reuses_legacy_team_row():
         assert resolved.name == "Pennsylvania"
 
 
-def test_team_context_deactivates_division_i_team_missing_from_roster():
+def test_roster_reconciliation_deactivates_only_missing_team_with_safe_coverage():
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     SessionFactory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
 
-    class FakeClient:
-        def teams(self, year):
-            assert year == 2026
-            return [
-                {
-                    "id": 123,
-                    "school": "Context State",
-                    "classification": "fbs",
-                    "conference": "Test",
-                    "location": {},
-                }
-            ]
-
     with SessionFactory() as session:
-        stale = Team(name="Stale State", slug="stale-state")
-        session.add(stale)
+        teams = [Team(name=f"Team {index}", slug=f"team-{index}") for index in range(10)]
+        session.add_all(teams)
         session.flush()
-        stale_season = TeamSeason(
-            team_id=stale.id,
-            season=2026,
-            subdivision="FCS",
-            conference="Old",
-            active=True,
-        )
-        session.add(stale_season)
+        rows = [
+            TeamSeason(
+                team_id=team.id,
+                season=2026,
+                subdivision="FCS",
+                active=True,
+            )
+            for team in teams
+        ]
+        session.add_all(rows)
         session.commit()
 
-        sync_team_context(session, FakeClient(), 2026)
-        session.refresh(stale_season)
-        assert stale_season.active is False
+        deactivated = reconcile_active_roster(
+            session,
+            season=2026,
+            seen_team_ids={team.id for team in teams[:9]},
+        )
+        session.commit()
+
+        assert deactivated == 1
+        assert rows[-1].active is False
+        assert all(row.active for row in rows[:9])
+
+
+def test_roster_reconciliation_refuses_partial_schedule_coverage():
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    SessionFactory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+
+    with SessionFactory() as session:
+        teams = [Team(name=f"Guard {index}", slug=f"guard-{index}") for index in range(10)]
+        session.add_all(teams)
+        session.flush()
+        session.add_all(
+            [
+                TeamSeason(
+                    team_id=team.id,
+                    season=2026,
+                    subdivision="FBS",
+                    active=True,
+                )
+                for team in teams
+            ]
+        )
+        session.commit()
+
+        with pytest.raises(RuntimeError, match="Refusing Division I roster reconciliation"):
+            reconcile_active_roster(
+                session,
+                season=2026,
+                seen_team_ids={team.id for team in teams[:5]},
+            )
 
 
 def test_team_context_sync_stores_home_timezone_and_elevation():
