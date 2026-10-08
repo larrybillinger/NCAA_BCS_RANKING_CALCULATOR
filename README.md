@@ -58,7 +58,7 @@ Every Division I team enters its first current-season game tied at the same neut
 Week 1 neutral scoring rank = (N + 1) / 2
 ```
 
-The live site calculates that neutral rank from the current pool size. For example, with 267 teams the neutral scoring rank is **134.0**. Provider Week 0 is normalized into ranking Week 1. A team remains on the neutral scoring baseline until it completes its first game; after that, the immediately preceding completed week's current-season scoring rank is used. If teams are exactly tied on season score, they share the average rank of the positions occupied by that tie for the next week's opponent scoring.
+The live site calculates that neutral rank from the current pool size. Provider Week 0 is normalized into ranking Week 1. A team remains on the neutral scoring baseline until it completes its first game; after that, the immediately preceding completed week's current-season scoring rank is used. If teams are exactly tied on season score, they share the average rank of the positions occupied by that tie for the next week's opponent scoring.
 
 ### FCS modifier
 
@@ -97,9 +97,11 @@ v0.10.0 also introduces a separate `hybrid_core_v1` research ledger. It blends t
 
 The production pipeline uses the CollegeFootballData REST API server-side for schedules, scores, classifications, and game-team statistics.
 
-v0.8.2 keeps the worker deliberately simple and quota-friendly. A normal targeted score refresh uses one unfiltered `/games` request instead of separate FBS and FCS calls. Since v0.10.2 the cadence follows the schedule rather than the day of the week: while any Division I game is in progress the worker polls every `SYNC_LIVE_MINUTES` (default 60), including weeknight games and Saturday games that end after midnight; otherwise it sleeps until one live interval after the next kickoff, at most `SYNC_IDLE_MINUTES` (default 1440). A full schedule refresh is still performed at least once every 24 hours, and HTTP 429 responses back off from six hours up to one day.
+A normal targeted score refresh uses one unfiltered `/games` request instead of separate FBS and FCS calls. Since v0.10.2 the cadence follows the schedule rather than the day of the week: while idle, the worker wakes at the next Division I kickoff so eligible predictions lock immediately; while any Division I game is in progress it polls every `SYNC_LIVE_MINUTES` (default 60), including weeknight games and Saturday games that end after midnight; with no upcoming/live game it sleeps no longer than `SYNC_IDLE_MINUTES` (default 1440). A full schedule refresh is still performed at least once every 24 hours, and HTTP 429 responses use the existing quota backoff.
 
-Prediction locking is local database work and now runs before any provider request, so an upstream outage or exhausted API quota cannot prevent a valid pregame prediction from becoming official. The site also reports CFBD OK/stale/error status, the last successful sync, the latest attempt, and a short error message. Game Book and team pages reload themselves every five minutes while a scheduled game is in its normal live window. Browser reloads read PostgreSQL only and do not consume CFBD API calls.
+Prediction locking is local database work and runs before any provider request, so an upstream outage or exhausted API quota cannot prevent a valid pregame prediction from becoming official on the kickoff cycle. The site also reports CFBD OK/stale/error status, the last successful sync, the latest attempt, and a short error message. Game Book and team pages reload themselves every five minutes while a scheduled game is in its normal live window. Browser reloads read PostgreSQL only and do not consume CFBD API calls.
+
+Full-season schedule syncs also reconcile current Division I membership using CFBD's FBS/FCS classifications. Provider identity is anchored to CFBD team IDs, with explicit historical aliases where a legacy row predates its durable provider ID. Reconciliation fails closed when the schedule is missing more than roughly 2% of the existing active pool, preventing a partial provider response from mass-deactivating schools.
 
 The API key is stored only in `.env`. The public application displays ordinary factual game information and derived rankings/predictions; it does not expose a raw provider database mirror.
 
@@ -183,7 +185,7 @@ Ordinary source updates use the GitHub-backed updater:
 sudo sh /volume1/rankings/app/scripts/synology-update.sh
 ```
 
-The updater synchronizes the active non-secret `MODEL_VERSION` and `PREDICTOR_VERSION` from GitHub's committed `.env.example`, while preserving the NAS's API keys and database credentials. Starting with v0.6.1, Synology builds one shared application image for both web and worker, uses extended Docker/Compose timeouts, force-recreates the application containers, and verifies that `/health` reports the exact GitHub application/model/predictor versions before declaring success.
+The updater synchronizes the active non-secret `MODEL_VERSION` and `PREDICTOR_VERSION` from GitHub's committed `.env.example`, while preserving the NAS's API keys and database credentials. For v0.10.2 it also takes application, PostgreSQL, and protected `.env` backups before the controlled Penn/Pennsylvania identity repair; web and worker are stopped during that repair, affected active-model snapshots are rebuilt from corrected data, and then the updater recreates the application containers and verifies that `/health` reports the exact GitHub application/model/predictor versions before declaring success.
 
 ### Back up
 
