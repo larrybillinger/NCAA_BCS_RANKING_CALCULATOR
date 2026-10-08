@@ -19,12 +19,12 @@
 - [x] Kickoff regression coverage proves an eligible pregame prediction locks on the kickoff cycle.
 - [x] Team-identity tests prove a legacy Penn row is reused rather than duplicated when Pennsylvania arrives with a CFBD ID.
 - [x] Roster reconciliation tests prove one stale row can be deactivated while materially incomplete provider coverage fails closed.
-- [x] Production-repair tests rebuild contaminated active-model ranking snapshots without the legacy duplicate.
+- [x] Team-identity repair tests verify frozen snapshots and locked official predictions survive, the next ranking excludes the legacy duplicate, a second run changes nothing, and the repair refuses when the legacy row has frozen results.
 - [x] Inactive current-season teams are excluded from Team Index and Compare Teams.
 - [x] `.env` is ignored by Git.
 - [x] VERSION, CHANGELOG, and release notes are maintained per release.
 - [ ] Docker Compose v0.10.2 must be smoke-tested on the target Synology after deployment.
-- [ ] Confirm the production Penn/Pennsylvania repair output and rebuilt active ranking pool after deployment.
+- [ ] Confirm the production Penn/Pennsylvania repair output and that the next frozen ranking excludes the legacy Penn row.
 - [ ] Confirm kickoff locking plus live CFBD polling during the next weeknight or Saturday game.
 - [ ] The production `/admin/games` page must be smoke-tested over HTTPS with the generated admin credentials.
 

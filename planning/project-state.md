@@ -1,7 +1,7 @@
 # Project state
 
 ## Current release
-v0.10.2
+v0.10.3
 
 ## Production model
 division_i_weighted_v5
@@ -32,9 +32,9 @@ v0.10.0 keeps division_i_weighted_v5 and rank_gap_v3 unchanged while adding a se
 ## Current sync and data-integrity state
 v0.10.2 keeps division_i_weighted_v5 unchanged. Provider polling is game-aware: the worker wakes at the next Division I kickoff so eligible predictions lock immediately, polls every SYNC_LIVE_MINUTES (default 60) while games are in progress, and otherwise sleeps no longer than SYNC_IDLE_MINUTES (default 1440). Prediction locking remains local and runs before provider access.
 
-Provider team identity now prefers the durable CFBD ID. The known legacy Penn/Pennsylvania duplicate is repaired during the v0.10.2 Synology update, and affected active-model snapshots are rebuilt from the corrected pool after a PostgreSQL backup. Full-season schedule reconciliation fails closed when provider coverage is materially incomplete.
+Provider team identity now prefers the durable CFBD ID. Since v0.10.3 the known legacy Penn/Pennsylvania duplicate is merged going forward during the Synology update: the empty legacy row leaves the active pool, while frozen weekly rankings and the predictions locked against them stay exactly as published. Full-season schedule reconciliation fails closed when provider coverage is materially incomplete.
 
 The admin-only manual score desk at `/admin/games` can supply scores during a provider outage or correction. Manual overrides are audited, survive provider syncs until released, and cannot alter a week after the production ranking snapshot is frozen.
 
 ## Current next milestone
-Merge and deploy v0.10.2 on Synology. Confirm the controlled Penn/Pennsylvania repair completes, the rebuilt active ranking pool no longer contains a duplicate Penn identity, the Accuracy page loads and reflects only division_i_weighted_v5 predictions, and the worker log shows kickoff locking plus live polling during the next weeknight or Saturday game. Then begin collecting locked hybrid_core_v1 shadow predictions. Sprint 004 resolves neutral-site venue context and adds provenance-backed season-ticket sell-through and pregame forecast snapshots before any context-adjusted shadow variant is enabled. Production remains division_i_weighted_v5 / rank_gap_v3 unless a later explicit decision promotes a research model.
+Merge and deploy v0.10.3 on Synology. Confirm the Penn/Pennsylvania repair reports `repaired: true` with its preserved weeks, the next frozen ranking no longer contains a duplicate Penn identity, the Accuracy page loads and reflects only division_i_weighted_v5 predictions, and the worker log shows kickoff locking plus live polling during the next weeknight or Saturday game. Then begin collecting locked hybrid_core_v1 shadow predictions. Sprint 004 resolves neutral-site venue context and adds provenance-backed season-ticket sell-through and pregame forecast snapshots before any context-adjusted shadow variant is enabled. Production remains division_i_weighted_v5 / rank_gap_v3 unless a later explicit decision promotes a research model.

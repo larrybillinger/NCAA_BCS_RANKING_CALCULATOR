@@ -60,3 +60,7 @@ Keep one canonical Division I national ranking. FBS rank, FCS rank, and conferen
 
 ## 2026-10-05 — Context-aware predictions remain a separate shadow system
 Keep rank_gap_v3 as the official predictor under the protected monotonic rule. Experimental hybrid offense/defense and context-aware predictions may select a different winner, but they must be stored in a separate research ledger, clearly labeled, and locked only from information captured before kickoff. Research failures may not block official prediction locking or provider synchronization. No research model becomes official without a later explicit decision.
+
+
+## 2026-10-08 — Duplicate team identities are fixed going forward
+Published official ranking snapshots and the predictions locked against them are not deleted or rebuilt to correct a duplicate team identity. The legacy Penn row (bundled data, no games) is merged into the provider-backed Pennsylvania row and removed from the active pool, so rankings calculated after the repair use the corrected pool, while every published week and the official prediction ledger stay as they were. This is consistent with the rule that old games are not recursively revalued. If a duplicate ever carries results in frozen rankings, the repair refuses; rebuilding published weeks would need its own explicit decision.
