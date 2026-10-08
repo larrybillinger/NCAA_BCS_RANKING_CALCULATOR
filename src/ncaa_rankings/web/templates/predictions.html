@@ -28,8 +28,8 @@
       {% if p %}
         <span class="lock-state">{% if row.prediction_kind == 'official' %}LOCKED HYBRID{% elif row.prediction_kind == 'retrocast' %}HYBRID RETROCAST{% else %}CURRENT HYBRID{% endif %}</span>
         <div class="score-pair compact">
-          <div class="{% if p.projected_away_points > p.projected_home_points %}projected-winner{% endif %}"><span>{{ row.away.name }}</span><strong>{{ p.projected_away_points|score }}</strong></div>
-          <div class="{% if p.projected_home_points > p.projected_away_points %}projected-winner{% endif %}"><span>{{ row.home.name }}</span><strong>{{ p.projected_home_points|score }}</strong></div>
+          <div class="{% if p.projected_away_points > p.projected_home_points %}projected-winner{% endif %}"><span>{{ row.away.name }}</span><strong>{{ row.display_away_points }}</strong></div>
+          <div class="{% if p.projected_home_points > p.projected_away_points %}projected-winner{% endif %}"><span>{{ row.home.name }}</span><strong>{{ row.display_home_points }}</strong></div>
         </div>
         {% if p.projected_home_points > p.projected_away_points %}
           <span><strong>{{ row.home.name }}</strong> {{ p.home_win_probability|pct }} win chance</span>
