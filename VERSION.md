@@ -1,11 +1,13 @@
 # Version history
 
-## 0.10.2 — Game-aware live sync
+## 0.10.2 — Game-aware live sync and team-identity repair
 
 - Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.
-- Poll CFBD on the live cadence whenever a Division I game is in progress, on any day, instead of only on Saturdays.
-- Keep polling Saturday games that run past local midnight until they are final.
-- Wake one live interval after the next kickoff when idle; never sleep longer than the idle cadence.
+- Wake at the next Division I kickoff so eligible pregame predictions lock immediately, then poll CFBD on the live cadence while games are in progress on any day.
+- Keep polling Saturday games that run past local midnight until they are final, with an eight-hour cap for abandoned/non-finalized games.
+- Resolve provider teams by durable CFBD ID and bridge the known legacy `Penn` / `Pennsylvania` identity.
+- Reconcile the active Division I roster from full-season schedule data with a fail-closed missing-team tolerance of roughly 2%.
+- Repair contaminated active-model ranking snapshots from the first affected week forward while preserving retired-model history and a pre-repair PostgreSQL backup.
 - Mark sidebar data stale after 1.5 live intervals while games are in progress.
 - Offer only conferences in the selected subdivision; highlight "All" only when no filter is active.
 - Validate rank calculator input against the current pool size.
