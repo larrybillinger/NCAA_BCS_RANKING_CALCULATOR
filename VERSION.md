@@ -1,5 +1,17 @@
 # Version history
 
+## 0.11.0 — Official hybrid prediction
+
+- Keep the production ranking unchanged at `division_i_weighted_v5`.
+- Promote `hybrid_core_v1` from the research ledger to the official Game Book predictor.
+- Blend 40% calibrated rank-gap margin with 60% shrunk current-season offense/defense matchup margin.
+- Shrink team scoring profiles toward the Division I scoring mean with three pseudo-games.
+- Allow the official predictor to select a lower-ranked team when matchup evidence outweighs the rank-gap component.
+- Use hybrid predictions throughout Game Book, team schedules, Accuracy, historical retrocasts, footer metrics, and the matchup calculator.
+- Preserve all previously locked `rank_gap_v3` official rows as immutable history while excluding them from the active hybrid ledger.
+- Preserve pre-promotion hybrid shadow rows as research history and stop creating duplicate shadow copies of the now-official base hybrid model.
+- Keep home field, travel, altitude, weather, stadium demand, and other context adjustments research-only.
+
 ## 0.10.3 — Forward-only team-identity repair
 
 - Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.
@@ -60,7 +72,7 @@
 - Poll CollegeFootballData once per day Sunday-Friday.
 - Poll once per hour on Saturday.
 - Switch to the Saturday cadence at local midnight using the configured timezone.
-- Keep one full-season schedule refresh at least every 24 hours.
+- Keep one full-season schedule refresh at least once every 24 hours.
 - Refresh live browser pages every five minutes from PostgreSQL only.
 - Preserve 429 cooldowns and provider-health reporting introduced in v0.8.1.
 
@@ -108,7 +120,7 @@
 ## 0.6.1 — Reliable Synology deployment
 
 - Build the D1 Rank application image once for both web and worker.
-- Extend Docker/Compose timeouts for slower Synology systems.
+- Extend Docker/Compose client timeouts for slower Synology systems.
 - Force-recreate application containers after a successful build.
 - Verify the running app, model, and predictor versions from `/health`.
 - Fix temporary environment-file handling in the updater.
