@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from ncaa_rankings.web import worker
@@ -13,10 +13,18 @@ from ncaa_rankings.web.cfbd import (
     CFBDRateLimitError,
     sync_games,
     sync_team_context,
+    upsert_team,
 )
 from ncaa_rankings.web.db import Base
-from ncaa_rankings.web.models import Game, Team, TeamSeason
+from ncaa_rankings.web.models import (
+    Game,
+    PredictionSnapshot,
+    RankingSnapshot,
+    Team,
+    TeamSeason,
+)
 from ncaa_rankings.web import models as _models  # noqa: F401
+from ncaa_rankings.web.prediction_service import lock_started_predictions
 from ncaa_rankings.web.sync_schedule import (
     LIVE_WINDOW,
     poll_delay_minutes,
@@ -116,7 +124,6 @@ def test_prediction_locking_happens_before_provider_failure(monkeypatch):
     assert order == ["lock", "sync"]
 
 
-
 CENTRAL = ZoneInfo("America/Chicago")
 CADENCE = SimpleNamespace(sync_live_minutes=60, sync_idle_minutes=1440)
 
@@ -167,11 +174,11 @@ def test_saturday_game_after_local_midnight_stays_live():
     assert _delay(session, sunday_early) == 60
 
 
-def test_idle_worker_wakes_one_live_interval_after_next_kickoff():
+def test_idle_worker_wakes_at_next_kickoff():
     kickoff = datetime(2026, 10, 7, 18, 30, tzinfo=CENTRAL)
     session = _schedule_session((kickoff, False))
 
-    assert _delay(session, kickoff - timedelta(hours=3)) == 3 * 60 + 60
+    assert _delay(session, kickoff - timedelta(hours=3)) == 3 * 60
 
 
 def test_idle_worker_uses_daily_cadence_with_no_upcoming_games():
@@ -196,6 +203,132 @@ def test_stale_threshold_is_tight_only_while_games_are_live():
 
     assert stale_after(live, CADENCE) == timedelta(minutes=90)
     assert stale_after(idle, CADENCE) == timedelta(hours=36)
+
+
+def test_kickoff_cycle_locks_pregame_prediction_immediately():
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    SessionFactory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+    kickoff = datetime(2026, 10, 7, 23, 30, tzinfo=timezone.utc)
+
+    with SessionFactory() as session:
+        home = Team(name="Kickoff Home", slug="kickoff-home")
+        away = Team(name="Kickoff Away", slug="kickoff-away")
+        session.add_all([home, away])
+        session.flush()
+        game = Game(
+            provider="cfbd",
+            provider_game_id="kickoff-lock",
+            season=2026,
+            week=6,
+            season_type="regular",
+            start_time=kickoff,
+            completed=False,
+            home_team_id=home.id,
+            away_team_id=away.id,
+            home_subdivision="FBS",
+            away_subdivision="FBS",
+        )
+        snapshot = RankingSnapshot(
+            season=2026,
+            week=5,
+            model_version="division_i_weighted_v5",
+            official=True,
+        )
+        session.add_all([game, snapshot])
+        session.flush()
+        prediction = PredictionSnapshot(
+            game_id=game.id,
+            ranking_snapshot_id=snapshot.id,
+            predictor_version="rank_gap_v3",
+            created_at=kickoff - timedelta(hours=2),
+            locks_at=kickoff,
+            projected_home_points=24.0,
+            projected_away_points=17.0,
+            projected_margin=7.0,
+            home_win_probability=0.7,
+        )
+        session.add(prediction)
+        session.commit()
+
+        assert lock_started_predictions(session, now=kickoff) == 1
+        session.refresh(prediction)
+        assert prediction.official is True
+        assert prediction.locked_at == game.start_time
+
+
+def test_known_provider_alias_reuses_legacy_team_row():
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    SessionFactory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+
+    with SessionFactory() as session:
+        legacy = Team(name="Penn", slug="penn")
+        session.add(legacy)
+        session.flush()
+        session.add(
+            TeamSeason(
+                team_id=legacy.id,
+                season=2026,
+                subdivision="FCS",
+                conference="Ivy League",
+                active=True,
+            )
+        )
+        session.commit()
+
+        resolved = upsert_team(
+            session,
+            cfbd_id=219,
+            name="Pennsylvania",
+            season=2026,
+            classification="fcs",
+            conference="Ivy League",
+        )
+        session.commit()
+
+        teams = list(session.scalars(select(Team)))
+        assert len(teams) == 1
+        assert resolved.id == legacy.id
+        assert resolved.cfbd_id == 219
+        assert resolved.name == "Pennsylvania"
+
+
+def test_team_context_deactivates_division_i_team_missing_from_roster():
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    SessionFactory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+
+    class FakeClient:
+        def teams(self, year):
+            assert year == 2026
+            return [
+                {
+                    "id": 123,
+                    "school": "Context State",
+                    "classification": "fbs",
+                    "conference": "Test",
+                    "location": {},
+                }
+            ]
+
+    with SessionFactory() as session:
+        stale = Team(name="Stale State", slug="stale-state")
+        session.add(stale)
+        session.flush()
+        stale_season = TeamSeason(
+            team_id=stale.id,
+            season=2026,
+            subdivision="FCS",
+            conference="Old",
+            active=True,
+        )
+        session.add(stale_season)
+        session.commit()
+
+        sync_team_context(session, FakeClient(), 2026)
+        session.refresh(stale_season)
+        assert stale_season.active is False
 
 
 def test_team_context_sync_stores_home_timezone_and_elevation():
@@ -232,7 +365,6 @@ def test_team_context_sync_stores_home_timezone_and_elevation():
         assert row.home_elevation_ft == 5280.0
         assert row.home_context_source == "cfbd:/teams"
         assert row.home_context_updated_at is not None
-
 
 
 def test_full_schedule_cycle_refreshes_static_team_context(monkeypatch):
