@@ -60,22 +60,19 @@ def schedule_state(session: Session, season: int, now: datetime) -> ScheduleStat
 
 
 def poll_delay_minutes(now: datetime, state: ScheduleState, settings: Settings) -> int:
-    """Minutes until the next provider sync.
+    """Minutes until the next provider/locking cycle.
 
     While any Division I game is live, poll on the live cadence regardless of
-    the day of the week. Otherwise sleep until one live interval after the
-    next kickoff (the first moment a score can have changed), but never
-    longer than the idle cadence.
+    the day of the week. Otherwise wake at the next kickoff so local prediction
+    locking happens immediately, but never sleep longer than the idle cadence.
     """
     if state.live_games:
         return settings.sync_live_minutes
 
     delay = settings.sync_idle_minutes
     if state.next_kickoff is not None:
-        until_first_update = (
-            state.next_kickoff - now
-        ).total_seconds() / 60 + settings.sync_live_minutes
-        delay = min(delay, max(1, math.ceil(until_first_update)))
+        until_kickoff = (state.next_kickoff - now).total_seconds() / 60
+        delay = min(delay, max(1, math.ceil(until_kickoff)))
     return delay
 
 
