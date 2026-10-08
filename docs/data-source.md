@@ -10,7 +10,7 @@ The worker uses bearer authentication from the `CFBD_API_KEY` environment variab
 - schedules and game status;
 - final scores;
 - home/away classifications;
-- team IDs and current-season subdivisions;
+- durable CFBD team IDs and current-season subdivisions/conferences;
 - ordinary game-team statistics;
 - source sync audit metadata.
 
@@ -20,24 +20,32 @@ The site publishes ordinary factual game displays plus independently derived ran
 ## API endpoints used
 - `GET /games`
 - `GET /games/teams`
+- `GET /teams`
 
 The integration deliberately avoids scraping NCAA, ESPN, school websites, or search-engine result pages for routine operation.
 
-
 ## Quota-aware production polling
 
-Starting with v0.8.1, D1 Rank is deliberately conservative with CollegeFootballData calls.
+Starting with v0.8.1, D1 Rank is deliberately conservative with CollegeFootballData calls. Since v0.10.2 the schedule, not the day of the week, controls the cadence.
 
 - one unfiltered `/games` request replaces separate FBS and FCS requests;
-- the schedule in PostgreSQL, not the day of the week, sets the cadence;
+- while idle, the worker wakes at the next Division I kickoff so local official/research prediction locking runs immediately before provider access;
 - while any Division I game has kicked off and is not final (up to 8 hours after kickoff), the worker polls every 60 minutes by default (`SYNC_LIVE_MINUTES`), including weeknight games and Saturday games that run past local midnight;
-- with no game in progress, the worker sleeps until one live interval after the next kickoff, but never longer than 1440 minutes (`SYNC_IDLE_MINUTES`);
+- with no upcoming or live game, the worker sleeps no longer than 1440 minutes (`SYNC_IDLE_MINUTES`);
 - the sidebar marks data stale after 1.5 live intervals while games are in progress, and after 36 hours otherwise;
 - the complete season schedule refreshes at least once every 24 hours;
 - HTTP 429 responses trigger exponential cooldowns beginning at 360 minutes and capped at 1440 minutes unless CFBD supplies a longer `Retry-After` value;
 - prediction locking occurs before any provider request and therefore still works during CFBD outages or quota exhaustion;
 - schedule/score syncing follows the calendar games nearest the current time rather than depending only on the latest frozen ranking snapshot;
 - a daily full-schedule pull catches moved or rescheduled games.
+
+## Team identity and roster reconciliation
+
+CFBD team IDs are the durable identity when available. A small explicit alias map bridges historical local names that predate their provider ID, including `Penn` -> `Pennsylvania`, so a provider rename cannot create a second active school in the Division I pool.
+
+Only a full-season `/games` response is used to reconcile current FBS/FCS membership, because the game payload carries both subdivisions. Weekly polls never deactivate teams. Reconciliation fails closed if the full schedule is missing more than roughly 2% of the existing active Division I pool, preventing a partial provider response from mass-deactivating schools.
+
+The `/teams` endpoint is used for season-specific venue/time-zone/elevation context. It is not used by itself to decide complete FBS/FCS roster membership.
 
 The polling settings can be overridden in `.env` (the pre-0.10.2 names `SYNC_SATURDAY_MINUTES` and `SYNC_OTHER_DAYS_MINUTES` are still read as fallbacks):
 
