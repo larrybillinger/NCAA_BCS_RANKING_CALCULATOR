@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.11.0 — 2026-10-08
+
+### Official predictor
+- Promoted `hybrid_core_v1` from research/shadow status to the official production predictor while keeping the ranking model at `division_i_weighted_v5`.
+- Official margin now blends 40% calibrated rank-gap margin with 60% shrunk current-season offense/defense matchup margin.
+- Team offense/defense profiles use completed current-season Division I games only and shrink toward the season scoring mean with three pseudo-games.
+- The official predictor may choose a lower-ranked team when matchup evidence outweighs the rank-gap component. Prediction behavior no longer has to mirror ranking order.
+
+### Site-wide hybrid use
+- Game Book current/future predictions, team schedule predictions, official Accuracy metrics, team Accuracy metrics, and historical retrocasts now use the active `hybrid_core_v1` predictor.
+- Accuracy now labels the active official hybrid ledger and shows a leakage-safe hybrid historical retrocast using only information available before each game.
+- Pre-promotion hybrid shadow rows remain visible as archived research history when present.
+- Replaced the public rank-only calculator with a team-vs-team matchup calculator using the same hybrid predictor as Game Book.
+- Updated Game Book, team pages, footer ticker, sidebar, Method Notes, architecture, project state, and validation documentation to identify the hybrid as production.
+
+### Integrity
+- Previously locked `rank_gap_v3` official predictions remain immutable in PostgreSQL and are excluded from the active hybrid ledger rather than rewritten.
+- Existing pre-promotion `hybrid_core_v1` shadow rows remain immutable research records.
+- The worker stops generating a duplicate base-hybrid shadow row now that `hybrid_core_v1` is official.
+- Home field, travel, altitude, weather, stadium demand, and other context adjustments remain research-only.
+
+### Deployment
+- `.env.example` now selects `PREDICTOR_VERSION=hybrid_core_v1`; the normal Synology updater carries that non-secret setting into production and verifies it through `/health`.
+- Application/package version moves to 0.11.0.
+
+### Ranking safety
+- No ranking formula changes. Production ranking remains `division_i_weighted_v5` with the same frozen-game, FBS/FCS, site-adjustment, and average-score rules.
+
 ## v0.10.3 — 2026-10-08
 
 ### Team identity repair
@@ -319,7 +347,7 @@
 
 ### Database
 - `ranking_game_audits.opponent_rank_used` now stores floating-point ranks so ties such as 10.5 or 133.5 are preserved.
-- Existing PostgreSQL installs migrate that column automatically at startup.
+- Existing PostgreSQL installs migrate that column automatically.
 
 ### 2026 sanity check
 - Kansas State is #40 at 2-0 with 298.5 points after Week 2.
