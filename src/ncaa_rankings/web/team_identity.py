@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -62,15 +64,33 @@ def reconcile_active_roster(
     season: int,
     seen_team_ids: set[int],
 ) -> int:
-    """Deactivate D-I season rows absent from a successful full provider roster."""
-    deactivated = 0
-    rows = session.scalars(
-        select(TeamSeason).where(
-            TeamSeason.season == season,
-            TeamSeason.active.is_(True),
-            TeamSeason.subdivision.in_(tuple(DIVISION_I)),
+    """Deactivate D-I rows absent from a complete full-season schedule.
+
+    A coverage guard prevents a partial provider response from deactivating a
+    large part of the ranking pool. The full schedule should account for nearly
+    every active D-I school; if it covers less than 90% of the existing active
+    pool, reconciliation is refused and the caller should treat the sync as an
+    error rather than corrupt local membership.
+    """
+    rows = list(
+        session.scalars(
+            select(TeamSeason).where(
+                TeamSeason.season == season,
+                TeamSeason.active.is_(True),
+                TeamSeason.subdivision.in_(tuple(DIVISION_I)),
+            )
         )
     )
+    if rows:
+        minimum_coverage = max(1, math.ceil(len(rows) * 0.90))
+        if len(seen_team_ids) < minimum_coverage:
+            raise RuntimeError(
+                "Refusing Division I roster reconciliation: full-season schedule "
+                f"covered only {len(seen_team_ids)} of {len(rows)} active teams; "
+                f"at least {minimum_coverage} are required."
+            )
+
+    deactivated = 0
     for row in rows:
         if row.team_id in seen_team_ids:
             continue
