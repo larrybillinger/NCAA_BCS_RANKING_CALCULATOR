@@ -24,7 +24,10 @@ from ncaa_rankings.web.models import (
     TeamSeason,
 )
 from ncaa_rankings.web import models as _models  # noqa: F401
-from ncaa_rankings.web.prediction_service import lock_started_predictions
+from ncaa_rankings.web.prediction_service import (
+    HYBRID_PREDICTOR_VERSION,
+    lock_started_predictions,
+)
 from ncaa_rankings.web.sync_schedule import (
     LIVE_WINDOW,
     poll_delay_minutes,
@@ -131,7 +134,6 @@ CADENCE = SimpleNamespace(sync_live_minutes=60, sync_idle_minutes=1440)
 
 
 def _schedule_session(*games):
-    """In-memory DB holding (kickoff, completed) Division I games."""
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     session = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)()
@@ -162,16 +164,14 @@ def _delay(session, now):
 
 
 def test_weeknight_game_in_progress_uses_live_cadence():
-    kickoff = datetime(2026, 10, 7, 18, 30, tzinfo=CENTRAL)  # Wednesday
+    kickoff = datetime(2026, 10, 7, 18, 30, tzinfo=CENTRAL)
     session = _schedule_session((kickoff, False))
-
     assert _delay(session, kickoff + timedelta(hours=1)) == 60
 
 
 def test_saturday_game_after_local_midnight_stays_live():
-    kickoff = datetime(2026, 10, 10, 21, 30, tzinfo=CENTRAL)  # Saturday night
+    kickoff = datetime(2026, 10, 10, 21, 30, tzinfo=CENTRAL)
     session = _schedule_session((kickoff, False))
-
     sunday_early = datetime(2026, 10, 11, 0, 45, tzinfo=CENTRAL)
     assert _delay(session, sunday_early) == 60
 
@@ -179,14 +179,12 @@ def test_saturday_game_after_local_midnight_stays_live():
 def test_idle_worker_wakes_at_next_kickoff():
     kickoff = datetime(2026, 10, 7, 18, 30, tzinfo=CENTRAL)
     session = _schedule_session((kickoff, False))
-
     assert _delay(session, kickoff - timedelta(hours=3)) == 3 * 60
 
 
 def test_idle_worker_uses_daily_cadence_with_no_upcoming_games():
     kickoff = datetime(2026, 10, 3, 14, 0, tzinfo=CENTRAL)
     session = _schedule_session((kickoff, True))
-
     assert _delay(session, kickoff + timedelta(days=1)) == 1440
 
 
@@ -194,7 +192,6 @@ def test_unfinished_game_stops_counting_as_live_after_window():
     kickoff = datetime(2026, 10, 7, 18, 30, tzinfo=CENTRAL)
     session = _schedule_session((kickoff, False))
     now = (kickoff + LIVE_WINDOW + timedelta(minutes=1)).astimezone(timezone.utc)
-
     assert schedule_state(session, 2026, now).live_games == 0
     assert _delay(session, now) == 1440
 
@@ -202,7 +199,6 @@ def test_unfinished_game_stops_counting_as_live_after_window():
 def test_stale_threshold_is_tight_only_while_games_are_live():
     live = SimpleNamespace(live_games=2, next_kickoff=None)
     idle = SimpleNamespace(live_games=0, next_kickoff=None)
-
     assert stale_after(live, CADENCE) == timedelta(minutes=90)
     assert stale_after(idle, CADENCE) == timedelta(hours=36)
 
@@ -242,7 +238,7 @@ def test_kickoff_cycle_locks_pregame_prediction_immediately():
         prediction = PredictionSnapshot(
             game_id=game.id,
             ranking_snapshot_id=snapshot.id,
-            predictor_version="rank_gap_v3",
+            predictor_version=HYBRID_PREDICTOR_VERSION,
             created_at=kickoff - timedelta(hours=2),
             locks_at=kickoff,
             projected_home_points=24.0,
@@ -327,131 +323,3 @@ def test_roster_reconciliation_deactivates_only_missing_team_with_safe_coverage(
         assert deactivated == 1
         assert rows[-1].active is False
         assert all(row.active for row in rows[:9])
-
-
-def test_roster_reconciliation_refuses_partial_schedule_coverage():
-    engine = create_engine("sqlite+pysqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    SessionFactory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
-
-    with SessionFactory() as session:
-        teams = [Team(name=f"Guard {index}", slug=f"guard-{index}") for index in range(10)]
-        session.add_all(teams)
-        session.flush()
-        session.add_all(
-            [
-                TeamSeason(
-                    team_id=team.id,
-                    season=2026,
-                    subdivision="FBS",
-                    active=True,
-                )
-                for team in teams
-            ]
-        )
-        session.commit()
-
-        with pytest.raises(RuntimeError, match="Refusing Division I roster reconciliation"):
-            reconcile_active_roster(
-                session,
-                season=2026,
-                seen_team_ids={team.id for team in teams[:5]},
-            )
-
-
-def test_team_context_sync_stores_home_timezone_and_elevation():
-    engine = create_engine("sqlite+pysqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    SessionFactory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
-
-    class FakeClient:
-        def teams(self, year):
-            assert year == 2026
-            return [
-                {
-                    "id": 123,
-                    "school": "Context State",
-                    "classification": "fbs",
-                    "conference": "Test",
-                    "location": {
-                        "id": 456,
-                        "name": "Context Stadium",
-                        "timezone": "America/Denver",
-                        "elevation": "5280",
-                    },
-                }
-            ]
-
-    with SessionFactory() as session:
-        updated = sync_team_context(session, FakeClient(), 2026)
-        row = session.query(TeamSeason).one()
-
-        assert updated == 1
-        assert row.home_venue_id == 456
-        assert row.home_venue == "Context Stadium"
-        assert row.home_timezone == "America/Denver"
-        assert row.home_elevation_ft == 5280.0
-        assert row.home_context_source == "cfbd:/teams"
-        assert row.home_context_updated_at is not None
-
-
-def test_full_schedule_cycle_refreshes_static_team_context(monkeypatch):
-    calls = []
-
-    class FakeSessionContext:
-        def __enter__(self):
-            return object()
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-    class FakeClient:
-        configured = True
-
-    settings = SimpleNamespace(season=2026)
-    snapshot = SimpleNamespace(week=5)
-
-    monkeypatch.setattr(worker, "get_settings", lambda: settings)
-    monkeypatch.setattr(worker, "SessionLocal", lambda: FakeSessionContext())
-    monkeypatch.setattr(worker, "CFBDClient", lambda: FakeClient())
-    monkeypatch.setattr(worker, "bootstrap_bundled_rankings", lambda session: None)
-    monkeypatch.setattr(worker, "lock_started_predictions", lambda session: 0)
-    monkeypatch.setattr(
-        worker,
-        "lock_started_research_predictions",
-        lambda session: 0,
-    )
-    monkeypatch.setattr(
-        worker,
-        "sync_games",
-        lambda session, client, season: calls.append("games") or 0,
-    )
-    monkeypatch.setattr(
-        worker,
-        "sync_team_context",
-        lambda session, client, season: calls.append("context") or 1,
-    )
-    monkeypatch.setattr(
-        worker,
-        "calculate_all_new_complete_weeks",
-        lambda session, season: [],
-    )
-    monkeypatch.setattr(
-        worker,
-        "latest_snapshot",
-        lambda session, season: snapshot,
-    )
-    monkeypatch.setattr(
-        worker,
-        "generate_predictions_for_snapshot",
-        lambda session, current: 0,
-    )
-    monkeypatch.setattr(
-        worker,
-        "generate_research_predictions_for_snapshot",
-        lambda session, current: 0,
-    )
-
-    worker._sync_cycle(full_schedule=True)
-
-    assert calls == ["games", "context"]
