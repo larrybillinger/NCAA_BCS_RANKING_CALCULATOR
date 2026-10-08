@@ -32,6 +32,7 @@ from ncaa_rankings.web.sync_schedule import (
     stale_after,
 )
 from ncaa_rankings.web.team_identity import reconcile_active_roster
+from ncaa_rankings.web.utils import as_utc
 
 
 def test_cfbd_429_is_exposed_as_rate_limit(monkeypatch):
@@ -255,7 +256,7 @@ def test_kickoff_cycle_locks_pregame_prediction_immediately():
         assert lock_started_predictions(session, now=kickoff) == 1
         session.refresh(prediction)
         assert prediction.official is True
-        assert prediction.locked_at == game.start_time
+        assert as_utc(prediction.locked_at) == as_utc(game.start_time)
 
 
 def test_known_provider_alias_reuses_legacy_team_row():
