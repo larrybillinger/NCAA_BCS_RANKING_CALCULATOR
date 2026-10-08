@@ -10,12 +10,15 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .memo import session_memo
-from .models import Game, PredictionSnapshot, RankingEntry, RankingSnapshot
+from .models import Game, PredictionSnapshot, RankingEntry, RankingSnapshot, TeamSeason
 from .ranking_service import get_snapshot, latest_snapshot
 
 DIVISION_I = {"FBS", "FCS"}
+HYBRID_PREDICTOR_VERSION = "hybrid_core_v1"
+LEGACY_RANK_GAP_VERSION = "rank_gap_v3"
 
-# Ranking gap is the only directional input to projected margin.
+# Rank-gap calibration remains a component of the hybrid predictor and is kept
+# available for archived rank_gap_v3 rows and research comparisons.
 FALLBACK_POINTS_PER_RANK = 0.20
 MIN_POINTS_PER_RANK = 0.08
 MAX_POINTS_PER_RANK = 0.35
@@ -41,9 +44,6 @@ class Projection:
     sample_size: int
     detail: dict[str, float | int | str]
 
-    # Keep the in-memory research retrocast interface compatible with the
-    # persisted PredictionSnapshot model so templates and accuracy code can
-    # consume either object without special cases.
     @property
     def projected_home_points(self) -> float:
         return self.home_points
@@ -75,13 +75,7 @@ def _clamp_slope(value: float) -> float:
 
 
 def _monotonic_margin(rank_gap: float, rank_slope: float) -> float:
-    """Translate rank gap directly into projected margin.
-
-    rank_gap is away_rank - home_rank. Positive means the home team is
-    higher-ranked, so the projected home margin must be positive. Negative
-    means the away team is higher-ranked, so the projected home margin must
-    be negative. Equal ranks project an even game.
-    """
+    """Translate rank gap into the legacy rank-gap margin component."""
     margin = rank_gap * _clamp_slope(rank_slope)
     return min(max(margin, -MAX_PROJECTED_MARGIN), MAX_PROJECTED_MARGIN)
 
@@ -136,7 +130,6 @@ def _fit_calibration(session: Session, season: int, through_week: int) -> Calibr
             sample_size=sample_size,
         )
 
-    # Fit through the origin: expected_margin = slope * rank_gap.
     denominator = sum(rank_gap * rank_gap for rank_gap, _ in samples)
     fitted_slope = (
         sum(rank_gap * actual_margin for rank_gap, actual_margin in samples)
@@ -145,13 +138,8 @@ def _fit_calibration(session: Session, season: int, through_week: int) -> Calibr
         else FALLBACK_POINTS_PER_RANK
     )
 
-    # Blend early-season noise toward the conservative fallback, then constrain
-    # the scale so the predicted winner can never reverse the ranking order.
     blend = min(1.0, sample_size / 100.0)
-    blended_slope = (
-        FALLBACK_POINTS_PER_RANK * (1.0 - blend)
-        + fitted_slope * blend
-    )
+    blended_slope = FALLBACK_POINTS_PER_RANK * (1.0 - blend) + fitted_slope * blend
     rank_slope = _clamp_slope(blended_slope)
 
     residuals = [
@@ -193,8 +181,11 @@ def _projection_from_ranks(
     return home_points, away_points, margin, probability
 
 
-def project_game(session: Session, game: Game, snapshot: RankingSnapshot) -> Projection | None:
-    settings = get_settings()
+def _legacy_rank_gap_projection(
+    session: Session,
+    game: Game,
+    snapshot: RankingSnapshot,
+) -> Projection | None:
     entries = _entry_map(session, snapshot.id)
     team_count = max(len(entries), 1)
     home_entry = entries.get(game.home_team_id)
@@ -225,7 +216,7 @@ def project_game(session: Session, game: Game, snapshot: RankingSnapshot) -> Pro
         home_win_probability=round(probability, 4),
         sample_size=calibration.sample_size,
         detail={
-            "method": settings.predictor_version,
+            "method": LEGACY_RANK_GAP_VERSION,
             "rank_gap": round(rank_gap, 2),
             "rank_slope": round(calibration.rank_slope, 4),
             "average_total": round(calibration.average_total, 2),
@@ -235,12 +226,41 @@ def project_game(session: Session, game: Game, snapshot: RankingSnapshot) -> Pro
     )
 
 
-def retrocast_game(session: Session, game: Game) -> Projection | None:
-    """Research-only projection using only the ranking known before the game.
+def project_game(session: Session, game: Game, snapshot: RankingSnapshot) -> Projection | None:
+    """Project a game with the configured official predictor.
 
-    This never creates or changes an official prediction. Week 1 has no prior
-    evidence-based ranking snapshot, so retrocasts begin with Week 2.
+    hybrid_core_v1 became the official predictor in v0.11.0. It blends the
+    calibrated rank-gap component with shrunk current-season offense/defense
+    scoring profiles. rank_gap_v3 remains available only for archived rows and
+    explicit legacy comparisons.
     """
+    settings = get_settings()
+    if settings.predictor_version == HYBRID_PREDICTOR_VERSION:
+        # Local import avoids an import cycle: research_prediction_service uses
+        # the calibration helpers in this module.
+        from .research_prediction_service import hybrid_project_game
+
+        hybrid = hybrid_project_game(session, game, snapshot)
+        if hybrid is None:
+            return None
+        detail = dict(hybrid.detail)
+        detail["official_predictor"] = HYBRID_PREDICTOR_VERSION
+        return Projection(
+            home_rank=hybrid.home_rank,
+            away_rank=hybrid.away_rank,
+            home_points=hybrid.projected_home_points,
+            away_points=hybrid.projected_away_points,
+            margin=hybrid.projected_margin,
+            home_win_probability=hybrid.home_win_probability,
+            sample_size=hybrid.sample_size,
+            detail=detail,
+        )
+
+    return _legacy_rank_gap_projection(session, game, snapshot)
+
+
+def retrocast_game(session: Session, game: Game) -> Projection | None:
+    """Research-only projection using only information available before a game."""
     if game.week <= 1:
         return None
     prior = get_snapshot(session, game.season, game.week - 1)
@@ -275,20 +295,22 @@ def generate_predictions_for_snapshot(session: Session, snapshot: RankingSnapsho
         projection = project_game(session, game, snapshot)
         if projection is None:
             continue
-        session.add(PredictionSnapshot(
-            game_id=game.id,
-            ranking_snapshot_id=snapshot.id,
-            predictor_version=settings.predictor_version,
-            locks_at=game.start_time,
-            home_rank=projection.home_rank,
-            away_rank=projection.away_rank,
-            projected_home_points=projection.home_points,
-            projected_away_points=projection.away_points,
-            projected_margin=projection.margin,
-            home_win_probability=projection.home_win_probability,
-            sample_size=projection.sample_size,
-            model_detail=projection.detail,
-        ))
+        session.add(
+            PredictionSnapshot(
+                game_id=game.id,
+                ranking_snapshot_id=snapshot.id,
+                predictor_version=settings.predictor_version,
+                locks_at=game.start_time,
+                home_rank=projection.home_rank,
+                away_rank=projection.away_rank,
+                projected_home_points=projection.home_points,
+                projected_away_points=projection.away_points,
+                projected_margin=projection.margin,
+                home_win_probability=projection.home_win_probability,
+                sample_size=projection.sample_size,
+                model_detail=projection.detail,
+            )
+        )
         created += 1
     session.commit()
     return created
@@ -297,13 +319,18 @@ def generate_predictions_for_snapshot(session: Session, snapshot: RankingSnapsho
 def lock_started_predictions(session: Session, now: datetime | None = None) -> int:
     settings = get_settings()
     now = now or datetime.now(timezone.utc)
-    games = list(session.scalars(select(Game).where(
-        Game.start_time.is_not(None),
-        Game.start_time <= now,
-        or_(Game.home_subdivision.in_(tuple(DIVISION_I)), Game.away_subdivision.in_(tuple(DIVISION_I))),
-    )))
-    # Rows from retired ranking models are never locked or treated as the
-    # active model's official prediction.
+    games = list(
+        session.scalars(
+            select(Game).where(
+                Game.start_time.is_not(None),
+                Game.start_time <= now,
+                or_(
+                    Game.home_subdivision.in_(tuple(DIVISION_I)),
+                    Game.away_subdivision.in_(tuple(DIVISION_I)),
+                ),
+            )
+        )
+    )
     active_model_rows = (
         select(PredictionSnapshot)
         .join(RankingSnapshot, RankingSnapshot.id == PredictionSnapshot.ranking_snapshot_id)
@@ -311,11 +338,13 @@ def lock_started_predictions(session: Session, now: datetime | None = None) -> i
     )
     locked = 0
     for game in games:
-        already = session.scalar(active_model_rows.where(
-            PredictionSnapshot.game_id == game.id,
-            PredictionSnapshot.predictor_version == settings.predictor_version,
-            PredictionSnapshot.official.is_(True),
-        ))
+        already = session.scalar(
+            active_model_rows.where(
+                PredictionSnapshot.game_id == game.id,
+                PredictionSnapshot.predictor_version == settings.predictor_version,
+                PredictionSnapshot.official.is_(True),
+            )
+        )
         if already is not None:
             continue
         candidate = session.scalar(
@@ -359,7 +388,54 @@ def latest_prediction(
         query = query.where(PredictionSnapshot.official.is_(True))
     if as_of_week is not None:
         query = query.where(RankingSnapshot.week <= as_of_week)
-    return session.scalar(query.order_by(RankingSnapshot.week.desc(), PredictionSnapshot.created_at.desc()).limit(1))
+    return session.scalar(
+        query.order_by(
+            RankingSnapshot.week.desc(), PredictionSnapshot.created_at.desc()
+        ).limit(1)
+    )
+
+
+def team_matchup_projection(
+    session: Session,
+    season: int,
+    home_team_id: int,
+    away_team_id: int,
+) -> Projection | None:
+    """Project a hypothetical current matchup using the active full predictor."""
+    if home_team_id == away_team_id:
+        return None
+    snapshot = latest_snapshot(session, season)
+    if snapshot is None:
+        return None
+    home_season = session.scalar(
+        select(TeamSeason).where(
+            TeamSeason.team_id == home_team_id,
+            TeamSeason.season == season,
+            TeamSeason.active.is_(True),
+        )
+    )
+    away_season = session.scalar(
+        select(TeamSeason).where(
+            TeamSeason.team_id == away_team_id,
+            TeamSeason.season == season,
+            TeamSeason.active.is_(True),
+        )
+    )
+    if home_season is None or away_season is None:
+        return None
+    game = Game(
+        provider="tool",
+        provider_game_id=f"matchup-{home_team_id}-{away_team_id}",
+        season=season,
+        week=snapshot.week + 1,
+        season_type="regular",
+        completed=False,
+        home_team_id=home_team_id,
+        away_team_id=away_team_id,
+        home_subdivision=home_season.subdivision,
+        away_subdivision=away_season.subdivision,
+    )
+    return project_game(session, game, snapshot)
 
 
 def rank_matchup_projection(
@@ -368,8 +444,11 @@ def rank_matchup_projection(
     home_rank: int,
     away_rank: int,
 ) -> Projection | None:
-    # The v3 predictor deliberately ignores game site: ranking gap alone
-    # determines margin.
+    """Legacy rank-only projection retained for compatibility/tests.
+
+    The public calculator uses team_matchup_projection so hybrid offense/defense
+    information is not silently discarded.
+    """
     snapshot = latest_snapshot(session, season)
     if snapshot is None:
         return None
@@ -389,10 +468,10 @@ def rank_matchup_projection(
         home_win_probability=round(probability, 4),
         sample_size=calibration.sample_size,
         detail={
-            "method": get_settings().predictor_version,
+            "method": LEGACY_RANK_GAP_VERSION,
             "rank_gap": round(rank_gap, 2),
             "rank_slope": round(calibration.rank_slope, 4),
             "average_total": round(calibration.average_total, 2),
-            "winner_rule": "higher_rank_always_projected_winner",
+            "winner_rule": "legacy_rank_only_tool",
         },
     )
