@@ -24,9 +24,9 @@
 {% if calculator_error %}<div class="quiet-note">{{ calculator_error }}</div>{% endif %}
 {% if calculator_result and home_team and away_team %}
 <section class="calculator-result">
-  <div><span>{{ home_team.name }}{% if calculator_result.home_rank %} · #{{ calculator_result.home_rank }}{% endif %}</span><strong>{{ calculator_result.home_points|score }}</strong></div>
+  <div><span>{{ home_team.name }}{% if calculator_result.home_rank %} · #{{ calculator_result.home_rank }}{% endif %}</span><strong>{{ calculator_result.detail.display_home_points }}</strong></div>
   <div class="calc-mid"><span>projected</span><strong>{{ calculator_result.home_win_probability|pct }}</strong><span>{{ home_team.name }} win probability</span></div>
-  <div><span>{{ away_team.name }}{% if calculator_result.away_rank %} · #{{ calculator_result.away_rank }}{% endif %}</span><strong>{{ calculator_result.away_points|score }}</strong></div>
+  <div><span>{{ away_team.name }}{% if calculator_result.away_rank %} · #{{ calculator_result.away_rank }}{% endif %}</span><strong>{{ calculator_result.detail.display_away_points }}</strong></div>
 </section>
 <p class="muted">Expected home margin {{ calculator_result.margin|num }} · calibration sample {{ calculator_result.sample_size }} completed games · official predictor hybrid_core_v1.</p>
 {% endif %}
