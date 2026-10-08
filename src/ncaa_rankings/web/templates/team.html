@@ -27,12 +27,14 @@
           {% if p %}
             {% if row.is_home %}
               {% set team_score=p.projected_home_points %}{% set opp_score=p.projected_away_points %}
+              {% set team_display=row.display_home_points %}{% set opp_display=row.display_away_points %}
             {% else %}
               {% set team_score=p.projected_away_points %}{% set opp_score=p.projected_home_points %}
+              {% set team_display=row.display_away_points %}{% set opp_display=row.display_home_points %}
             {% endif %}
             <div class="score-pair">
-              <div class="{% if team_score > opp_score %}projected-winner{% endif %}"><span>{{ team.name }}</span><strong>{{ team_score|score }}</strong></div>
-              <div class="{% if opp_score > team_score %}projected-winner{% endif %}"><span>{{ row.opponent.name }}</span><strong>{{ opp_score|score }}</strong></div>
+              <div class="{% if team_score > opp_score %}projected-winner{% endif %}"><span>{{ team.name }}</span><strong>{{ team_display }}</strong></div>
+              <div class="{% if opp_score > team_score %}projected-winner{% endif %}"><span>{{ row.opponent.name }}</span><strong>{{ opp_display }}</strong></div>
             </div>
             <span class="subline">
               {% if row.prediction_kind == 'official' %}LOCKED HYBRID BEFORE KICKOFF

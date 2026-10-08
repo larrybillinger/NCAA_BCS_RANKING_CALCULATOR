@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.11.1 — 2026-10-08
+
+### Projected-score display
+- Fixed Game Book, team schedules, and Matchup Calculator showing tied integer scores even when `hybrid_core_v1` projected a non-zero margin and a winner.
+- Added one shared winner-consistent display-score rule: round half-up, then if both scores tie while the modeled margin is non-zero, add one display point to the modeled winner.
+- True zero-margin projections may still display a tie.
+- Existing prediction rows do not need to be rewritten; display scores are derived at render/evaluation time from the stored continuous projection.
+
+### Accuracy consistency
+- The Accuracy `display_tie_rate` metric now uses the same winner-consistent display-score rule as the public pages instead of independently rounding each score.
+
+### Tests and tracking
+- Added regression tests for positive-margin, negative-margin, and true-zero-margin score rendering plus the Accuracy display-tie calculation.
+- Added a Game Book/view-service regression proving a non-zero hybrid margin cannot render as an integer tie.
+- GitHub issue #5 tracks this production defect and v0.11.1 fix.
+- GitHub issue #6 separately tracks the live 63.7% hybrid retrocast versus the roughly 72% result expected from earlier research. v0.11.1 does not change hybrid weights or prediction math while that discrepancy is investigated.
+
+### Production safety
+- Ranking remains `division_i_weighted_v5`.
+- Official predictor remains `hybrid_core_v1` with the same 40% rank-gap / 60% offense-defense blend and three pseudo-games of shrinkage.
+
 ## v0.11.0 — 2026-10-08
 
 ### Official predictor
@@ -49,7 +70,7 @@
 
 ### Live score sync
 - The worker's cadence now comes from the schedule in PostgreSQL, not the day of the week. It wakes at the next Division I kickoff so eligible pregame predictions lock immediately, then polls every `SYNC_LIVE_MINUTES` (default 60) while any Division I game is in progress.
-- A game counts as live for up to 8 hours after kickoff, so late Saturday games keep live polling after midnight Central until CFBD marks them final, and a cancelled or never-finalized game cannot keep the worker in live mode indefinitely.
+- A game counts as live for up to 8 hours after kickoff, so late Saturday games keep live polling after midnight Central until CFBD marks it final, and a cancelled or never-finalized game cannot keep the worker in live mode indefinitely.
 - With no upcoming or live game, the worker sleeps no longer than `SYNC_IDLE_MINUTES` (default 1440).
 - New settings `SYNC_LIVE_MINUTES` and `SYNC_IDLE_MINUTES` replace `SYNC_SATURDAY_MINUTES` and `SYNC_OTHER_DAYS_MINUTES`. The old names are still read as fallbacks, and the Synology updater copies existing values to the new names.
 - Browser auto-refresh on Game Book and team pages uses the same live window.
@@ -332,7 +353,7 @@
 - This prevents a new code deployment from continuing to display older ranking snapshots such as `division_i_weighted_v1`.
 
 ### Added
-- The Weekbook sidebar now shows the running application version, ranking model version, and predictor version.
+- The Weekbook sidebar now shows the running application version, ranking-model version, and predictor version.
 - The `/health` endpoint now reports those same versions for deployment verification.
 
 ## v0.5.0 — 2026-09-17

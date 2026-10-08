@@ -24,6 +24,7 @@ from ncaa_rankings.web.ranking_service import (
     latest_snapshot,
 )
 from ncaa_rankings.web.stats_service import overall_metrics
+from ncaa_rankings.web.view_service import game_rows_for_week
 
 SEASON = 2026
 KICKOFF = datetime(2026, 9, 5, 18, 0, tzinfo=timezone.utc)
@@ -258,6 +259,26 @@ def test_matchup_calculator_uses_hybrid_team_profiles(season_db):
     assert "calculator-result" in html
     assert "Alpha" in html
     assert "Echo" in html
+
+
+def test_game_rows_never_display_a_tie_for_nonzero_hybrid_margin(season_db):
+    with season_db() as session:
+        game = session.scalar(select(Game).where(Game.week == 3).order_by(Game.id))
+        prediction = session.scalar(
+            select(PredictionSnapshot)
+            .where(PredictionSnapshot.game_id == game.id)
+            .order_by(PredictionSnapshot.id.desc())
+        )
+        prediction.projected_home_points = 30.4
+        prediction.projected_away_points = 30.3
+        prediction.projected_margin = 0.1
+        prediction.home_win_probability = 0.51
+        session.commit()
+
+        rows = game_rows_for_week(session, SEASON, 3, as_of_week=2)
+        row = next(item for item in rows if item["game"].id == game.id)
+        assert row["display_home_points"] == 31
+        assert row["display_away_points"] == 30
 
 
 def test_week_dock_lists_scheduled_weeks_without_ellipsis(season_db):

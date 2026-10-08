@@ -6,6 +6,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .display_scores import display_scores_for_prediction
 from .models import Game, RankingEntry, RankingSnapshot, Team, TeamSeason
 from .prediction_service import latest_prediction, retrocast_game
 from .ranking_service import latest_snapshot
@@ -157,6 +158,11 @@ def game_rows_for_week(
                 prediction_kind = "retrocast"
                 prediction_source_week = game.week - 1
 
+        display_home_points = None
+        display_away_points = None
+        if prediction is not None:
+            display_home_points, display_away_points = display_scores_for_prediction(prediction)
+
         rows.append({
             "game": game,
             "home": home,
@@ -164,6 +170,8 @@ def game_rows_for_week(
             "prediction": prediction,
             "prediction_kind": prediction_kind,
             "prediction_source_week": prediction_source_week,
+            "display_home_points": display_home_points,
+            "display_away_points": display_away_points,
             "started": bool(game.start_time and as_utc(game.start_time) <= now),
             "actual_margin": (game.home_points - game.away_points if game.home_points is not None and game.away_points is not None else None),
         })
@@ -211,6 +219,11 @@ def team_schedule_rows(
                 prediction_kind = "retrocast"
                 prediction_source_week = game.week - 1
 
+        display_home_points = None
+        display_away_points = None
+        if prediction is not None:
+            display_home_points, display_away_points = display_scores_for_prediction(prediction)
+
         rows.append({
             "game": game,
             "opponent": opponent,
@@ -219,6 +232,8 @@ def team_schedule_rows(
             "prediction_kind": prediction_kind,
             "prediction_source_week": prediction_source_week,
             "official_prediction": official_prediction,
+            "display_home_points": display_home_points,
+            "display_away_points": display_away_points,
         })
     return rows
 

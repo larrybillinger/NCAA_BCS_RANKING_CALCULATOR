@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import math
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .display_scores import winner_consistent_display_scores
 from .memo import session_memo
 from .models import Game, RankingSnapshot
 from .prediction_service import (
@@ -56,27 +56,6 @@ def normalize_nonnegative_scores(
     """
     shift = max(0.0, -min(home_points, away_points))
     return home_points + shift, away_points + shift, shift
-
-
-def _round_half_up(value: float) -> int:
-    return int(math.floor(value + 0.5))
-
-
-def winner_consistent_display_scores(
-    home_points: float,
-    away_points: float,
-    margin: float,
-) -> tuple[int, int]:
-    """Round scores without displaying a tie against a non-zero model margin."""
-    home = max(0, _round_half_up(home_points))
-    away = max(0, _round_half_up(away_points))
-
-    if margin > 0.0 and home <= away:
-        home = away + 1
-    elif margin < 0.0 and away <= home:
-        away = home + 1
-
-    return home, away
 
 
 def fit_scoring_profiles(
@@ -270,6 +249,8 @@ def hybrid_project_game(
             "away_offense": round(away_profile.offense, 2),
             "away_defense": round(away_profile.defense, 2),
             "score_shift": round(score_shift, 2),
+            "display_home_points": display_home,
+            "display_away_points": display_away,
             "display_rule": "winner_consistent_half_up",
         },
     )

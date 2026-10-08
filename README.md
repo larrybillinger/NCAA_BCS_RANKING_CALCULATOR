@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.11.0**
+**Current version: 0.11.1**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and publishes the **D1 Rank Weekbook** website.
 
@@ -93,6 +93,8 @@ The rank-gap component uses the existing positive current-season points-per-rank
 For a matchup, the model combines each team's shrunk offense with the opponent's shrunk defense to estimate the scoring total and offense/defense margin. The blended margin is then split around that total into projected team scores and a win probability.
 
 Unlike retired `rank_gap_v3`, the official hybrid is not forced to choose the higher-ranked team. A lower-ranked team may be projected to win when its current-season matchup profile outweighs the ranking-gap signal. This changes predictions only; it does not alter ranking points, ranking order, or frozen weekly rankings.
+
+Projected integer scores use a winner-consistent display rule. Scores are rounded half-up; if both scores would display equal while the modeled margin is non-zero, the modeled winner receives one additional display point. A true zero-margin projection may still display a tie. This display rule does not change the continuous projected margin, win probability, or model evaluation inputs.
 
 Home-field, stadium-demand, travel, time-zone, altitude, weather, and other context adjustments are not part of base `hybrid_core_v1`. They remain research-only until separately validated and approved.
 
@@ -188,10 +190,10 @@ sh /tmp/update-rankings.sh
 
 The updater preserves secrets, synchronizes the committed `MODEL_VERSION` and `PREDICTOR_VERSION`, backs up the application/PostgreSQL/protected `.env` as applicable, rebuilds the shared application image, recreates web/worker, and verifies `/health` reports the exact expected application/model/predictor versions.
 
-For v0.11.0 that means production must report:
+For v0.11.1 production must report:
 
 ```text
-app_version       0.11.0
+app_version       0.11.1
 model_version     division_i_weighted_v5
 predictor_version hybrid_core_v1
 ```
