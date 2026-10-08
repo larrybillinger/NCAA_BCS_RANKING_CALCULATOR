@@ -212,7 +212,6 @@ def sync_team_context(
     try:
         payloads = client.teams(season)
         updated = 0
-        seen_team_ids: set[int] = set()
         for payload in payloads:
             name = str(payload.get("school") or "").strip()
             if not name:
@@ -225,7 +224,6 @@ def sync_team_context(
                 classification=payload.get("classification"),
                 conference=payload.get("conference"),
             )
-            seen_team_ids.add(team.id)
             season_row = session.scalar(
                 select(TeamSeason).where(
                     TeamSeason.team_id == team.id,
@@ -246,17 +244,6 @@ def sync_team_context(
             season_row.home_context_updated_at = datetime.now(timezone.utc)
             session.add(season_row)
             updated += 1
-
-        deactivated = reconcile_active_roster(
-            session,
-            season=season,
-            seen_team_ids=seen_team_ids,
-        )
-        if deactivated:
-            LOGGER.warning(
-                "Deactivated %s Division I season rows missing from the CFBD roster",
-                deactivated,
-            )
 
         _sync_run_finish(
             session,
@@ -372,8 +359,31 @@ def sync_games(
             game_id = _game_payload_id(game)
             if game_id:
                 rows[game_id] = game
+
+        seen_division_i_team_ids: set[int] = set()
         for game in rows.values():
-            upsert_game(session, game)
+            row = upsert_game(session, game)
+            if row is None:
+                continue
+            if row.home_subdivision in DIVISION_I:
+                seen_division_i_team_ids.add(row.home_team_id)
+            if row.away_subdivision in DIVISION_I:
+                seen_division_i_team_ids.add(row.away_team_id)
+
+        # Only a full-season schedule has enough coverage to reconcile pool
+        # membership safely. Targeted weekly polls never deactivate teams.
+        if week is None:
+            deactivated = reconcile_active_roster(
+                session,
+                season=season,
+                seen_team_ids=seen_division_i_team_ids,
+            )
+            if deactivated:
+                LOGGER.warning(
+                    "Deactivated %s Division I season rows missing from the full schedule",
+                    deactivated,
+                )
+
         _sync_run_finish(session, run, status="ok", rows=len(rows), payload=list(rows.values()))
         session.commit()
         return len(rows)
