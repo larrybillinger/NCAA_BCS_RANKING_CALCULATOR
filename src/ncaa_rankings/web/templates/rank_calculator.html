@@ -1,20 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Rank Calculator · {{ title }}{% endblock %}
+{% block title %}Matchup Calculator · {{ title }}{% endblock %}
 {% block content %}
-<header class="page-head"><div><div class="eyebrow">TOOL</div><h1>Rank calculator</h1><p>Estimate a matchup from two current ranked positions using the same rank-gap calibration used by the prediction pages. Site does not change the projection: the higher-ranked team is always the projected winner.</p></div></header>
-<form class="calculator-form" method="get">
-  <label># <input class="bare-number" type="number" min="1" max="{{ team_count or 400 }}" name="rank_a" value="{{ rank_a or '' }}" placeholder="12"></label>
-  <span>vs</span>
-  <label># <input class="bare-number" type="number" min="1" max="{{ team_count or 400 }}" name="rank_b" value="{{ rank_b or '' }}" placeholder="48"></label>
+<header class="page-head"><div><div class="eyebrow">TOOL</div><h1>Matchup calculator</h1><p>Project two current Division I teams with the same <strong>hybrid_core_v1</strong> model used by the Game Book. The calculation uses current ranking position plus each team's shrunk current-season offense and defense profile.</p></div></header>
+<form class="filter-form" method="get">
+  <label>Home
+    <select name="home">
+      <option value="">Choose team</option>
+      {% for team, season_row in calculator_teams %}
+      <option value="{{ team.slug }}" {% if team.slug == home_slug %}selected{% endif %}>{{ team.name }} · {{ season_row.subdivision }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Away
+    <select name="away">
+      <option value="">Choose team</option>
+      {% for team, season_row in calculator_teams %}
+      <option value="{{ team.slug }}" {% if team.slug == away_slug %}selected{% endif %}>{{ team.name }} · {{ season_row.subdivision }}</option>
+      {% endfor %}
+    </select>
+  </label>
   <button class="text-submit" type="submit">calculate →</button>
 </form>
 {% if calculator_error %}<div class="quiet-note">{{ calculator_error }}</div>{% endif %}
-{% if calculator_result %}
+{% if calculator_result and home_team and away_team %}
 <section class="calculator-result">
-  <div><span>#{{ calculator_result.home_rank }}</span><strong>{{ calculator_result.home_points|score }}</strong></div>
-  <div class="calc-mid"><span>projected</span><strong>{{ calculator_result.home_win_probability|pct }}</strong><span>win probability for #{{ calculator_result.home_rank }}</span></div>
-  <div><span>#{{ calculator_result.away_rank }}</span><strong>{{ calculator_result.away_points|score }}</strong></div>
+  <div><span>{{ home_team.name }}{% if calculator_result.home_rank %} · #{{ calculator_result.home_rank }}{% endif %}</span><strong>{{ calculator_result.home_points|score }}</strong></div>
+  <div class="calc-mid"><span>projected</span><strong>{{ calculator_result.home_win_probability|pct }}</strong><span>{{ home_team.name }} win probability</span></div>
+  <div><span>{{ away_team.name }}{% if calculator_result.away_rank %} · #{{ calculator_result.away_rank }}{% endif %}</span><strong>{{ calculator_result.away_points|score }}</strong></div>
 </section>
-<p class="muted">Expected margin {{ calculator_result.margin|num }} · calibration sample {{ calculator_result.sample_size }} completed games.</p>
+<p class="muted">Expected home margin {{ calculator_result.margin|num }} · calibration sample {{ calculator_result.sample_size }} completed games · official predictor hybrid_core_v1.</p>
 {% endif %}
 {% endblock %}
