@@ -28,7 +28,7 @@ from .manual_score_service import (
     set_manual_score,
 )
 from .models import Game, Team
-from .prediction_service import rank_matchup_projection
+from .prediction_service import team_matchup_projection
 from .ranking_service import get_snapshot, latest_snapshot
 from .sync_schedule import LIVE_WINDOW, schedule_state, stale_after
 from .stats_service import (
@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.web_title, version="0.10.3", lifespan=lifespan)
+app = FastAPI(title=settings.web_title, version="0.11.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
@@ -154,7 +154,6 @@ def _optional_score(value: str) -> int | None:
         raise ManualScoreError("Scores must be whole numbers.") from exc
 
 
-
 def _sync_state(session: Session) -> dict:
     attempt = latest_sync_attempt(session)
     success = last_successful_sync(session)
@@ -174,8 +173,6 @@ def _sync_state(session: Session) -> dict:
         finished = success.finished_at
         if finished.tzinfo is None:
             finished = finished.replace(tzinfo=timezone.utc)
-        # While games are in progress the data must be about one live poll
-        # old; otherwise the idle (once-daily) allowance applies.
         state = schedule_state(session, settings.season, now)
         status = "stale" if now - finished > stale_after(state, settings) else "ok"
 
@@ -299,8 +296,6 @@ def home(
         subdivision_filter = None
     conference_filter = (conference or "").strip() or None
     all_rows = ranking_rows(session, snapshot) if snapshot else []
-    # Offer only conferences that exist in the selected subdivision, so the
-    # dropdown cannot lead to an FCS conference while viewing FBS.
     conferences = sorted({
         row["conference"]
         for row in all_rows
@@ -550,22 +545,38 @@ def method(request: Request, session: Session = Depends(get_session)):
 @app.get("/tools/rank-calculator", response_class=HTMLResponse)
 def rank_calculator(
     request: Request,
-    rank_a: int | None = Query(default=None),
-    rank_b: int | None = Query(default=None),
+    home: str | None = Query(default=None),
+    away: str | None = Query(default=None),
     session: Session = Depends(get_session),
 ):
-    context = _base_context(session, request)
-    pool_size = context["team_count"]
+    teams = all_teams(session, settings.season)
+    home_team = session.scalar(select(Team).where(Team.slug == home)) if home else None
+    away_team = session.scalar(select(Team).where(Team.slug == away)) if away else None
     result = None
     error = None
-    if rank_a is not None and rank_b is not None:
-        if not (1 <= rank_a <= pool_size and 1 <= rank_b <= pool_size):
-            error = f"Ranks must be between 1 and {pool_size}, the size of the current Division I pool."
+    if home and home_team is None:
+        error = "Home team not found."
+    elif away and away_team is None:
+        error = "Away team not found."
+    elif home_team is not None and away_team is not None:
+        if home_team.id == away_team.id:
+            error = "Choose two different teams."
         else:
-            result = rank_matchup_projection(session, settings.season, home_rank=rank_a, away_rank=rank_b)
+            result = team_matchup_projection(
+                session,
+                settings.season,
+                home_team_id=home_team.id,
+                away_team_id=away_team.id,
+            )
+            if result is None:
+                error = "A hybrid projection is not available for this matchup."
+    context = _base_context(session, request)
     context.update({
-        "rank_a": rank_a,
-        "rank_b": rank_b,
+        "calculator_teams": teams,
+        "home_slug": home or "",
+        "away_slug": away or "",
+        "home_team": home_team,
+        "away_team": away_team,
         "calculator_result": result,
         "calculator_error": error,
     })
@@ -585,5 +596,11 @@ def compare(
     entry_a = team_current_entry(session, team_a.id, settings.season) if team_a else None
     entry_b = team_current_entry(session, team_b.id, settings.season) if team_b else None
     context = _base_context(session, request)
-    context.update({"teams": teams, "team_a": team_a, "team_b": team_b, "entry_a": entry_a, "entry_b": entry_b})
+    context.update({
+        "teams": teams,
+        "team_a": team_a,
+        "team_b": team_b,
+        "entry_a": entry_a,
+        "entry_b": entry_b,
+    })
     return TEMPLATES.TemplateResponse(request=request, name="compare.html", context=context)
