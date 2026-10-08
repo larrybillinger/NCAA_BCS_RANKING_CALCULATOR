@@ -9,6 +9,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .config import get_settings
+from .display_scores import display_scores_for_prediction
 from .models import (
     Game,
     PredictionSnapshot,
@@ -41,8 +42,6 @@ def _prediction_rows(
     team_id: int | None = None,
 ) -> list[tuple[PredictionSnapshot, Game]]:
     settings = get_settings()
-    # Only predictions built from the active production ranking model count.
-    # Retired models' locked rows stay in the database but not in this ledger.
     query = (
         select(PredictionSnapshot, Game)
         .join(Game, Game.id == PredictionSnapshot.game_id)
@@ -113,16 +112,7 @@ def _metrics(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
                 - float(game.home_points + game.away_points)
             )
         )
-        display_home = getattr(
-            prediction,
-            "display_home_points",
-            int(round(prediction.projected_home_points)),
-        )
-        display_away = getattr(
-            prediction,
-            "display_away_points",
-            int(round(prediction.projected_away_points)),
-        )
+        display_home, display_away = display_scores_for_prediction(prediction)
         if display_home == display_away:
             display_ties += 1
         outcome = 1.0 if actual_home_win else 0.0
@@ -181,7 +171,6 @@ def _retrocast_rows(
         if projection is not None:
             rows.append((projection, game))
     return rows
-
 
 
 def _research_prediction_rows(
