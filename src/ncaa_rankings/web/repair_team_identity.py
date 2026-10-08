@@ -4,7 +4,7 @@ import argparse
 import json
 from dataclasses import asdict, dataclass
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from .config import get_settings
@@ -12,15 +12,11 @@ from .db import SessionLocal, init_db
 from .models import (
     Game,
     GameTeamStat,
-    PredictionSnapshot,
     RankingEntry,
-    RankingGameAudit,
     RankingSnapshot,
-    ResearchPredictionSnapshot,
     Team,
     TeamSeason,
 )
-from .ranking_service import calculate_all_new_complete_weeks, completed_weeks
 from .team_identity import PROVIDER_NAME_ALIASES
 
 
@@ -29,9 +25,7 @@ class RepairResult:
     canonical_name: str
     legacy_name: str
     repaired: bool
-    first_affected_week: int | None = None
-    removed_weeks: list[int] | None = None
-    rebuilt_weeks: list[int] | None = None
+    preserved_weeks: list[int] | None = None
     games_repointed: int = 0
     stats_repointed: int = 0
     stats_deduplicated: int = 0
@@ -63,71 +57,27 @@ def _affected_weeks(
     )
 
 
-def _active_model_weeks_from(
+def _frozen_games_played(
     session: Session,
     *,
     season: int,
     model_version: str,
-    first_week: int,
-) -> list[int]:
-    return list(
-        session.scalars(
-            select(RankingSnapshot.week)
+    team_id: int,
+) -> int:
+    """Most games the team has in any frozen active-model snapshot."""
+    return int(
+        session.scalar(
+            select(func.max(RankingEntry.games_played))
+            .join(RankingSnapshot, RankingSnapshot.id == RankingEntry.snapshot_id)
             .where(
                 RankingSnapshot.season == season,
                 RankingSnapshot.model_version == model_version,
                 RankingSnapshot.official.is_(True),
-                RankingSnapshot.week >= first_week,
-            )
-            .order_by(RankingSnapshot.week)
-        )
-    )
-
-
-def _delete_active_model_weeks(
-    session: Session,
-    *,
-    season: int,
-    model_version: str,
-    first_week: int,
-) -> list[int]:
-    snapshots = list(
-        session.execute(
-            select(RankingSnapshot.id, RankingSnapshot.week).where(
-                RankingSnapshot.season == season,
-                RankingSnapshot.model_version == model_version,
-                RankingSnapshot.official.is_(True),
-                RankingSnapshot.week >= first_week,
+                RankingEntry.team_id == team_id,
             )
         )
+        or 0
     )
-    if not snapshots:
-        return []
-
-    snapshot_ids = [row.id for row in snapshots]
-    weeks = sorted(row.week for row in snapshots)
-    session.execute(
-        delete(PredictionSnapshot).where(
-            PredictionSnapshot.ranking_snapshot_id.in_(snapshot_ids)
-        )
-    )
-    session.execute(
-        delete(ResearchPredictionSnapshot).where(
-            ResearchPredictionSnapshot.ranking_snapshot_id.in_(snapshot_ids)
-        )
-    )
-    session.execute(
-        delete(RankingGameAudit).where(
-            RankingGameAudit.snapshot_id.in_(snapshot_ids)
-        )
-    )
-    session.execute(
-        delete(RankingEntry).where(RankingEntry.snapshot_id.in_(snapshot_ids))
-    )
-    session.execute(
-        delete(RankingSnapshot).where(RankingSnapshot.id.in_(snapshot_ids))
-    )
-    return weeks
 
 
 def _repoint_games(session: Session, source_id: int, target_id: int) -> int:
@@ -214,11 +164,16 @@ def repair_known_team_identities(
     season: int,
     model_version: str,
 ) -> list[RepairResult]:
-    """Repair known provider-name duplicates and rebuild affected active rankings.
+    """Merge known provider-name duplicates going forward.
 
-    Retired-model snapshots are preserved for audit. Only the active production
-    model is rebuilt, beginning with the first week that contained the duplicate,
-    because every later ranking depends on the earlier corrupted pool.
+    Frozen official snapshots, and the predictions locked against them, are
+    left exactly as published: old games are not recursively revalued and
+    official predictions are never rewritten. The legacy row leaves the active
+    pool, so every ranking calculated after the repair uses the corrected pool.
+
+    This is only safe when the legacy row carries no frozen game results; if it
+    does, moving its games forward would silently drop those results, so the
+    repair refuses and leaves everything unchanged.
     """
     results: list[RepairResult] = []
 
@@ -241,36 +196,32 @@ def repair_known_team_identities(
                     f"Refusing to merge {legacy_name!r} into {canonical_name!r}: "
                     "the rows have different CFBD IDs."
                 )
+            if _frozen_games_played(
+                session,
+                season=season,
+                model_version=model_version,
+                team_id=legacy.id,
+            ):
+                raise RuntimeError(
+                    f"Refusing to merge {legacy_name!r} into {canonical_name!r}: "
+                    "the legacy row has game results in frozen official rankings. "
+                    "A forward repair would drop them; this needs an explicit "
+                    "rebuild decision."
+                )
 
-            affected = _affected_weeks(
+            legacy_season = session.scalar(
+                select(TeamSeason).where(
+                    TeamSeason.team_id == legacy.id,
+                    TeamSeason.season == season,
+                )
+            )
+            was_active = bool(legacy_season and legacy_season.active)
+            preserved_weeks = _affected_weeks(
                 session,
                 season=season,
                 model_version=model_version,
                 team_id=legacy.id,
             )
-            first_week = min(affected) if affected else None
-            removed_weeks: list[int] = []
-
-            if first_week is not None:
-                candidate_weeks = _active_model_weeks_from(
-                    session,
-                    season=season,
-                    model_version=model_version,
-                    first_week=first_week,
-                )
-                complete = set(completed_weeks(session, season))
-                incomplete = [week for week in candidate_weeks if week not in complete]
-                if incomplete:
-                    raise RuntimeError(
-                        "Refusing ranking repair because existing frozen weeks are "
-                        f"not reproducible from complete game data: {incomplete}"
-                    )
-                removed_weeks = _delete_active_model_weeks(
-                    session,
-                    season=season,
-                    model_version=model_version,
-                    first_week=first_week,
-                )
 
             games_repointed = _repoint_games(session, legacy.id, canonical.id)
             stats_repointed, stats_deduplicated = _repoint_stats(
@@ -286,15 +237,14 @@ def repair_known_team_identities(
             )
             session.commit()
 
-            rebuilt_weeks = calculate_all_new_complete_weeks(session, season)
             results.append(
                 RepairResult(
                     canonical_name=canonical_name,
                     legacy_name=legacy_name,
-                    repaired=True,
-                    first_affected_week=first_week,
-                    removed_weeks=removed_weeks,
-                    rebuilt_weeks=rebuilt_weeks,
+                    repaired=bool(
+                        was_active or games_repointed or stats_repointed or stats_deduplicated
+                    ),
+                    preserved_weeks=preserved_weeks,
                     games_repointed=games_repointed,
                     stats_repointed=stats_repointed,
                     stats_deduplicated=stats_deduplicated,
@@ -306,7 +256,7 @@ def repair_known_team_identities(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Repair known duplicate CFBD team identities and affected rankings."
+        description="Merge known duplicate CFBD team identities going forward."
     )
     parser.add_argument(
         "--apply",

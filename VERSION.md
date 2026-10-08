@@ -1,5 +1,12 @@
 # Version history
 
+## 0.10.3 — Forward-only team-identity repair
+
+- Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.
+- Replace the v0.10.2 Penn/Pennsylvania snapshot rebuild with a forward-only merge: frozen rankings and locked predictions stay as published.
+- Refuse the repair if a legacy duplicate has results in frozen rankings.
+- Keep the Synology update running, and the site up, if the repair refuses.
+
 ## 0.10.2 — Game-aware live sync and team-identity repair
 
 - Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.

@@ -179,14 +179,19 @@ docker build -t ncaa-rankings-app:latest .
 echo "Ensuring PostgreSQL is running..."
 compose --env-file "$ENV_FILE" up -d db
 
-# Do not let the old worker write rankings while the identity repair removes
-# and rebuilds affected active-model snapshots.
+# Keep the old worker from syncing while known duplicate team identities are
+# merged. The repair only changes the active pool going forward; frozen
+# rankings and locked predictions are never touched.
 echo "Stopping application containers for controlled data repair..."
 compose --env-file "$ENV_FILE" stop worker web >/dev/null 2>&1 || true
 
 echo "Checking and repairing known duplicate team identities..."
-compose --env-file "$ENV_FILE" run --rm --no-deps web \
-  python -m ncaa_rankings.web.repair_team_identity --apply
+# A refused repair changes nothing, so report it and keep deploying rather
+# than leaving the site stopped.
+if ! compose --env-file "$ENV_FILE" run --rm --no-deps web \
+  python -m ncaa_rankings.web.repair_team_identity --apply; then
+  echo "WARNING: team identity repair was refused or failed; no data was changed."
+fi
 
 echo "Recreating web and worker from the new image..."
 compose --env-file "$ENV_FILE" up -d --no-deps --force-recreate web worker

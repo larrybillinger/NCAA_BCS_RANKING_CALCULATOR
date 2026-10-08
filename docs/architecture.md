@@ -30,7 +30,7 @@ An active manual score override has precedence over CFBD for `completed`, `home_
 
 `ranking_snapshots` are official completed-week states. `prediction_snapshots` preserve the ranking snapshot and predictor version used for each projection. The latest pregame projection is marked official at kickoff and is not overwritten.
 
-The normal rule is that official ranking snapshots are immutable. The v0.10.2 Penn/Pennsylvania production repair is an explicit data-integrity correction: it first backs up PostgreSQL, preserves retired-model history, removes only contaminated active-model snapshots from the first affected week forward, and deterministically rebuilds those weeks from corrected normalized data.
+Official ranking snapshots are immutable, and so are the predictions locked against them. The Penn/Pennsylvania repair (v0.10.3) follows that rule: after a PostgreSQL backup it merges the empty legacy row into the provider-backed school going forward, so only rankings calculated after the repair use the corrected pool. It refuses to run if the legacy row has results in any frozen snapshot, because a forward merge would drop them.
 
 ## Prediction model
 

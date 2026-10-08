@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.10.3 — 2026-10-08
+
+### Team identity repair
+- The Penn/Pennsylvania repair no longer deletes and rebuilds `division_i_weighted_v5` snapshots. Rebuilding would have deleted every official prediction locked against those weeks; predictions recreated afterwards are dated after kickoff and can never lock, so the official accuracy ledger and the hybrid shadow ledger would have restarted from zero.
+- The repair now merges the empty legacy `Penn` row (bundled data, no games) into `Pennsylvania` going forward: it leaves the active pool, game and stat references are repointed, and rankings calculated after the repair use the corrected pool. Published weeks and locked predictions are untouched, consistent with "old games are not recursively revalued".
+- The repair refuses if a legacy row has results in any frozen snapshot, since a forward merge would drop them.
+- Repair results report `repaired: false` when there is nothing left to change.
+
+### Deployment
+- If the repair refuses or fails, `synology-update.sh` prints a warning and continues to restart web and worker instead of exiting with the site stopped. A refused repair changes no data.
+
+### Tests
+- Repair tests verify frozen snapshots and locked official predictions survive, the next ranking excludes the duplicate, a second run changes nothing, and the refusal case leaves the legacy row active.
+
+### Production safety
+- No ranking or prediction formula changes: `division_i_weighted_v5` / `rank_gap_v3`.
+
 ## v0.10.2 — 2026-10-08
 
 ### Live score sync

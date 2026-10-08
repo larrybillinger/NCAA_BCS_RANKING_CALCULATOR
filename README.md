@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.10.2**
+**Current version: 0.10.3**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -185,7 +185,7 @@ Ordinary source updates use the GitHub-backed updater:
 sudo sh /volume1/rankings/app/scripts/synology-update.sh
 ```
 
-The updater synchronizes the active non-secret `MODEL_VERSION` and `PREDICTOR_VERSION` from GitHub's committed `.env.example`, while preserving the NAS's API keys and database credentials. For v0.10.2 it also takes application, PostgreSQL, and protected `.env` backups before the controlled Penn/Pennsylvania identity repair; web and worker are stopped during that repair, affected active-model snapshots are rebuilt from corrected data, and then the updater recreates the application containers and verifies that `/health` reports the exact GitHub application/model/predictor versions before declaring success.
+The updater synchronizes the active non-secret `MODEL_VERSION` and `PREDICTOR_VERSION` from GitHub's committed `.env.example`, while preserving the NAS's API keys and database credentials. For v0.10.2 it also takes application, PostgreSQL, and protected `.env` backups before the controlled Penn/Pennsylvania identity repair; web and worker are stopped during that repair, the empty legacy Penn row is merged into Pennsylvania going forward (frozen weeks and locked predictions are left as published), and then the updater recreates the application containers and verifies that `/health` reports the exact GitHub application/model/predictor versions before declaring success.
 
 ### Back up
 
