@@ -48,9 +48,6 @@ def get_settings() -> Settings:
         admin_username=os.getenv("ADMIN_USERNAME", "admin").strip() or "admin",
         admin_password=os.getenv("ADMIN_PASSWORD", ""),
         season=int(os.getenv("SEASON", "2026")),
-        # Live cadence applies whenever a Division I game is in progress, on
-        # any day. The pre-0.10.2 names are still read so existing .env files
-        # keep their configured values.
         sync_live_minutes=max(
             int(
                 os.getenv("SYNC_LIVE_MINUTES")
@@ -78,7 +75,7 @@ def get_settings() -> Settings:
         ),
         timezone=os.getenv("TZ", "America/Chicago"),
         model_version=os.getenv("MODEL_VERSION", "division_i_weighted_v5"),
-        predictor_version=os.getenv("PREDICTOR_VERSION", "rank_gap_v3"),
+        predictor_version=os.getenv("PREDICTOR_VERSION", "hybrid_core_v1"),
         rankings_dir=Path(os.getenv("RANKINGS_DIR", "/app/rankings")),
         bootstrap_rankings=_bool_env("BOOTSTRAP_RANKINGS", True),
         web_title=os.getenv("WEB_TITLE", "D1 Rank"),
