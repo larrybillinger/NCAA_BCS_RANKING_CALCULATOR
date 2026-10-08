@@ -259,6 +259,10 @@ def all_teams(session: Session, season: int) -> list[tuple[Team, TeamSeason]]:
     return list(session.execute(
         select(Team, TeamSeason)
         .join(TeamSeason, TeamSeason.team_id == Team.id)
-        .where(TeamSeason.season == season, TeamSeason.subdivision.in_(("FBS", "FCS")))
+        .where(
+            TeamSeason.season == season,
+            TeamSeason.active.is_(True),
+            TeamSeason.subdivision.in_(("FBS", "FCS")),
+        )
         .order_by(Team.name)
     ).all())
