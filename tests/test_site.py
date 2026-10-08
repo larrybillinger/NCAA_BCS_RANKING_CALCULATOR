@@ -9,12 +9,15 @@ from sqlalchemy.pool import StaticPool
 
 from ncaa_rankings.web.app import app
 from ncaa_rankings.web.cfbd import upsert_game
+from ncaa_rankings.web.config import get_settings
 from ncaa_rankings.web.db import Base, get_session
 from ncaa_rankings.web.memo import session_memo
 from ncaa_rankings.web.models import Game, PredictionSnapshot, RankingSnapshot
 from ncaa_rankings.web.prediction_service import (
+    HYBRID_PREDICTOR_VERSION,
     generate_predictions_for_snapshot,
     lock_started_predictions,
+    retrocast_game,
 )
 from ncaa_rankings.web.ranking_service import (
     calculate_all_new_complete_weeks,
@@ -33,7 +36,6 @@ TEAMS = {
     "Foxtrot": ("fcs", "Big Sky"),
 }
 TEAM_IDS = {name: index + 1 for index, name in enumerate(TEAMS)}
-# (week, home, away, home points, away points); week 3 is still to be played.
 SCHEDULE = [
     (1, "Alpha", "Echo", 42, 10),
     (1, "Charlie", "Bravo", 17, 24),
@@ -85,7 +87,6 @@ def season_db():
         calculate_all_new_complete_weeks(session, SEASON)
         snapshot = latest_snapshot(session, SEASON)
         generate_predictions_for_snapshot(session, snapshot)
-        # Pretend the Week 3 predictions were made the Monday before kickoff.
         session.execute(
             update(PredictionSnapshot).values(created_at=KICKOFF + timedelta(days=10))
         )
@@ -125,7 +126,7 @@ def _header_cells(html: str) -> list[str]:
         "/teams/echo?as_of=1",
         "/method",
         "/tools/rank-calculator",
-        "/tools/rank-calculator?rank_a=1&rank_b=6",
+        "/tools/rank-calculator?home=alpha&away=echo",
         "/compare",
         "/compare?a=alpha&b=echo",
         "/health",
@@ -155,7 +156,15 @@ def test_conference_view_shows_conference_subdivision_and_national_rank(season_d
     ]
 
 
-def test_official_ledger_ignores_retired_ranking_models(season_db):
+def test_active_predictor_is_hybrid(season_db):
+    assert get_settings().predictor_version == HYBRID_PREDICTOR_VERSION
+    with season_db() as session:
+        rows = session.scalars(select(PredictionSnapshot)).all()
+        assert rows
+        assert {row.predictor_version for row in rows} == {HYBRID_PREDICTOR_VERSION}
+
+
+def test_official_ledger_ignores_retired_ranking_models_and_predictors(season_db):
     with season_db() as session:
         game = session.scalar(select(Game).where(Game.week == 3).order_by(Game.id))
         game.completed, game.home_points, game.away_points = True, 10, 30
@@ -174,15 +183,28 @@ def test_official_ledger_ignores_retired_ranking_models(season_db):
             projected_margin=40.0,
             home_win_probability=0.99,
         ))
+        active_snapshot = latest_snapshot(session, SEASON)
+        session.add(PredictionSnapshot(
+            game_id=game.id,
+            ranking_snapshot_id=active_snapshot.id,
+            predictor_version="rank_gap_v3",
+            created_at=KICKOFF,
+            official=True,
+            locked_at=game.start_time,
+            projected_home_points=45.0,
+            projected_away_points=0.0,
+            projected_margin=45.0,
+            home_win_probability=0.99,
+        ))
         session.commit()
 
-        # The retired row is already official, but the active model still locks its own.
         assert lock_started_predictions(session, now=game.start_time) >= 1
         active = session.scalars(
             select(PredictionSnapshot)
             .join(RankingSnapshot, RankingSnapshot.id == PredictionSnapshot.ranking_snapshot_id)
             .where(
                 PredictionSnapshot.game_id == game.id,
+                PredictionSnapshot.predictor_version == HYBRID_PREDICTOR_VERSION,
                 PredictionSnapshot.official.is_(True),
                 RankingSnapshot.model_version == "division_i_weighted_v5",
             )
@@ -192,6 +214,16 @@ def test_official_ledger_ignores_retired_ranking_models(season_db):
         metrics = overall_metrics(session, SEASON)
         assert metrics.games == 1
         assert metrics.spread_mae == pytest.approx(abs(active[0].projected_margin - -20))
+
+
+def test_hybrid_retrocast_is_the_active_historical_projection(season_db):
+    with season_db() as session:
+        game = session.scalar(select(Game).where(Game.week == 2).order_by(Game.id))
+        projection = retrocast_game(session, game)
+        assert projection is not None
+        assert projection.detail["method"] == HYBRID_PREDICTOR_VERSION
+        assert projection.detail["rank_weight"] == pytest.approx(0.4)
+        assert projection.detail["offdef_weight"] == pytest.approx(0.6)
 
 
 def test_session_memo_is_dropped_on_commit(season_db):
@@ -219,12 +251,13 @@ def test_all_filter_is_not_highlighted_inside_a_conference(season_db):
     assert 'class="active" href="/?week=2">All' in TestClient(app).get("/").text
 
 
-def test_rank_calculator_rejects_ranks_outside_the_pool(season_db):
-    html = TestClient(app).get("/tools/rank-calculator?rank_a=1&rank_b=7").text
-    assert "Ranks must be between 1 and 6" in html
-    assert "calculator-result" not in html
-    ok = TestClient(app).get("/tools/rank-calculator?rank_a=1&rank_b=6").text
-    assert "calculator-result" in ok
+def test_matchup_calculator_uses_hybrid_team_profiles(season_db):
+    html = TestClient(app).get("/tools/rank-calculator?home=alpha&away=echo").text
+    assert "Matchup calculator" in html
+    assert "hybrid_core_v1" in html
+    assert "calculator-result" in html
+    assert "Alpha" in html
+    assert "Echo" in html
 
 
 def test_week_dock_lists_scheduled_weeks_without_ellipsis(season_db):

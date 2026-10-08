@@ -2,7 +2,7 @@
 {% block title %}Week {{ prediction_week }} Game Book · {{ title }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div><div class="eyebrow">GAME BOOK</div><h1>Week {{ prediction_week }} game book</h1><p>Projected winner and score come directly from the ranking gap. Official pregame predictions lock at kickoff; research retrocasts are labeled separately.</p></div>
+  <div><div class="eyebrow">GAME BOOK</div><h1>Week {{ prediction_week }} game book</h1><p>Projected winner and score use the official <strong>hybrid_core_v1</strong> model: current ranking signal plus shrunk current-season offense/defense profiles. Official pregame predictions lock at kickoff; historical retrocasts are labeled separately.</p></div>
 </header>
 
 <section class="chapter-nav">
@@ -11,7 +11,7 @@
   <a href="/predictions?week={{ prediction_week + 1 }}&as_of={{ as_of_week or '' }}">Week {{ prediction_week + 1 }} →</a>
 </section>
 
-<div class="asof-line">Future projections: {% if as_of_week %}<strong>ranking after Week {{ as_of_week }}</strong>{% else %}<strong>latest completed ranking</strong>{% endif %}. Completed games without a historical locked prediction use a clearly labeled pregame-information retrocast.</div>
+<div class="asof-line">Future projections: {% if as_of_week %}<strong>ranking after Week {{ as_of_week }}</strong>{% else %}<strong>latest completed ranking</strong>{% endif %}. Completed games without an official hybrid lock use a clearly labeled leakage-safe hybrid retrocast.</div>
 
 <div class="game-list">
 {% for row in games %}
@@ -26,7 +26,7 @@
 
     <div class="game-projection">
       {% if p %}
-        <span class="lock-state">{% if row.prediction_kind == 'official' %}LOCKED{% elif row.prediction_kind == 'retrocast' %}RETROCAST{% else %}CURRENT{% endif %}</span>
+        <span class="lock-state">{% if row.prediction_kind == 'official' %}LOCKED HYBRID{% elif row.prediction_kind == 'retrocast' %}HYBRID RETROCAST{% else %}CURRENT HYBRID{% endif %}</span>
         <div class="score-pair compact">
           <div class="{% if p.projected_away_points > p.projected_home_points %}projected-winner{% endif %}"><span>{{ row.away.name }}</span><strong>{{ p.projected_away_points|score }}</strong></div>
           <div class="{% if p.projected_home_points > p.projected_away_points %}projected-winner{% endif %}"><span>{{ row.home.name }}</span><strong>{{ p.projected_home_points|score }}</strong></div>
@@ -38,7 +38,7 @@
         {% else %}<span>Even · 50.0%</span>{% endif %}
         <span class="projection-source">{% if row.prediction_source_week %}from ranking after Week {{ row.prediction_source_week }}{% endif %}</span>
       {% elif g.week == 1 %}
-        <span class="lock-state">T-1 BASELINE</span><span>No prior ranking gap exists yet.</span>
+        <span class="lock-state">T-1 BASELINE</span><span>No prior current-season ranking/offense-defense profile exists yet.</span>
       {% else %}<span class="lock-state">NO PROJECTION</span><span>Awaiting ranking/schedule data</span>{% endif %}
     </div>
 

@@ -5,13 +5,13 @@
   <div class="eyebrow">TEAM PAGE</div><h1>{{ team.name }}</h1>
   <div class="team-snapshot">
     {% if current_entry %}<span><strong>#{{ current_entry.rank }}</strong> current rank</span><span><strong>{{ current_entry.wins }}–{{ current_entry.losses }}</strong> record</span><span><strong>{{ current_entry.score|num }}</strong> avg score</span>{% else %}<span>Not ranked yet</span>{% endif %}
-    <span><strong>{{ team_metrics.winner_accuracy|pct if team_metrics.games else '—' }}</strong> official winner accuracy</span>
+    <span><strong>{{ team_metrics.winner_accuracy|pct if team_metrics.games else '—' }}</strong> official hybrid accuracy</span>
   </div>
 </header>
 
 <section class="chapter-nav"><a class="active" href="#schedule">Schedule + predictions</a><a href="#history">Rank history</a><a href="#accuracy">Accuracy</a></section>
 
-<div class="asof-line">Projection view: {% if as_of_week %}<strong>using rankings through Week {{ as_of_week }}</strong>{% else %}latest{% endif %}. {% for w in weeks %}<a href="/teams/{{ team.slug }}?as_of={{ w }}">W{{ w }}</a>{% endfor %}</div>
+<div class="asof-line">Projection view: {% if as_of_week %}<strong>using information through Week {{ as_of_week }}</strong>{% else %}latest{% endif %}. {% for w in weeks %}<a href="/teams/{{ team.slug }}?as_of={{ w }}">W{{ w }}</a>{% endfor %}</div>
 
 <section id="schedule">
   <div class="section-kicker">FULL SEASON</div><h2>Schedule</h2>
@@ -35,12 +35,12 @@
               <div class="{% if opp_score > team_score %}projected-winner{% endif %}"><span>{{ row.opponent.name }}</span><strong>{{ opp_score|score }}</strong></div>
             </div>
             <span class="subline">
-              {% if row.prediction_kind == 'official' %}LOCKED BEFORE KICKOFF
-              {% elif row.prediction_kind == 'retrocast' %}RETROCAST · RANKING AFTER WEEK {{ row.prediction_source_week }}
-              {% else %}CURRENT · RANKING AFTER WEEK {{ row.prediction_source_week }}{% endif %}
+              {% if row.prediction_kind == 'official' %}LOCKED HYBRID BEFORE KICKOFF
+              {% elif row.prediction_kind == 'retrocast' %}HYBRID RETROCAST · THROUGH WEEK {{ row.prediction_source_week }}
+              {% else %}CURRENT HYBRID · THROUGH WEEK {{ row.prediction_source_week }}{% endif %}
             </span>
           {% elif g.week == 1 %}
-            <span class="muted">T-1 baseline · no prior ranking gap</span>
+            <span class="muted">T-1 baseline · no prior current-season profile</span>
           {% else %}—{% endif %}
         </td>
         <td>
@@ -69,15 +69,15 @@
   </div>
 
   <div id="accuracy">
-    <div class="section-kicker">TEAM MODEL EFFICACY</div><h2>How the model reads {{ team.name }}</h2>
+    <div class="section-kicker">TEAM HYBRID EFFICACY</div><h2>How hybrid_core_v1 reads {{ team.name }}</h2>
     <div class="team-metrics"><div><strong>{{ team_metrics.winner_accuracy|pct if team_metrics.games else '—' }}</strong><span>official winner</span></div><div><strong>{{ team_metrics.spread_mae|num if team_metrics.games else '—' }}</strong><span>official margin MAE</span></div><div><strong>{{ team_metrics.score_mae|num if team_metrics.games else '—' }}</strong><span>official score MAE</span></div><div><strong>{{ team_metrics.brier|num(3) if team_metrics.games else '—' }}</strong><span>official Brier</span></div></div>
-    <p class="muted">{{ team_metrics.games }} locked pregame predictions evaluated for this team.</p>
+    <p class="muted">{{ team_metrics.games }} locked hybrid pregame predictions evaluated for this team.</p>
 
-    <div class="section-kicker research-kicker">RESEARCH RETROCAST</div>
+    <div class="section-kicker research-kicker">HYBRID RETROCAST</div>
     {% if team_retro_metrics.games %}
       <div class="team-metrics"><div><strong>{{ team_retro_metrics.winner_accuracy|pct }}</strong><span>retro winner</span></div><div><strong>{{ team_retro_metrics.spread_mae|num }}</strong><span>retro margin MAE</span></div><div><strong>{{ team_retro_metrics.score_mae|num }}</strong><span>retro score MAE</span></div><div><strong>{{ team_retro_metrics.brier|num(3) }}</strong><span>retro Brier</span></div></div>
-      <p class="muted">{{ team_retro_metrics.games }} completed games reconstructed only from the ranking available before each game. These do not count as official predictions.</p>
-    {% else %}<p class="muted">Retrocast evaluation begins with games that had a completed prior-week ranking.</p>{% endif %}
+      <p class="muted">{{ team_retro_metrics.games }} completed games reconstructed only from information available before each game. These do not count as official predictions.</p>
+    {% else %}<p class="muted">Hybrid retrocast evaluation begins with games that had a completed prior-week ranking.</p>{% endif %}
   </div>
 </section>
 {% endblock %}

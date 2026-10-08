@@ -20,7 +20,11 @@ from .cfbd import (
 from .config import Settings, get_settings
 from .db import SessionLocal, init_db
 from .models import Game
-from .prediction_service import generate_predictions_for_snapshot, lock_started_predictions
+from .prediction_service import (
+    HYBRID_PREDICTOR_VERSION,
+    generate_predictions_for_snapshot,
+    lock_started_predictions,
+)
 from .ranking_service import calculate_all_new_complete_weeks, latest_snapshot
 from .research_prediction_ledger import (
     generate_research_predictions_for_snapshot,
@@ -42,13 +46,6 @@ def _nearest_schedule_week(
     season: int,
     now: datetime | None = None,
 ) -> int:
-    """Choose the ranking week whose scheduled games are closest to now.
-
-    This deliberately does not depend only on the latest frozen ranking. If a
-    postponed or unusual game delays a ranking snapshot, schedule and score
-    syncing can still move on to the calendar week that is actually being
-    played.
-    """
     now = now or datetime.now(timezone.utc)
     lower = now - timedelta(hours=36)
     upper = now + timedelta(hours=36)
@@ -82,12 +79,6 @@ def _nearest_schedule_week(
 
 
 def _next_delay_minutes(settings: Settings, now: datetime | None = None) -> int:
-    """Poll on the live cadence while any game is in progress, else idle.
-
-    The schedule in PostgreSQL decides the cadence, not the day of the week, so
-    weeknight games and Saturday games that finish after local midnight are
-    covered the same way.
-    """
     now = now or datetime.now(timezone.utc)
     try:
         with SessionLocal() as session:
@@ -105,11 +96,6 @@ def _rate_limit_delay_minutes(
     settings: Settings,
     retry_after_seconds: int | None = None,
 ) -> int:
-    """Exponential 429 cooldown capped at the configured maximum.
-
-    A Retry-After header from CFBD is always honored even when it is longer
-    than the configured exponential backoff.
-    """
     exponent = max(consecutive_rate_limits - 1, 0)
     calculated = min(
         settings.sync_rate_limit_base_minutes * (2 ** min(exponent, 8)),
@@ -120,35 +106,77 @@ def _rate_limit_delay_minutes(
     return calculated
 
 
+def _generate_active_predictions(session: Session, settings: Settings) -> None:
+    """Generate current official rows from local data only.
+
+    Run this before provider access so a CFBD outage or quota response cannot
+    leave a freshly promoted predictor with no Game Book projections. Running
+    it again after provider/ranking work is safe because generation is
+    idempotent per game/ranking-snapshot/predictor version.
+    """
+    current_snapshot = latest_snapshot(session, settings.season)
+    if current_snapshot is None:
+        return
+
+    created = generate_predictions_for_snapshot(session, current_snapshot)
+    if created:
+        LOGGER.info(
+            "Created %s %s projections from Week %s ranking",
+            created,
+            settings.predictor_version,
+            current_snapshot.week,
+        )
+
+    if settings.predictor_version != HYBRID_PREDICTOR_VERSION:
+        try:
+            research_created = generate_research_predictions_for_snapshot(
+                session,
+                current_snapshot,
+            )
+            if research_created:
+                LOGGER.info(
+                    "Created %s hybrid research projections from Week %s ranking",
+                    research_created,
+                    current_snapshot.week,
+                )
+        except Exception:
+            LOGGER.exception("Research prediction generation failed")
+
+
 def _sync_cycle(full_schedule: bool = False) -> None:
     settings = get_settings()
     client = CFBDClient()
     with SessionLocal() as session:
         bootstrap_bundled_rankings(session)
 
-        # Prediction integrity is local database work and must not depend on the
-        # upstream provider being reachable. This also catches up correctly
-        # after an outage by selecting only predictions created before kickoff.
+        # Lock first: a row created at/after kickoff must never become an
+        # official pregame prediction merely because this cycle generated it.
         locked = lock_started_predictions(session)
         if locked:
             LOGGER.info("Locked %s pregame predictions", locked)
 
-        # Research shadow locking is also local-only and runs before provider
-        # access. Experimental failures must never block the official worker.
-        try:
-            research_locked = lock_started_research_predictions(session)
-            if research_locked:
-                LOGGER.info(
-                    "Locked %s pregame research predictions",
-                    research_locked,
-                )
-        except Exception:
-            LOGGER.exception("Research prediction locking failed")
+        # hybrid_core_v1 is official beginning with v0.11.0, so do not create
+        # or lock a duplicate copy of that same model in the shadow table.
+        if settings.predictor_version != HYBRID_PREDICTOR_VERSION:
+            try:
+                research_locked = lock_started_research_predictions(session)
+                if research_locked:
+                    LOGGER.info(
+                        "Locked %s pregame research predictions",
+                        research_locked,
+                    )
+            except Exception:
+                LOGGER.exception("Research prediction locking failed")
+
+        # Prediction generation is also local work. This is especially
+        # important on the first v0.11.0 cycle, when hybrid rows may not exist
+        # yet in the production prediction table.
+        _generate_active_predictions(session, settings)
 
         if not client.configured:
             LOGGER.warning(
-                "CFBD_API_KEY is not configured. Bundled rankings are available, "
-                "but automatic schedules, scores, stats, and predictions are paused."
+                "CFBD_API_KEY is not configured. Existing local schedules and "
+                "hybrid projections remain available, but provider sync is paused."
             )
             return None
 
@@ -156,7 +184,6 @@ def _sync_cycle(full_schedule: bool = False) -> None:
         if full_schedule:
             count = sync_games(session, client, settings.season)
             LOGGER.info("Full %s schedule sync: %s games", settings.season, count)
-            synced_week = None
             try:
                 context_rows = sync_team_context(
                     session,
@@ -169,8 +196,6 @@ def _sync_cycle(full_schedule: bool = False) -> None:
                     context_rows,
                 )
             except CFBDRateLimitError as exc:
-                # Static context is research-only. Preserve local ranking and
-                # prediction work, then hand the 429 to normal cooldown logic.
                 rate_limit_error = exc
             except Exception:
                 LOGGER.exception(
@@ -181,8 +206,6 @@ def _sync_cycle(full_schedule: bool = False) -> None:
             count = sync_games(session, client, settings.season, week=synced_week)
             LOGGER.info("Week %s game sync: %s games", synced_week, count)
 
-        # A successful score/schedule refresh may make one or more sequential
-        # weeks complete. Ranking rules themselves are unchanged.
         created_weeks = calculate_all_new_complete_weeks(session, settings.season)
         if created_weeks and rate_limit_error is None:
             LOGGER.info("Created official ranking snapshots: %s", created_weeks)
@@ -191,8 +214,6 @@ def _sync_cycle(full_schedule: bool = False) -> None:
                     stats = sync_game_team_stats(session, client, settings.season, week)
                     LOGGER.info("Week %s team stats sync: %s rows", week, stats)
                 except CFBDRateLimitError as exc:
-                    # Team stats are optional. Finish local prediction work
-                    # before handing the 429 to the outer cooldown logic.
                     rate_limit_error = exc
                     break
                 except Exception:
@@ -201,28 +222,9 @@ def _sync_cycle(full_schedule: bool = False) -> None:
                         week,
                     )
 
-        current_snapshot = latest_snapshot(session, settings.season)
-        if current_snapshot is not None:
-            created = generate_predictions_for_snapshot(session, current_snapshot)
-            if created:
-                LOGGER.info(
-                    "Created %s projections from Week %s ranking",
-                    created,
-                    current_snapshot.week,
-                )
-            try:
-                research_created = generate_research_predictions_for_snapshot(
-                    session,
-                    current_snapshot,
-                )
-                if research_created:
-                    LOGGER.info(
-                        "Created %s hybrid research projections from Week %s ranking",
-                        research_created,
-                        current_snapshot.week,
-                    )
-            except Exception:
-                LOGGER.exception("Research prediction generation failed")
+        # Provider work may have loaded a newer schedule or created a new
+        # ranking snapshot, so run the same idempotent local generation again.
+        _generate_active_predictions(session, settings)
 
         if rate_limit_error is not None:
             raise rate_limit_error

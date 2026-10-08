@@ -28,7 +28,7 @@
 
     <section class="side-group">
       <div class="side-label">TOOLS</div>
-      <a href="/tools/rank-calculator">Rank calculator</a>
+      <a href="/tools/rank-calculator">Matchup calculator</a>
       <a href="/compare">Compare teams</a>
     </section>
 
@@ -75,16 +75,16 @@
   </div>
   <div class="ticker-row">
     {% if metrics.games %}
-      <span class="ticker-mode">OFFICIAL</span>
+      <span class="ticker-mode">OFFICIAL HYBRID</span>
       <a href="/stats?metric=winner_accuracy"><strong>{{ metrics.winner_accuracy|pct }}</strong> winner</a>
       <a href="/stats?metric=spread_mae"><strong>{{ metrics.spread_mae|num }}</strong> margin MAE</a>
       <a href="/stats?metric=brier"><strong>{{ metrics.brier|num(3) }}</strong> Brier</a>
       <a href="/stats?metric=rank_result_correlation"><strong>{{ metrics.rank_result_correlation|num(2) if metrics.rank_result_correlation is not none else '—' }}</strong> rank corr.</a>
-      <span class="ticker-note">Locked pregame ledger</span>
+      <span class="ticker-note">hybrid_core_v1 locked pregame ledger</span>
     {% else %}
-      <span class="ticker-mode">OFFICIAL PENDING</span>
-      <a href="/stats"><strong>Research</strong> retrocast stats available →</a>
-      <span class="ticker-note">Official accuracy starts with predictions actually locked before kickoff</span>
+      <span class="ticker-mode">OFFICIAL HYBRID PENDING</span>
+      <a href="/stats"><strong>Hybrid</strong> retrocast stats available →</a>
+      <span class="ticker-note">Official hybrid accuracy begins with predictions created after promotion</span>
     {% endif %}
   </div>
 </footer>

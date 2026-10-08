@@ -2,10 +2,15 @@
 
 ## Current release checks
 - [x] FBS/FCS and conference display ranks are derived from national D-I order before filtering/search.
-- [x] Research predictions use a table separate from official prediction snapshots.
-- [x] Shadow locking ignores rows created after kickoff.
+- [x] Production ranking remains `division_i_weighted_v5`.
+- [x] Official predictor is `hybrid_core_v1` beginning with v0.11.0.
 - [x] Hybrid score normalization preserves margin when a projected score would be negative.
 - [x] Hybrid display rounding cannot show a tie against a non-zero modeled margin.
+- [x] Hybrid uses completed current-season Division I scoring profiles only and shrinks with three pseudo-games.
+- [x] Historical hybrid retrocasts use only the prior weekly ranking and scoring data available through that prior week.
+- [x] Pre-promotion `rank_gap_v3` official rows remain immutable and are excluded from the active hybrid ledger.
+- [x] Pre-promotion hybrid shadow rows remain stored for audit and are not rewritten as official predictions.
+- [x] The worker does not create duplicate base hybrid shadow rows after hybrid_core_v1 becomes official.
 - [x] Research context tests cover neutral sites, travel, altitude/weather stacking, capped travel, and conference-relative stadium grades.
 - [x] GitHub Actions runs the repository pytest suite on every push and pull request.
 - [x] Manual-score tests cover admin credentials and CSRF validation.
@@ -23,17 +28,22 @@
 - [x] Inactive current-season teams are excluded from Team Index and Compare Teams.
 - [x] `.env` is ignored by Git.
 - [x] VERSION, CHANGELOG, and release notes are maintained per release.
-- [ ] Docker Compose v0.10.2 must be smoke-tested on the target Synology after deployment.
-- [ ] Confirm the production Penn/Pennsylvania repair output and that the next frozen ranking excludes the legacy Penn row.
-- [ ] Confirm kickoff locking plus live CFBD polling during the next weeknight or Saturday game.
+- [ ] Docker Compose v0.11.0 must be smoke-tested on the target Synology after deployment.
+- [ ] Confirm `/health` reports `predictor_version=hybrid_core_v1`.
+- [ ] Confirm current/future Game Book rows and team-page rows are hybrid projections.
+- [ ] Confirm the Accuracy hybrid retrocast reproduces the expected Weeks 3–5 improvement before relying on the live official sample.
+- [ ] Confirm a new hybrid prediction locks at kickoff during the next live game.
 - [ ] The production `/admin/games` page must be smoke-tested over HTTPS with the generated admin credentials.
 
 ## Production invariants
-- Research/shadow predictions never set the official Game Book flag and never replace official prediction snapshots.
-- Research context adjustments do not change division_i_weighted_v5 or rank_gap_v3.
 - A completed week creates at most one official ranking snapshot per active model version.
 - A started game receives at most one official locked prediction per active model/predictor combination.
 - Later projections never overwrite an official prediction.
+- Retired predictor rows remain immutable historical records.
+- Active Game Book/Accuracy/team prediction views use only the configured active predictor version.
+- Historical retrocasts never write official prediction rows and never count in official locked accuracy.
+- The prediction model may choose a lower-ranked team; this never changes ranking position or ranking points.
+- Context adjustments remain outside the official hybrid predictor until separately approved.
 - Current Division I membership is reconciled only from a sufficiently complete full-season schedule; targeted weekly polls never deactivate teams.
 - Provider team identity prefers durable CFBD IDs; known legacy aliases cannot create a second active current-season school.
 - Public web routes remain read-only.
@@ -41,4 +51,4 @@
 - An active manual override prevents CFBD from replacing that game's score/final fields.
 - A manual score cannot be edited or released after the active production ranking model has frozen that week.
 - Every manual score save/release creates an audit row.
-- `/health` verifies the database connection and reports ranking, live-game, and data-sync state.
+- `/health` verifies the database connection and reports ranking, predictor, live-game, and data-sync state.
