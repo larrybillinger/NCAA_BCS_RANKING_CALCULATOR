@@ -95,7 +95,7 @@ def test_rate_limit_backoff_grows_and_caps():
     assert worker._rate_limit_delay_minutes(1, settings, retry_after_seconds=30_000) == 500
 
 
-def test_prediction_locking_happens_before_provider_failure(monkeypatch):
+def test_prediction_lock_and_generation_happen_before_provider_failure(monkeypatch):
     order = []
 
     class FakeSessionContext:
@@ -115,6 +115,11 @@ def test_prediction_locking_happens_before_provider_failure(monkeypatch):
         "lock_started_predictions",
         lambda session: order.append("lock") or 0,
     )
+    monkeypatch.setattr(
+        worker,
+        "_generate_active_predictions",
+        lambda session, settings: order.append("generate"),
+    )
     monkeypatch.setattr(worker, "CFBDClient", lambda: FakeClient())
 
     def fail_sync(*args, **kwargs):
@@ -126,7 +131,7 @@ def test_prediction_locking_happens_before_provider_failure(monkeypatch):
     with pytest.raises(CFBDRateLimitError):
         worker._sync_cycle(full_schedule=True)
 
-    assert order == ["lock", "sync"]
+    assert order == ["lock", "generate", "sync"]
 
 
 CENTRAL = ZoneInfo("America/Chicago")
