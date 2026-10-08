@@ -1,5 +1,78 @@
 # Changelog
 
+## v0.10.2 — 2026-10-08
+
+### Live score sync
+- The worker's cadence now comes from the schedule in PostgreSQL, not the day of the week. It wakes at the next Division I kickoff so eligible pregame predictions lock immediately, then polls every `SYNC_LIVE_MINUTES` (default 60) while any Division I game is in progress.
+- A game counts as live for up to 8 hours after kickoff, so late Saturday games keep live polling after midnight Central until CFBD marks them final, and a cancelled or never-finalized game cannot keep the worker in live mode indefinitely.
+- With no upcoming or live game, the worker sleeps no longer than `SYNC_IDLE_MINUTES` (default 1440).
+- New settings `SYNC_LIVE_MINUTES` and `SYNC_IDLE_MINUTES` replace `SYNC_SATURDAY_MINUTES` and `SYNC_OTHER_DAYS_MINUTES`. The old names are still read as fallbacks, and the Synology updater copies existing values to the new names.
+- Browser auto-refresh on Game Book and team pages uses the same live window.
+
+### Team identity and ranking repair
+- Provider team resolution now prefers the durable CFBD ID and supports known historical aliases, preventing a legacy `Penn` row from coexisting with provider name `Pennsylvania` as two active FCS teams.
+- Full-season schedule syncs reconcile the active Division I roster. Reconciliation fails closed if more than roughly 2% of the existing active pool is absent from the provider schedule, preventing a partial response from mass-deactivating teams.
+- Team Index and Compare Teams now exclude inactive current-season teams.
+- The production repair preserves retired-model history, deactivates the legacy Penn season row, repoints current game/stat references, removes contaminated active `division_i_weighted_v5` snapshots from the first affected week forward, and rebuilds them from corrected data.
+- Predictions derived from removed corrupted snapshots are removed rather than being retroactively presented as official corrected predictions.
+
+### Deployment safety
+- The ordinary Synology update now creates a PostgreSQL dump and protected `.env` backup in addition to the application backup before the identity/ranking repair runs.
+- Web and worker containers are stopped during the controlled repair so old code cannot write rankings concurrently.
+
+### Sync status
+- The sidebar marks CFBD data stale after 1.5 live intervals (90 minutes by default) while games are in progress, and after 36 hours otherwise. Previously a weeknight game could run for a day with the sidebar still showing "CFBD OK".
+- `/health` reports `live_games`.
+
+### Ranking page
+- The conference dropdown lists only conferences in the selected subdivision.
+- "All" is highlighted only when no subdivision or conference filter is active.
+- Invalid `subdivision` values are ignored instead of emptying the conference list.
+
+### Tools and navigation
+- The rank calculator rejects ranks outside the current Division I pool instead of accepting anything up to 400.
+- The week dock lists every scheduled regular-season week; the "…" link, which pointed back to the next week, is gone.
+
+### Tests
+- Worker schedule tests cover weeknight games, Saturday games after midnight, exact-kickoff wake-up, immediate kickoff locking, the 8-hour cap, and stale thresholds.
+- Team-identity tests cover alias reuse, guarded roster reconciliation, inactive-team filtering, and rebuilding a contaminated active-model ranking without the duplicate.
+- Site tests cover the conference dropdown, the "All" highlight, calculator validation, the week dock, and the sidebar going stale during a live game.
+
+### Production safety
+- No ranking or prediction formula changes: `division_i_weighted_v5` / `rank_gap_v3`.
+
+## v0.10.1 — 2026-10-06
+
+### Ranking page
+- The default view shows national rank only; subdivision and conference rank columns appear only when FBS, FCS, or a conference is selected.
+- FBS/FCS views show the subdivision rank plus a D-I column; conference views show the conference rank, the conference's FBS or FCS rank, and the D-I rank.
+- The redundant Div. column is hidden in filtered views.
+
+### Accuracy page
+- Fixed the page timing out. Rank-gap calibration, ranking lookups, and hybrid scoring profiles are now computed once per request instead of once per game (about 17 s down to under 1 s with five completed weeks).
+- Season and weekly retrocast metrics come from one pass over the games instead of two.
+- Unknown `metric` values fall back to winner accuracy; added a rank-correlation tile.
+- The duplicated chart markup is now one template macro.
+
+### Official ledger
+- Official accuracy (Accuracy page, footer ticker, team pages) now counts only predictions built from the active `MODEL_VERSION` ranking snapshots. Locked rows from retired models (v1–v4) remain stored but no longer mix into v5 results.
+- Kickoff locking now considers only the active model's prediction rows, so a retired model's earlier lock no longer prevents the active model's pregame prediction from locking.
+
+### Cleanup
+- Game Book kickoff times use the configured local timezone instead of UTC.
+- Unplayed games show UPCOMING or IN PROGRESS instead of the calibration sample size.
+- Removed the rank calculator's neutral-site checkbox; the v3 predictor ignores site by design.
+- Fixed a CSS rule that forced the four-column Game Book layout onto phones; the Accuracy metric strip now wraps cleanly.
+- Renamed the ranking page's "Model stats" tab to "Accuracy" to match the sidebar.
+- Method notes explain how FBS, FCS, and conference views are derived.
+- Kickoff comparisons are timezone-safe for local SQLite development.
+
+### Tests
+- Added `tests/test_site.py`: every public page renders, ranking columns follow the selected view, retired-model predictions stay out of the official ledger and locking, and the request cache resets on commit.
+
+### Production safety
+- No ranking or prediction formula changes: `division_i_weighted_v5` / `rank_gap_v3`.
+
 ## v0.10.0 — 2026-10-05
 
 ### Ranking views
@@ -128,7 +201,7 @@
 - Actual scoring margin remains a direct scoring component.
 - Added a +7 site adjustment for an away win.
 - Added a -7 site adjustment for a home loss.
-- Home wins, away losses, and neutral-site results receive no site adjustment.
+- Home wins, away losses, and neutral-site results receive no site points.
 - Production ranking model is now `division_i_weighted_v4`.
 
 ### Division I / FCS clarity

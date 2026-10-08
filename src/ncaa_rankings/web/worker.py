@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta, timezone
 import logging
 import math
 import time
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -27,6 +26,7 @@ from .research_prediction_ledger import (
     generate_research_predictions_for_snapshot,
     lock_started_research_predictions,
 )
+from .sync_schedule import poll_delay_minutes, schedule_state
 
 logging.basicConfig(
     level=logging.INFO,
@@ -81,33 +81,23 @@ def _nearest_schedule_week(
     return (snapshot.week + 1) if snapshot else 1
 
 
-def _scheduled_delay_minutes(
-    now: datetime,
-    settings: Settings,
-) -> int:
-    """Poll hourly on Saturday and once per day otherwise.
+def _next_delay_minutes(settings: Settings, now: datetime | None = None) -> int:
+    """Poll on the live cadence while any game is in progress, else idle.
 
-    If the daily sleep would cross into Saturday, wake at local midnight so the
-    worker immediately switches to the Saturday hourly cadence.
+    The schedule in PostgreSQL decides the cadence, not the day of the week, so
+    weeknight games and Saturday games that finish after local midnight are
+    covered the same way.
     """
-    local_now = now.astimezone(ZoneInfo(settings.timezone))
-    if local_now.weekday() == 5:
-        return settings.sync_saturday_minutes
-
-    next_midnight = (local_now + timedelta(days=1)).replace(
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0,
-    )
-    if next_midnight.weekday() == 5:
-        minutes_until_saturday = max(
-            1,
-            math.ceil((next_midnight - local_now).total_seconds() / 60),
-        )
-        return min(settings.sync_other_days_minutes, minutes_until_saturday)
-
-    return settings.sync_other_days_minutes
+    now = now or datetime.now(timezone.utc)
+    try:
+        with SessionLocal() as session:
+            state = schedule_state(session, settings.season, now)
+    except Exception:
+        LOGGER.exception("Could not read the schedule; using the live cadence")
+        return settings.sync_live_minutes
+    if state.live_games:
+        LOGGER.info("%s Division I games in progress", state.live_games)
+    return poll_delay_minutes(now, state, settings)
 
 
 def _rate_limit_delay_minutes(
@@ -257,17 +247,14 @@ def main() -> None:
             or now - last_full_schedule_at
             >= timedelta(hours=settings.sync_full_schedule_hours)
         )
-        sleep_minutes = _scheduled_delay_minutes(now, settings)
+        sleep_minutes = _next_delay_minutes(settings, now)
 
         try:
             _sync_cycle(full_schedule=full_schedule)
             if full_schedule:
                 last_full_schedule_at = now
             consecutive_rate_limits = 0
-            sleep_minutes = _scheduled_delay_minutes(
-                datetime.now(timezone.utc),
-                settings,
-            )
+            sleep_minutes = _next_delay_minutes(settings)
         except CFBDRateLimitError as exc:
             consecutive_rate_limits += 1
             sleep_minutes = _rate_limit_delay_minutes(
@@ -283,10 +270,7 @@ def main() -> None:
             )
         except Exception:
             LOGGER.exception("Automatic sync cycle failed")
-            sleep_minutes = _scheduled_delay_minutes(
-                datetime.now(timezone.utc),
-                settings,
-            )
+            sleep_minutes = _next_delay_minutes(settings)
 
         if args.once:
             return

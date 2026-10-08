@@ -9,7 +9,13 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .models import Game, PredictionSnapshot, ResearchPredictionSnapshot, SourceSyncRun
+from .models import (
+    Game,
+    PredictionSnapshot,
+    RankingSnapshot,
+    ResearchPredictionSnapshot,
+    SourceSyncRun,
+)
 from .prediction_service import retrocast_game
 from .research_prediction_service import HYBRID_VERSION
 
@@ -35,12 +41,16 @@ def _prediction_rows(
     team_id: int | None = None,
 ) -> list[tuple[PredictionSnapshot, Game]]:
     settings = get_settings()
+    # Only predictions built from the active production ranking model count.
+    # Retired models' locked rows stay in the database but not in this ledger.
     query = (
         select(PredictionSnapshot, Game)
         .join(Game, Game.id == PredictionSnapshot.game_id)
+        .join(RankingSnapshot, RankingSnapshot.id == PredictionSnapshot.ranking_snapshot_id)
         .where(
             Game.season == season,
             Game.completed.is_(True),
+            RankingSnapshot.model_version == settings.model_version,
             PredictionSnapshot.predictor_version == settings.predictor_version,
             PredictionSnapshot.official.is_(True),
             Game.home_points.is_not(None),
@@ -217,21 +227,9 @@ def weekly_research_metrics(
     *,
     model_version: str = HYBRID_VERSION,
 ) -> list[dict]:
-    grouped: dict[int, list[tuple[ResearchPredictionSnapshot, Game]]] = defaultdict(list)
-    for prediction, game in _research_prediction_rows(
-        session,
-        season,
-        model_version=model_version,
-    ):
-        grouped[game.week].append((prediction, game))
-    return [
-        {"week": week, "metrics": _metrics(grouped[week])}
-        for week in sorted(grouped)
-    ]
-
-
-def retrocast_metrics(session: Session, season: int) -> AccuracyMetrics:
-    return _metrics(_retrocast_rows(session, season))
+    return _weekly(
+        _research_prediction_rows(session, season, model_version=model_version)
+    )
 
 
 def team_retrocast_metrics(
@@ -242,14 +240,20 @@ def team_retrocast_metrics(
     return _metrics(_retrocast_rows(session, season, team_id=team_id))
 
 
-def weekly_retrocast_metrics(session: Session, season: int) -> list[dict]:
+def _weekly(rows: list[tuple[object, Game]]) -> list[dict]:
     grouped: dict[int, list[tuple[object, Game]]] = defaultdict(list)
-    for projection, game in _retrocast_rows(session, season):
-        grouped[game.week].append((projection, game))
+    for prediction, game in rows:
+        grouped[game.week].append((prediction, game))
     return [
         {"week": week, "metrics": _metrics(grouped[week])}
         for week in sorted(grouped)
     ]
+
+
+def retrocast_summary(session: Session, season: int) -> tuple[AccuracyMetrics, list[dict]]:
+    """Season and week-by-week retrocast metrics from one pass over the games."""
+    rows = _retrocast_rows(session, season)
+    return _metrics(rows), _weekly(rows)
 
 
 def overall_metrics(session: Session, season: int) -> AccuracyMetrics:
@@ -261,14 +265,7 @@ def team_metrics(session: Session, season: int, team_id: int) -> AccuracyMetrics
 
 
 def weekly_metrics(session: Session, season: int) -> list[dict]:
-    grouped: dict[int, list[tuple[PredictionSnapshot, Game]]] = defaultdict(list)
-    for prediction, game in _prediction_rows(session, season):
-        grouped[game.week].append((prediction, game))
-    results: list[dict] = []
-    for week in sorted(grouped):
-        metric = _metrics(grouped[week])
-        results.append({"week": week, "metrics": metric})
-    return results
+    return _weekly(_prediction_rows(session, season))
 
 
 def latest_sync_attempt(session: Session) -> SourceSyncRun | None:

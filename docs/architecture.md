@@ -12,11 +12,14 @@ A separate Python process:
 
 1. imports bundled ranking snapshots on a fresh database;
 2. synchronizes the season schedule/results from CFBD;
-3. polls once per day Sunday-Friday and once per hour Saturday;
-4. locks predictions independently of provider availability;
-5. syncs team game stats after a week is complete;
-6. creates the next immutable ranking snapshot;
-7. generates a new set of future projections from that snapshot.
+3. while idle, wakes at the next Division I kickoff (or the idle deadline, whichever comes first);
+4. locks eligible official and research predictions locally before provider access;
+5. polls every `SYNC_LIVE_MINUTES` while any Division I game is in progress, on any day;
+6. syncs team game stats after a week is complete;
+7. creates the next immutable ranking snapshot;
+8. generates a new set of future projections from that snapshot.
+
+A full-season schedule refresh also reconciles active FBS/FCS membership. Team identity prefers the durable CFBD team ID, with explicit aliases for historical local names that predate that ID. Reconciliation fails closed when provider coverage is materially incomplete.
 
 ### PostgreSQL
 PostgreSQL is the production source of truth for normalized external facts, manual operational overrides, audit history, and all derived snapshots.
@@ -26,6 +29,8 @@ An active manual score override has precedence over CFBD for `completed`, `home_
 ## Immutable state
 
 `ranking_snapshots` are official completed-week states. `prediction_snapshots` preserve the ranking snapshot and predictor version used for each projection. The latest pregame projection is marked official at kickoff and is not overwritten.
+
+The normal rule is that official ranking snapshots are immutable. The v0.10.2 Penn/Pennsylvania production repair is an explicit data-integrity correction: it first backs up PostgreSQL, preserves retired-model history, removes only contaminated active-model snapshots from the first affected week forward, and deterministically rebuilds those weeks from corrected normalized data.
 
 ## Prediction model
 

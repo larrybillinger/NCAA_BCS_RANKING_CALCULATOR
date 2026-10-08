@@ -1,5 +1,29 @@
 # Version history
 
+## 0.10.2 — Game-aware live sync and team-identity repair
+
+- Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.
+- Wake at the next Division I kickoff so eligible pregame predictions lock immediately, then poll CFBD on the live cadence while games are in progress on any day.
+- Keep polling Saturday games that run past local midnight until they are final, with an eight-hour cap for abandoned/non-finalized games.
+- Resolve provider teams by durable CFBD ID and bridge the known legacy `Penn` / `Pennsylvania` identity.
+- Reconcile the active Division I roster from full-season schedule data with a fail-closed missing-team tolerance of roughly 2%.
+- Repair contaminated active-model ranking snapshots from the first affected week forward while preserving retired-model history and a pre-repair PostgreSQL backup.
+- Mark sidebar data stale after 1.5 live intervals while games are in progress.
+- Offer only conferences in the selected subdivision; highlight "All" only when no filter is active.
+- Validate rank calculator input against the current pool size.
+- Show every scheduled week in the week dock and remove the misleading ellipsis.
+
+## 0.10.1 — Site cleanup
+
+- Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.
+- Show FBS/FCS, conference, and D-I rank columns only when a subdivision or conference view is selected.
+- Make the Accuracy page load in well under a second instead of timing out.
+- Count only predictions built from the active ranking model in the official accuracy ledger.
+- Lock the active model's own pregame prediction even when a retired model's row was locked first.
+- Show Game Book kickoff times in local time and replace calibration jargon with game status.
+- Remove the rank calculator's neutral-site checkbox, which never changed the projection.
+- Add site-wide page regression tests.
+
 ## 0.10.0 — Scoped rankings and research shadow predictions
 
 - Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.

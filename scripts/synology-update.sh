@@ -100,6 +100,23 @@ if [ -d "$APP" ]; then
   tar -czf "$BACKUPS/app-$STAMP.tar.gz" -C "$ROOT" app
 fi
 
+# v0.10.2 includes a controlled repair of a duplicate provider identity. Take
+# a real database backup before any application files or ranking snapshots are
+# changed. Preserve the production environment beside it for disaster recovery.
+if [ -d "$APP" ] && [ -f "$APP/docker-compose.yml" ]; then
+  cd "$APP"
+  echo "Ensuring PostgreSQL is running for backup..."
+  compose --env-file "$ENV_FILE" up -d db
+  echo "Backing up PostgreSQL..."
+  compose --env-file "$ENV_FILE" exec -T db sh -c '
+    until pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; do sleep 1; done
+    pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"
+  ' | gzip > "$BACKUPS/postgres-$STAMP.sql.gz"
+  cp "$ENV_FILE" "$BACKUPS/env-$STAMP"
+  chmod 600 "$BACKUPS/env-$STAMP"
+  cd /
+fi
+
 echo "Downloading latest source..."
 download "$ARCHIVE" "$TMP/source.tar.gz"
 tar -xzf "$TMP/source.tar.gz" -C "$TMP/archive"
@@ -133,8 +150,12 @@ if [ -f "$SOURCE_DIR/.env.example" ]; then
 
   # Add quota-safe worker defaults to older installs without overwriting any
   # values the administrator has explicitly customized.
-  ensure_env_key SYNC_SATURDAY_MINUTES 60
-  ensure_env_key SYNC_OTHER_DAYS_MINUTES 1440
+  # v0.10.2 replaced the Saturday/other-day cadence with a game-aware
+  # live/idle cadence. Carry over any value set under the old names.
+  OLD_LIVE="$(awk -F= '/^SYNC_SATURDAY_MINUTES=/{print $2}' "$ENV_FILE" | tail -n 1)"
+  OLD_IDLE="$(awk -F= '/^SYNC_OTHER_DAYS_MINUTES=/{print $2}' "$ENV_FILE" | tail -n 1)"
+  ensure_env_key SYNC_LIVE_MINUTES "${OLD_LIVE:-60}"
+  ensure_env_key SYNC_IDLE_MINUTES "${OLD_IDLE:-1440}"
   ensure_env_key SYNC_FULL_SCHEDULE_HOURS 24
   ensure_env_key SYNC_RATE_LIMIT_BASE_MINUTES 360
   ensure_env_key SYNC_RATE_LIMIT_MAX_MINUTES 1440
@@ -157,6 +178,15 @@ docker build -t ncaa-rankings-app:latest .
 
 echo "Ensuring PostgreSQL is running..."
 compose --env-file "$ENV_FILE" up -d db
+
+# Do not let the old worker write rankings while the identity repair removes
+# and rebuilds affected active-model snapshots.
+echo "Stopping application containers for controlled data repair..."
+compose --env-file "$ENV_FILE" stop worker web >/dev/null 2>&1 || true
+
+echo "Checking and repairing known duplicate team identities..."
+compose --env-file "$ENV_FILE" run --rm --no-deps web \
+  python -m ncaa_rankings.web.repair_team_identity --apply
 
 echo "Recreating web and worker from the new image..."
 compose --env-file "$ENV_FILE" up -d --no-deps --force-recreate web worker
@@ -237,7 +267,13 @@ docker image prune -f >/dev/null 2>&1 || true
 
 echo
 echo "Update complete."
-echo "Backup: $BACKUPS/app-$STAMP.tar.gz"
+echo "Application backup: $BACKUPS/app-$STAMP.tar.gz"
+if [ -f "$BACKUPS/postgres-$STAMP.sql.gz" ]; then
+  echo "PostgreSQL backup: $BACKUPS/postgres-$STAMP.sql.gz"
+fi
+if [ -f "$BACKUPS/env-$STAMP" ]; then
+  echo "Environment backup: $BACKUPS/env-$STAMP"
+fi
 echo
 echo "Verified active release:"
 echo "$HEALTH"

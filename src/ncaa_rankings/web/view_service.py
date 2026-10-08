@@ -9,6 +9,7 @@ from .config import get_settings
 from .models import Game, RankingEntry, RankingSnapshot, Team, TeamSeason
 from .prediction_service import latest_prediction, retrocast_game
 from .ranking_service import latest_snapshot
+from .utils import as_utc
 
 
 def available_ranking_weeks(session: Session, season: int) -> list[int]:
@@ -138,7 +139,7 @@ def game_rows_for_week(
         prediction_kind = None
         prediction_source_week = None
 
-        if game.completed or (game.start_time and game.start_time <= now):
+        if game.completed or (game.start_time and as_utc(game.start_time) <= now):
             prediction = latest_prediction(session, game.id, official_only=True)
             if prediction is not None:
                 prediction_kind = "official"
@@ -163,6 +164,7 @@ def game_rows_for_week(
             "prediction": prediction,
             "prediction_kind": prediction_kind,
             "prediction_source_week": prediction_source_week,
+            "started": bool(game.start_time and as_utc(game.start_time) <= now),
             "actual_margin": (game.home_points - game.away_points if game.home_points is not None and game.away_points is not None else None),
         })
     return rows
@@ -191,7 +193,7 @@ def team_schedule_rows(
         prediction_source_week = None
         official_prediction = latest_prediction(session, game.id, official_only=True)
 
-        if game.completed or (game.start_time and game.start_time <= now):
+        if game.completed or (game.start_time and as_utc(game.start_time) <= now):
             prediction = official_prediction
             if prediction is not None:
                 prediction_kind = "official"
@@ -257,6 +259,10 @@ def all_teams(session: Session, season: int) -> list[tuple[Team, TeamSeason]]:
     return list(session.execute(
         select(Team, TeamSeason)
         .join(TeamSeason, TeamSeason.team_id == Team.id)
-        .where(TeamSeason.season == season, TeamSeason.subdivision.in_(("FBS", "FCS")))
+        .where(
+            TeamSeason.season == season,
+            TeamSeason.active.is_(True),
+            TeamSeason.subdivision.in_(("FBS", "FCS")),
+        )
         .order_by(Team.name)
     ).all())

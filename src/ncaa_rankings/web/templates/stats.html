@@ -1,6 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Model Accuracy · {{ title }}{% endblock %}
 {% block content %}
+{% macro week_bars(items, metric, extra_class='') %}
+<div class="week-bars {{ extra_class }}">
+  {% for item in items %}
+    {% set m = item.metrics %}
+    {% if metric == 'winner_accuracy' %}{% set value = m.winner_accuracy %}{% set width = (value or 0) * 100 %}
+    {% elif metric == 'spread_mae' %}{% set value = m.spread_mae %}{% set width = [((value or 0) / 30 * 100),100]|min %}
+    {% elif metric == 'spread_rmse' %}{% set value = m.spread_rmse %}{% set width = [((value or 0) / 40 * 100),100]|min %}
+    {% elif metric == 'score_mae' %}{% set value = m.score_mae %}{% set width = [((value or 0) / 30 * 100),100]|min %}
+    {% elif metric == 'total_mae' %}{% set value = m.total_mae %}{% set width = [((value or 0) / 40 * 100),100]|min %}
+    {% elif metric == 'display_tie_rate' %}{% set value = m.display_tie_rate %}{% set width = (value or 0) * 100 %}
+    {% elif metric == 'brier' %}{% set value = m.brier %}{% set width = [((value or 0) * 100),100]|min %}
+    {% elif metric == 'upset_hit_rate' %}{% set value = m.upset_hit_rate %}{% set width = (value or 0) * 100 %}
+    {% else %}{% set value = m.rank_result_correlation %}{% set width = ((value or 0)|abs) * 100 %}{% endif %}
+    <div class="week-bar-row"><span>W{{ item.week }}</span><div class="bar-track"><i style="width:{{ width }}%"></i></div><strong>{% if value is none %}—{% elif metric in ['winner_accuracy','upset_hit_rate','display_tie_rate'] %}{{ value|pct }}{% elif metric == 'brier' %}{{ value|num(3) }}{% elif metric == 'rank_result_correlation' %}{{ value|num(2) }}{% else %}{{ value|num }}{% endif %}</strong></div>
+  {% endfor %}
+</div>
+{% endmacro %}
 <header class="page-head">
   <div><div class="eyebrow">ACCURACY LEDGER</div><h1>How well is the system working?</h1><p>Official accuracy uses only predictions that actually existed before kickoff. Research retrocasts and shadow models are shown separately and never rewrite the official ledger.</p></div>
 </header>
@@ -15,26 +32,13 @@
   <a class="{% if metric == 'display_tie_rate' %}active{% endif %}" href="/stats?metric=display_tie_rate"><strong>{{ metrics.display_tie_rate|pct if metrics.games else '—' }}</strong><span>display ties</span></a>
   <a class="{% if metric == 'brier' %}active{% endif %}" href="/stats?metric=brier"><strong>{{ metrics.brier|num(3) if metrics.games else '—' }}</strong><span>Brier</span></a>
   <a class="{% if metric == 'upset_hit_rate' %}active{% endif %}" href="/stats?metric=upset_hit_rate"><strong>{{ metrics.upset_hit_rate|pct if metrics.upset_hit_rate is not none else '—' }}</strong><span>upset hits</span></a>
+  <a class="{% if metric == 'rank_result_correlation' %}active{% endif %}" href="/stats?metric=rank_result_correlation"><strong>{{ metrics.rank_result_correlation|num(2) if metrics.rank_result_correlation is not none else '—' }}</strong><span>rank corr.</span></a>
 </section>
 
 <section class="chart-section">
-  <div class="section-kicker">OFFICIAL WEEK BY WEEK</div><h2>{{ metric.replace('_',' ')|title }}</h2>
+  <div class="section-kicker">OFFICIAL WEEK BY WEEK</div><h2>{{ metric_label }}</h2>
   {% if weekly_metrics %}
-    <div class="week-bars">
-    {% for item in weekly_metrics %}
-      {% set m = item.metrics %}
-      {% if metric == 'winner_accuracy' %}{% set value = m.winner_accuracy %}{% set width = (value or 0) * 100 %}
-      {% elif metric == 'spread_mae' %}{% set value = m.spread_mae %}{% set width = [((value or 0) / 30 * 100),100]|min %}
-      {% elif metric == 'spread_rmse' %}{% set value = m.spread_rmse %}{% set width = [((value or 0) / 40 * 100),100]|min %}
-      {% elif metric == 'score_mae' %}{% set value = m.score_mae %}{% set width = [((value or 0) / 30 * 100),100]|min %}
-      {% elif metric == 'total_mae' %}{% set value = m.total_mae %}{% set width = [((value or 0) / 40 * 100),100]|min %}
-      {% elif metric == 'display_tie_rate' %}{% set value = m.display_tie_rate %}{% set width = (value or 0) * 100 %}
-      {% elif metric == 'brier' %}{% set value = m.brier %}{% set width = [((value or 0) * 100),100]|min %}
-      {% elif metric == 'upset_hit_rate' %}{% set value = m.upset_hit_rate %}{% set width = (value or 0) * 100 %}
-      {% else %}{% set value = m.rank_result_correlation %}{% set width = ((value or 0)|abs) * 100 %}{% endif %}
-      <div class="week-bar-row"><span>W{{ item.week }}</span><div class="bar-track"><i style="width:{{ width }}%"></i></div><strong>{% if value is none %}—{% elif metric in ['winner_accuracy','upset_hit_rate','display_tie_rate'] %}{{ value|pct }}{% elif metric == 'brier' %}{{ value|num(3) }}{% else %}{{ value|num }}{% endif %}</strong></div>
-    {% endfor %}
-    </div>
+    {{ week_bars(weekly_metrics, metric) }}
   {% else %}
     <div class="empty-panel">No official locked predictions have been evaluated yet. This ledger begins only when the installed site has a prediction saved before kickoff.</div>
   {% endif %}
@@ -56,21 +60,7 @@
   </div>
 
   {% if retro_weekly_metrics %}
-  <div class="week-bars retro-bars">
-    {% for item in retro_weekly_metrics %}
-      {% set m = item.metrics %}
-      {% if metric == 'winner_accuracy' %}{% set value = m.winner_accuracy %}{% set width = (value or 0) * 100 %}
-      {% elif metric == 'spread_mae' %}{% set value = m.spread_mae %}{% set width = [((value or 0) / 30 * 100),100]|min %}
-      {% elif metric == 'spread_rmse' %}{% set value = m.spread_rmse %}{% set width = [((value or 0) / 40 * 100),100]|min %}
-      {% elif metric == 'score_mae' %}{% set value = m.score_mae %}{% set width = [((value or 0) / 30 * 100),100]|min %}
-      {% elif metric == 'total_mae' %}{% set value = m.total_mae %}{% set width = [((value or 0) / 40 * 100),100]|min %}
-      {% elif metric == 'display_tie_rate' %}{% set value = m.display_tie_rate %}{% set width = (value or 0) * 100 %}
-      {% elif metric == 'brier' %}{% set value = m.brier %}{% set width = [((value or 0) * 100),100]|min %}
-      {% elif metric == 'upset_hit_rate' %}{% set value = m.upset_hit_rate %}{% set width = (value or 0) * 100 %}
-      {% else %}{% set value = m.rank_result_correlation %}{% set width = ((value or 0)|abs) * 100 %}{% endif %}
-      <div class="week-bar-row"><span>W{{ item.week }}</span><div class="bar-track"><i style="width:{{ width }}%"></i></div><strong>{% if value is none %}—{% elif metric in ['winner_accuracy','upset_hit_rate','display_tie_rate'] %}{{ value|pct }}{% elif metric == 'brier' %}{{ value|num(3) }}{% else %}{{ value|num }}{% endif %}</strong></div>
-    {% endfor %}
-  </div>
+  {{ week_bars(retro_weekly_metrics, metric, 'retro-bars') }}
   {% endif %}
 </section>
 

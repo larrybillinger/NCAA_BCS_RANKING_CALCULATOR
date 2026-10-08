@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -12,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .models import Game, GameTeamStat, SourceSyncRun, Team, TeamSeason
+from .team_identity import find_provider_team, reconcile_active_roster
 from .utils import parse_iso_datetime, slugify, subdivision
 
 LOGGER = logging.getLogger(__name__)
@@ -154,11 +154,7 @@ def upsert_team(
     classification: str | None,
     conference: str | None,
 ) -> Team:
-    team = None
-    if cfbd_id is not None:
-        team = session.scalar(select(Team).where(Team.cfbd_id == cfbd_id))
-    if team is None:
-        team = session.scalar(select(Team).where(Team.name == name))
+    team = find_provider_team(session, cfbd_id=cfbd_id, name=name)
     if team is None:
         team = Team(
             cfbd_id=cfbd_id,
@@ -171,7 +167,11 @@ def upsert_team(
         if team.cfbd_id is None and cfbd_id is not None:
             team.cfbd_id = cfbd_id
         if team.name != name:
-            team.name = name
+            conflict = session.scalar(
+                select(Team).where(Team.name == name, Team.id != team.id)
+            )
+            if conflict is None:
+                team.name = name
         session.add(team)
         session.flush()
 
@@ -359,8 +359,31 @@ def sync_games(
             game_id = _game_payload_id(game)
             if game_id:
                 rows[game_id] = game
+
+        seen_division_i_team_ids: set[int] = set()
         for game in rows.values():
-            upsert_game(session, game)
+            row = upsert_game(session, game)
+            if row is None:
+                continue
+            if row.home_subdivision in DIVISION_I:
+                seen_division_i_team_ids.add(row.home_team_id)
+            if row.away_subdivision in DIVISION_I:
+                seen_division_i_team_ids.add(row.away_team_id)
+
+        # Only a full-season schedule has enough coverage to reconcile pool
+        # membership safely. Targeted weekly polls never deactivate teams.
+        if week is None:
+            deactivated = reconcile_active_roster(
+                session,
+                season=season,
+                seen_team_ids=seen_division_i_team_ids,
+            )
+            if deactivated:
+                LOGGER.warning(
+                    "Deactivated %s Division I season rows missing from the full schedule",
+                    deactivated,
+                )
+
         _sync_run_finish(session, run, status="ok", rows=len(rows), payload=list(rows.values()))
         session.commit()
         return len(rows)
