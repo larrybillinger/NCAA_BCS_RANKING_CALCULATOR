@@ -5,6 +5,7 @@
 - [ ] Conference-relative stadium grades are reproducible from the stored sell-through snapshot.
 - [ ] Pregame forecast snapshots store source and as-of time no later than kickoff.
 - [ ] Missing dynamic context remains explicit and neutral.
-- [ ] Context-adjusted shadow variants lock only from pre-kickoff feature snapshots.
-- [ ] Larry-rule, capped/fitted, and single-factor variants can be compared on common locked games.
-- [ ] Official division_i_weighted_v5 and rank_gap_v3 behavior remains unchanged.
+- [ ] Context-adjusted research variants lock only from pre-kickoff feature snapshots.
+- [ ] Larry-rule, capped/fitted, and single-factor variants can be compared against official `hybrid_core_v1` on common games.
+- [ ] Official `division_i_weighted_v5` ranking behavior remains unchanged.
+- [ ] Base official `hybrid_core_v1` remains unchanged by this sprint; context promotion requires a later explicit decision.
