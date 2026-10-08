@@ -41,11 +41,15 @@ Do not change these without an explicit approved decision:
 - exact average-score ties use head-to-head, win percentage, average opponent strength, then deterministic fallback.
 
 ## Prediction rules
-- The projected winner must follow the ranking order.
-- Projected scoring margin must be based directly on the numerical rank gap.
-- Calibration may adjust the positive points-per-rank scale and uncertainty, but may not reverse the ranking order.
-- Home field or a free intercept may not flip the projected winner.
-- Any predictor that can violate the monotonic official rule must remain research/shadow-only, use separate persistence, and may not be presented as an official Game Book prediction.
+- Production predictor is `hybrid_core_v1` beginning with v0.11.0.
+- The prediction layer remains separate from the ranking formula; prediction changes do not re-rate teams.
+- Official margin blends 40% calibrated rank-gap margin with 60% shrunk current-season offense/defense matchup margin.
+- Offense/defense profiles use completed current-season Division I games only and shrink toward the season scoring mean with three pseudo-games.
+- The hybrid predictor may select the lower-ranked team when the matchup profile outweighs the rank-gap component.
+- Home field, travel, altitude, weather, stadium-demand, and other context adjustments are not part of `hybrid_core_v1` unless a later explicit decision promotes them.
+- Official predictions must exist before kickoff, lock at kickoff, and may never be rewritten after the result is known.
+- Retired `rank_gap_v3` official rows remain immutable historical records but do not count in the active hybrid official ledger.
+- Historical hybrid retrocasts may use only information available before each game and must remain visibly separate from official locked accuracy.
 
 ## Website rules
 - Public routes are read-only.
