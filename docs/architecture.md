@@ -12,7 +12,7 @@ A separate Python process:
 
 1. imports bundled ranking snapshots on a fresh database;
 2. synchronizes the season schedule/results from CFBD;
-3. polls once per day Sunday-Friday and once per hour Saturday;
+3. polls every `SYNC_LIVE_MINUTES` while any Division I game is in progress (any day), otherwise sleeps until one live interval after the next kickoff, at most `SYNC_IDLE_MINUTES`;
 4. locks predictions independently of provider availability;
 5. syncs team game stats after a week is complete;
 6. creates the next immutable ranking snapshot;

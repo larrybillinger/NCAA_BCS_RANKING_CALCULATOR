@@ -21,8 +21,8 @@ class Settings:
     admin_username: str
     admin_password: str
     season: int
-    sync_saturday_minutes: int
-    sync_other_days_minutes: int
+    sync_live_minutes: int
+    sync_idle_minutes: int
     sync_full_schedule_hours: int
     sync_rate_limit_base_minutes: int
     sync_rate_limit_max_minutes: int
@@ -48,11 +48,24 @@ def get_settings() -> Settings:
         admin_username=os.getenv("ADMIN_USERNAME", "admin").strip() or "admin",
         admin_password=os.getenv("ADMIN_PASSWORD", ""),
         season=int(os.getenv("SEASON", "2026")),
-        sync_saturday_minutes=max(
-            int(os.getenv("SYNC_SATURDAY_MINUTES", "60")), 30
+        # Live cadence applies whenever a Division I game is in progress, on
+        # any day. The pre-0.10.2 names are still read so existing .env files
+        # keep their configured values.
+        sync_live_minutes=max(
+            int(
+                os.getenv("SYNC_LIVE_MINUTES")
+                or os.getenv("SYNC_SATURDAY_MINUTES")
+                or "60"
+            ),
+            15,
         ),
-        sync_other_days_minutes=max(
-            int(os.getenv("SYNC_OTHER_DAYS_MINUTES", "1440")), 60
+        sync_idle_minutes=max(
+            int(
+                os.getenv("SYNC_IDLE_MINUTES")
+                or os.getenv("SYNC_OTHER_DAYS_MINUTES")
+                or "1440"
+            ),
+            60,
         ),
         sync_full_schedule_hours=max(
             int(os.getenv("SYNC_FULL_SCHEDULE_HOURS", "24")), 6

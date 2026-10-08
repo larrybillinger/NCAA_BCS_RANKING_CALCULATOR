@@ -27,7 +27,7 @@
     <input class="bare-input" type="search" name="q" value="{{ search_query }}" placeholder="Find a team" aria-label="Find a team">
   </form>
   <div class="text-filters">
-    <a class="{% if not subdivision_filter %}active{% endif %}" href="/?week={{ selected_week }}">All</a>
+    <a class="{% if not subdivision_filter and not conference_filter %}active{% endif %}" href="/?week={{ selected_week }}">All</a>
     <a class="{% if subdivision_filter == 'FBS' %}active{% endif %}" href="/?week={{ selected_week }}&subdivision=FBS">FBS</a>
     <a class="{% if subdivision_filter == 'FCS' %}active{% endif %}" href="/?week={{ selected_week }}&subdivision=FCS">FCS</a>
   </div>

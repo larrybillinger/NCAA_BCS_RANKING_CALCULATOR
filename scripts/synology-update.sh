@@ -133,8 +133,12 @@ if [ -f "$SOURCE_DIR/.env.example" ]; then
 
   # Add quota-safe worker defaults to older installs without overwriting any
   # values the administrator has explicitly customized.
-  ensure_env_key SYNC_SATURDAY_MINUTES 60
-  ensure_env_key SYNC_OTHER_DAYS_MINUTES 1440
+  # v0.10.2 replaced the Saturday/other-day cadence with a game-aware
+  # live/idle cadence. Carry over any value set under the old names.
+  OLD_LIVE="$(awk -F= '/^SYNC_SATURDAY_MINUTES=/{print $2}' "$ENV_FILE" | tail -n 1)"
+  OLD_IDLE="$(awk -F= '/^SYNC_OTHER_DAYS_MINUTES=/{print $2}' "$ENV_FILE" | tail -n 1)"
+  ensure_env_key SYNC_LIVE_MINUTES "${OLD_LIVE:-60}"
+  ensure_env_key SYNC_IDLE_MINUTES "${OLD_IDLE:-1440}"
   ensure_env_key SYNC_FULL_SCHEDULE_HOURS 24
   ensure_env_key SYNC_RATE_LIMIT_BASE_MINUTES 360
   ensure_env_key SYNC_RATE_LIMIT_MAX_MINUTES 1440

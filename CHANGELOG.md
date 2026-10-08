@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.10.2 — 2026-10-08
+
+### Live score sync
+- The worker's cadence now comes from the schedule in PostgreSQL, not the day of the week. While any Division I game has kicked off and is not final, it polls every `SYNC_LIVE_MINUTES` (default 60) — on weeknights as well as Saturdays.
+- A game counts as live for up to 8 hours after kickoff, so late Saturday games keep live polling after midnight Central until CFBD marks them final, and a cancelled or never-finalized game cannot keep the worker in live mode indefinitely.
+- With no game in progress the worker sleeps until one live interval after the next kickoff, capped at `SYNC_IDLE_MINUTES` (default 1440).
+- New settings `SYNC_LIVE_MINUTES` and `SYNC_IDLE_MINUTES` replace `SYNC_SATURDAY_MINUTES` and `SYNC_OTHER_DAYS_MINUTES`. The old names are still read as fallbacks, and the Synology updater copies existing values to the new names.
+- Browser auto-refresh on Game Book and team pages uses the same live window.
+
+### Sync status
+- The sidebar marks CFBD data stale after 1.5 live intervals (90 minutes by default) while games are in progress, and after 36 hours otherwise. Previously a weeknight game could run for a day with the sidebar still showing "CFBD OK".
+- `/health` reports `live_games`.
+
+### Ranking page
+- The conference dropdown lists only conferences in the selected subdivision.
+- "All" is highlighted only when no subdivision or conference filter is active.
+- Invalid `subdivision` values are ignored instead of emptying the conference list.
+
+### Tools and navigation
+- The rank calculator rejects ranks outside the current Division I pool instead of accepting anything up to 400.
+- The week dock lists every scheduled regular-season week; the "…" link, which pointed back to the next week, is gone.
+
+### Tests
+- Worker schedule tests cover weeknight games, Saturday games after midnight, the next-kickoff wake-up, the 8-hour cap, and stale thresholds.
+- Site tests cover the conference dropdown, the "All" highlight, calculator validation, the week dock, and the sidebar going stale during a live game.
+
+### Production safety
+- No ranking or prediction formula changes: `division_i_weighted_v5` / `rank_gap_v3`.
+
 ## v0.10.1 — 2026-10-06
 
 ### Ranking page

@@ -1,5 +1,16 @@
 # Version history
 
+## 0.10.2 — Game-aware live sync
+
+- Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.
+- Poll CFBD on the live cadence whenever a Division I game is in progress, on any day, instead of only on Saturdays.
+- Keep polling Saturday games that run past local midnight until they are final.
+- Wake one live interval after the next kickoff when idle; never sleep longer than the idle cadence.
+- Mark sidebar data stale after 1.5 live intervals while games are in progress.
+- Offer only conferences in the selected subdivision; highlight "All" only when no filter is active.
+- Validate rank calculator input against the current pool size.
+- Show every scheduled week in the week dock and remove the misleading ellipsis.
+
 ## 0.10.1 — Site cleanup
 
 - Keep production ranking at `division_i_weighted_v5` and official predictor at `rank_gap_v3`.

@@ -64,15 +64,13 @@
 <footer class="week-dock">
   <div class="week-row">
     <span class="dock-label">AFTER WEEK</span>
-    {% set max_week = ([latest_week or 2, 10]|max) %}
-    {% for w in range(1, max_week + 1) %}
+    {% for w in range(1, last_week + 1) %}
       {% if w in weeks %}
         <a class="week-link {% if w == selected_week %}active{% endif %}" href="/?week={{ w }}">{{ w }}</a>
       {% else %}
         <a class="week-link future" href="/predictions?week={{ w }}&as_of={{ latest_week or '' }}">{{ w }}</a>
       {% endif %}
     {% endfor %}
-    <a class="week-link" href="/predictions?week={{ (latest_week or 2) + 1 }}">…</a>
     <span class="season-label">{{ season }}</span>
   </div>
   <div class="ticker-row">

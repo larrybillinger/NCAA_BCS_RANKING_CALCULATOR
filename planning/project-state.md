@@ -1,7 +1,7 @@
 # Project state
 
 ## Current release
-v0.10.1
+v0.10.2
 
 ## Production model
 division_i_weighted_v5
@@ -30,9 +30,9 @@ After Week 4 is complete, review the accumulated evidence before deciding whethe
 v0.10.0 keeps division_i_weighted_v5 and rank_gap_v3 unchanged while adding a separate hybrid_core_v1 shadow ledger. FBS, FCS, and conference ranks are display derivatives of the same combined Division I order. Research context adjustment code is shadow-only and is not an official prediction input.
 
 ## Current sync state
-v0.10.0 keeps division_i_weighted_v5 unchanged. The CFBD worker is quota-aware, prediction locking is independent of provider success, the site exposes sync health, and live-window pages auto-refresh from PostgreSQL. Provider polling is once per day Sunday-Friday and once per hour Saturday, using the configured local timezone.
+v0.10.0 keeps division_i_weighted_v5 unchanged. The CFBD worker is quota-aware, prediction locking is independent of provider success, the site exposes sync health, and live-window pages auto-refresh from PostgreSQL. Since v0.10.2, provider polling is game-aware: every SYNC_LIVE_MINUTES (default 60) while any Division I game is in progress on any day, otherwise until one live interval after the next kickoff, at most once per SYNC_IDLE_MINUTES (default 1440). The sidebar status uses the same rule.
 
 The admin-only manual score desk at `/admin/games` can supply scores during a provider outage or correction. Manual overrides are audited, survive provider syncs until released, and cannot alter a week after the production ranking snapshot is frozen.
 
 ## Current next milestone
-Deploy and smoke-test v0.10.1 on Synology (confirm the Accuracy page loads and official accuracy now reflects only division_i_weighted_v5 predictions) and begin collecting locked hybrid_core_v1 shadow predictions. Sprint 004 then resolves neutral-site venue context and adds provenance-backed season-ticket sell-through and pregame forecast snapshots before any context-adjusted shadow variant is enabled. Production remains division_i_weighted_v5 / rank_gap_v3 unless a later explicit decision promotes a research model.
+Merge and deploy v0.10.2 on Synology, confirm the worker log shows live polling during the next weeknight or Saturday game, (confirm the Accuracy page loads and official accuracy now reflects only division_i_weighted_v5 predictions) and begin collecting locked hybrid_core_v1 shadow predictions. Sprint 004 then resolves neutral-site venue context and adds provenance-backed season-ticket sell-through and pregame forecast snapshots before any context-adjusted shadow variant is enabled. Production remains division_i_weighted_v5 / rank_gap_v3 unless a later explicit decision promotes a research model.

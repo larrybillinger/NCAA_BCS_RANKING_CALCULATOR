@@ -15,10 +15,10 @@
 - [x] Manual-score tests verify that a frozen ranking week rejects later score edits.
 - [x] CFBD tests cover 429 handling, one-call game syncing, and rate-limit backoff.
 - [x] Worker tests verify prediction locking occurs before provider access.
-- [x] Worker tests verify Saturday-hourly and Sunday-Friday daily polling.
+- [x] Worker tests verify game-aware polling: live cadence for weeknight games and Saturday games past local midnight, wake-up after the next kickoff, the 8-hour live cap, and the live/idle staleness thresholds.
 - [x] `.env` is ignored by Git.
 - [x] VERSION, CHANGELOG, and release notes are maintained per release.
-- [ ] Docker Compose v0.10.1 must be smoke-tested on the target Synology after deployment.
+- [ ] Docker Compose v0.10.2 must be smoke-tested on the target Synology after deployment.
 - [ ] The production `/admin/games` page must be smoke-tested over HTTPS with the generated admin credentials.
 - [ ] A live CFBD sync should be confirmed after the Tier 1 quota upgrade is active.
 

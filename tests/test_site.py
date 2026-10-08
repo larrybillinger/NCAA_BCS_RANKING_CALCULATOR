@@ -205,3 +205,55 @@ def test_session_memo_is_dropped_on_commit(season_db):
         assert session_memo(session, "key", factory) == 1
         session.commit()
         assert session_memo(session, "key", factory) == 2
+
+
+def test_conference_dropdown_follows_subdivision(season_db):
+    html = TestClient(app).get("/?subdivision=FBS").text
+    options = re.findall(r'<option value="([^"]+)"', html)
+    assert options == ["Big Ten", "SEC"]
+
+
+def test_all_filter_is_not_highlighted_inside_a_conference(season_db):
+    html = TestClient(app).get("/?conference=SEC").text
+    assert 'class="active" href="/?week=2">All' not in html
+    assert 'class="active" href="/?week=2">All' in TestClient(app).get("/").text
+
+
+def test_rank_calculator_rejects_ranks_outside_the_pool(season_db):
+    html = TestClient(app).get("/tools/rank-calculator?rank_a=1&rank_b=7").text
+    assert "Ranks must be between 1 and 6" in html
+    assert "calculator-result" not in html
+    ok = TestClient(app).get("/tools/rank-calculator?rank_a=1&rank_b=6").text
+    assert "calculator-result" in ok
+
+
+def test_week_dock_lists_scheduled_weeks_without_ellipsis(season_db):
+    html = TestClient(app).get("/").text
+    dock = re.search(r'<div class="week-row">(.*?)</div>', html, re.S).group(1)
+    assert re.findall(r'class="week-link[^"]*"[^>]*>(\d+)</a>', dock) == ["1", "2", "3"]
+    assert "…" not in dock
+
+
+def test_sidebar_marks_data_stale_during_a_live_game(season_db, monkeypatch):
+    from types import SimpleNamespace
+
+    from ncaa_rankings.web import app as web_app
+    from ncaa_rankings.web.models import SourceSyncRun
+
+    monkeypatch.setattr(web_app, "CFBDClient", lambda: SimpleNamespace(configured=True))
+    now = datetime.now(timezone.utc)
+    with season_db() as session:
+        session.add(SourceSyncRun(
+            endpoint="/games",
+            season=SEASON,
+            status="ok",
+            started_at=now - timedelta(hours=2),
+            finished_at=now - timedelta(hours=2),
+        ))
+        session.commit()
+        assert "CFBD OK" in TestClient(app).get("/").text
+
+        game = session.scalar(select(Game).where(Game.week == 3).order_by(Game.id))
+        game.start_time = now - timedelta(hours=1)
+        session.commit()
+        assert "CFBD stale" in TestClient(app).get("/").text

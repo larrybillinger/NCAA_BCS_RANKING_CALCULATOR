@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import hashlib
 import hmac
 from pathlib import Path
@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from .bootstrap import bootstrap_bundled_rankings
@@ -27,9 +27,10 @@ from .manual_score_service import (
     release_manual_score,
     set_manual_score,
 )
-from .models import Team
+from .models import Game, Team
 from .prediction_service import rank_matchup_projection
 from .ranking_service import get_snapshot, latest_snapshot
+from .sync_schedule import LIVE_WINDOW, schedule_state, stale_after
 from .stats_service import (
     last_successful_sync,
     latest_sync_attempt,
@@ -65,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.web_title, version="0.10.1", lifespan=lifespan)
+app = FastAPI(title=settings.web_title, version="0.10.2", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
@@ -173,18 +174,10 @@ def _sync_state(session: Session) -> dict:
         finished = success.finished_at
         if finished.tzinfo is None:
             finished = finished.replace(tzinfo=timezone.utc)
-        local_now = now.astimezone(ZoneInfo(settings.timezone))
-        expected_minutes = (
-            settings.sync_saturday_minutes
-            if local_now.weekday() == 5
-            else settings.sync_other_days_minutes
-        )
-        # Allow some scheduling/network slack: about three hours on Saturday
-        # and 36 hours on the once-daily cadence.
-        stale_after = timedelta(
-            minutes=max(int(expected_minutes * 1.5), 180)
-        )
-        status = "stale" if now - finished > stale_after else "ok"
+        # While games are in progress the data must be about one live poll
+        # old; otherwise the idle (once-daily) allowance applies.
+        state = schedule_state(session, settings.season, now)
+        status = "stale" if now - finished > stale_after(state, settings) else "ok"
 
     error = attempt.error_text if attempt and attempt.status == "error" else None
     if error:
@@ -212,7 +205,7 @@ def _auto_refresh_seconds(rows: list[dict]) -> int | None:
         start = game.start_time
         if start.tzinfo is None:
             start = start.replace(tzinfo=timezone.utc)
-        if start <= now <= start + timedelta(hours=6):
+        if start <= now <= start + LIVE_WINDOW:
             return 300
     return None
 
@@ -226,6 +219,12 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
     selected_week = week or (latest.week if latest else (weeks[-1] if weeks else 1))
     metrics = overall_metrics(session, season)
     sync = _sync_state(session)
+    last_schedule_week = session.scalar(
+        select(func.max(Game.week)).where(
+            Game.season == season,
+            Game.season_type == "regular",
+        )
+    )
     return {
         "request": request,
         "title": settings.web_title,
@@ -233,6 +232,7 @@ def _base_context(session: Session, request: Request, *, week: int | None = None
         "weeks": weeks,
         "selected_week": selected_week,
         "latest_week": latest.week if latest else None,
+        "last_week": max(last_schedule_week or 0, latest.week if latest else 0) or 10,
         "team_count": team_count,
         "neutral_rank": neutral_rank,
         "metrics": metrics,
@@ -273,6 +273,9 @@ def health(session: Session = Depends(get_session)) -> dict:
             else None
         ),
         "last_sync_error": sync["error"],
+        "live_games": schedule_state(
+            session, settings.season, datetime.now(timezone.utc)
+        ).live_games,
     }
 
 
@@ -291,13 +294,18 @@ def home(
     if snapshot is None and latest is not None:
         snapshot = latest
         selected_week = latest.week
-    subdivision_filter = (subdivision or "").upper() or None
+    subdivision_filter = (subdivision or "").upper()
+    if subdivision_filter not in {"FBS", "FCS"}:
+        subdivision_filter = None
     conference_filter = (conference or "").strip() or None
     all_rows = ranking_rows(session, snapshot) if snapshot else []
+    # Offer only conferences that exist in the selected subdivision, so the
+    # dropdown cannot lead to an FCS conference while viewing FBS.
     conferences = sorted({
         row["conference"]
         for row in all_rows
         if row["conference"]
+        and (subdivision_filter is None or row["subdivision"] == subdivision_filter)
     })
     rows = ranking_rows(
         session,
@@ -542,15 +550,25 @@ def method(request: Request, session: Session = Depends(get_session)):
 @app.get("/tools/rank-calculator", response_class=HTMLResponse)
 def rank_calculator(
     request: Request,
-    rank_a: int | None = Query(default=None, ge=1, le=400),
-    rank_b: int | None = Query(default=None, ge=1, le=400),
+    rank_a: int | None = Query(default=None),
+    rank_b: int | None = Query(default=None),
     session: Session = Depends(get_session),
 ):
-    result = None
-    if rank_a is not None and rank_b is not None:
-        result = rank_matchup_projection(session, settings.season, home_rank=rank_a, away_rank=rank_b)
     context = _base_context(session, request)
-    context.update({"rank_a": rank_a, "rank_b": rank_b, "calculator_result": result})
+    pool_size = context["team_count"]
+    result = None
+    error = None
+    if rank_a is not None and rank_b is not None:
+        if not (1 <= rank_a <= pool_size and 1 <= rank_b <= pool_size):
+            error = f"Ranks must be between 1 and {pool_size}, the size of the current Division I pool."
+        else:
+            result = rank_matchup_projection(session, settings.season, home_rank=rank_a, away_rank=rank_b)
+    context.update({
+        "rank_a": rank_a,
+        "rank_b": rank_b,
+        "calculator_result": result,
+        "calculator_error": error,
+    })
     return TEMPLATES.TemplateResponse(request=request, name="rank_calculator.html", context=context)
 
 

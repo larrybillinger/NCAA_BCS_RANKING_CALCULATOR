@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.10.1**
+**Current version: 0.10.2**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and now includes the **D1 Rank Weekbook** website.
 
@@ -97,7 +97,7 @@ v0.10.0 also introduces a separate `hybrid_core_v1` research ledger. It blends t
 
 The production pipeline uses the CollegeFootballData REST API server-side for schedules, scores, classifications, and game-team statistics.
 
-v0.8.2 keeps the worker deliberately simple and quota-friendly. A normal targeted score refresh uses one unfiltered `/games` request instead of separate FBS and FCS calls. The worker updates once per day on Sunday through Friday and once per hour on Saturday, using the configured `TZ` (normally America/Chicago) to decide when Saturday begins. A full schedule refresh is still performed at least once every 24 hours, and HTTP 429 responses back off from six hours up to one day.
+v0.8.2 keeps the worker deliberately simple and quota-friendly. A normal targeted score refresh uses one unfiltered `/games` request instead of separate FBS and FCS calls. Since v0.10.2 the cadence follows the schedule rather than the day of the week: while any Division I game is in progress the worker polls every `SYNC_LIVE_MINUTES` (default 60), including weeknight games and Saturday games that end after midnight; otherwise it sleeps until one live interval after the next kickoff, at most `SYNC_IDLE_MINUTES` (default 1440). A full schedule refresh is still performed at least once every 24 hours, and HTTP 429 responses back off from six hours up to one day.
 
 Prediction locking is local database work and now runs before any provider request, so an upstream outage or exhausted API quota cannot prevent a valid pregame prediction from becoming official. The site also reports CFBD OK/stale/error status, the last successful sync, the latest attempt, and a short error message. Game Book and team pages reload themselves every five minutes while a scheduled game is in its normal live window. Browser reloads read PostgreSQL only and do not consume CFBD API calls.
 

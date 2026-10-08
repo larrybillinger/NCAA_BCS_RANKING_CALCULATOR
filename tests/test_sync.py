@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -15,8 +15,14 @@ from ncaa_rankings.web.cfbd import (
     sync_team_context,
 )
 from ncaa_rankings.web.db import Base
-from ncaa_rankings.web.models import TeamSeason
+from ncaa_rankings.web.models import Game, Team, TeamSeason
 from ncaa_rankings.web import models as _models  # noqa: F401
+from ncaa_rankings.web.sync_schedule import (
+    LIVE_WINDOW,
+    poll_delay_minutes,
+    schedule_state,
+    stale_after,
+)
 
 
 def test_cfbd_429_is_exposed_as_rate_limit(monkeypatch):
@@ -111,31 +117,85 @@ def test_prediction_locking_happens_before_provider_failure(monkeypatch):
 
 
 
-def test_sync_schedule_is_hourly_on_saturday_and_daily_otherwise():
-    settings = SimpleNamespace(
-        timezone="America/Chicago",
-        sync_saturday_minutes=60,
-        sync_other_days_minutes=1440,
-    )
-
-    saturday_noon = datetime(2026, 9, 26, 12, 0, tzinfo=ZoneInfo("America/Chicago"))
-    sunday_noon = datetime(2026, 9, 27, 12, 0, tzinfo=ZoneInfo("America/Chicago"))
-
-    assert worker._scheduled_delay_minutes(saturday_noon, settings) == 60
-    assert worker._scheduled_delay_minutes(sunday_noon, settings) == 1440
+CENTRAL = ZoneInfo("America/Chicago")
+CADENCE = SimpleNamespace(sync_live_minutes=60, sync_idle_minutes=1440)
 
 
-def test_friday_sleep_wakes_at_saturday_midnight():
-    settings = SimpleNamespace(
-        timezone="America/Chicago",
-        sync_saturday_minutes=60,
-        sync_other_days_minutes=1440,
-    )
+def _schedule_session(*games):
+    """In-memory DB holding (kickoff, completed) Division I games."""
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    session = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)()
+    home, away = Team(name="Home", slug="home"), Team(name="Away", slug="away")
+    session.add_all([home, away])
+    session.flush()
+    for index, (kickoff, completed) in enumerate(games):
+        session.add(Game(
+            provider="cfbd",
+            provider_game_id=str(index),
+            season=2026,
+            week=6,
+            season_type="regular",
+            start_time=kickoff.astimezone(timezone.utc),
+            completed=completed,
+            home_team_id=home.id,
+            away_team_id=away.id,
+            home_subdivision="FBS",
+            away_subdivision="FBS",
+        ))
+    session.commit()
+    return session
 
-    friday_late = datetime(2026, 9, 25, 23, 30, tzinfo=ZoneInfo("America/Chicago"))
 
-    assert worker._scheduled_delay_minutes(friday_late, settings) == 30
+def _delay(session, now):
+    now = now.astimezone(timezone.utc)
+    return poll_delay_minutes(now, schedule_state(session, 2026, now), CADENCE)
 
+
+def test_weeknight_game_in_progress_uses_live_cadence():
+    kickoff = datetime(2026, 10, 7, 18, 30, tzinfo=CENTRAL)  # Wednesday
+    session = _schedule_session((kickoff, False))
+
+    assert _delay(session, kickoff + timedelta(hours=1)) == 60
+
+
+def test_saturday_game_after_local_midnight_stays_live():
+    kickoff = datetime(2026, 10, 10, 21, 30, tzinfo=CENTRAL)  # Saturday night
+    session = _schedule_session((kickoff, False))
+
+    sunday_early = datetime(2026, 10, 11, 0, 45, tzinfo=CENTRAL)
+    assert _delay(session, sunday_early) == 60
+
+
+def test_idle_worker_wakes_one_live_interval_after_next_kickoff():
+    kickoff = datetime(2026, 10, 7, 18, 30, tzinfo=CENTRAL)
+    session = _schedule_session((kickoff, False))
+
+    assert _delay(session, kickoff - timedelta(hours=3)) == 3 * 60 + 60
+
+
+def test_idle_worker_uses_daily_cadence_with_no_upcoming_games():
+    kickoff = datetime(2026, 10, 3, 14, 0, tzinfo=CENTRAL)
+    session = _schedule_session((kickoff, True))
+
+    assert _delay(session, kickoff + timedelta(days=1)) == 1440
+
+
+def test_unfinished_game_stops_counting_as_live_after_window():
+    kickoff = datetime(2026, 10, 7, 18, 30, tzinfo=CENTRAL)
+    session = _schedule_session((kickoff, False))
+    now = (kickoff + LIVE_WINDOW + timedelta(minutes=1)).astimezone(timezone.utc)
+
+    assert schedule_state(session, 2026, now).live_games == 0
+    assert _delay(session, now) == 1440
+
+
+def test_stale_threshold_is_tight_only_while_games_are_live():
+    live = SimpleNamespace(live_games=2, next_kickoff=None)
+    idle = SimpleNamespace(live_games=0, next_kickoff=None)
+
+    assert stale_after(live, CADENCE) == timedelta(minutes=90)
+    assert stale_after(idle, CADENCE) == timedelta(hours=36)
 
 
 def test_team_context_sync_stores_home_timezone_and_elevation():
