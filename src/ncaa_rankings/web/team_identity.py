@@ -67,10 +67,10 @@ def reconcile_active_roster(
     """Deactivate D-I rows absent from a complete full-season schedule.
 
     A coverage guard prevents a partial provider response from deactivating a
-    large part of the ranking pool. The full schedule should account for nearly
-    every active D-I school; if it covers less than 90% of the existing active
-    pool, reconciliation is refused and the caller should treat the sync as an
-    error rather than corrupt local membership.
+    large part of the ranking pool. At most about 2% of the existing active
+    pool (and always at least one team) may be absent before reconciliation is
+    refused. This leaves room for a stale duplicate such as Penn while making a
+    partial provider response fail closed instead of silently removing schools.
     """
     rows = list(
         session.scalars(
@@ -82,7 +82,8 @@ def reconcile_active_roster(
         )
     )
     if rows:
-        minimum_coverage = max(1, math.ceil(len(rows) * 0.90))
+        allowed_missing = max(1, math.floor(len(rows) * 0.02))
+        minimum_coverage = max(1, len(rows) - allowed_missing)
         if len(seen_team_ids) < minimum_coverage:
             raise RuntimeError(
                 "Refusing Division I roster reconciliation: full-season schedule "
