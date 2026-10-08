@@ -1,5 +1,14 @@
 # Version history
 
+## 0.11.1 — Winner-consistent projected scores
+
+- Keep production ranking `division_i_weighted_v5` and official predictor `hybrid_core_v1` unchanged.
+- Fix Game Book, team schedules, and Matchup Calculator showing tied integer scores when the hybrid projected a non-zero margin.
+- Use one shared half-up display-score rule: if normal rounding would tie a non-zero projection, give the modeled winner one additional display point.
+- Keep true zero-margin projections eligible to display a tie.
+- Make Accuracy's display-tie metric use the same rule as the public pages.
+- Track the separate 63.7% vs prior ~72% hybrid retrocast discrepancy as a reproducibility investigation rather than changing model weights blindly.
+
 ## 0.11.0 — Official hybrid prediction
 
 - Keep the production ranking unchanged at `division_i_weighted_v5`.
@@ -59,7 +68,7 @@
 - Add admin-only manual score entry at `/admin/games`.
 - Protect writes with environment-backed HTTP Basic credentials and CSRF validation.
 - Keep public routes read-only.
-- Preserve manual score/final fields across later CFBD syncs until the override is released.
+- Preserve manual score/final fields across later CFBD syncs until explicitly released.
 - Audit every manual save/release.
 - Prevent score-desk edits after the active ranking week is frozen.
 - Feed completed manual results through the existing ranking and prediction pipeline.
@@ -120,7 +129,7 @@
 ## 0.6.1 — Reliable Synology deployment
 
 - Build the D1 Rank application image once for both web and worker.
-- Extend Docker/Compose client timeouts for slower Synology systems.
+- Extend Docker/Compose timeouts for slower Synology systems.
 - Force-recreate application containers after a successful build.
 - Verify the running app, model, and predictor versions from `/health`.
 - Fix temporary environment-file handling in the updater.
