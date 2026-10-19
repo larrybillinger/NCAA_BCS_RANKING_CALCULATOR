@@ -2,6 +2,8 @@
 
 The public D1 Rank website remains read-only. Public visitors cannot create, edit, or delete teams, games, rankings, predictions, or source data.
 
+The Accuracy page may download `/stats/export.md`. This is a read-only export of derived model diagnostics and ordinary game facts. It does not grant write access and must not include API keys, database credentials, admin credentials, or raw provider payloads.
+
 ## Manual score administrator
 
 A single operational score desk is available at:
