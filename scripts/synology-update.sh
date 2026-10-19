@@ -12,6 +12,10 @@ BACKUPS="$ROOT/backups"
 ENV_FILE="$ROOT/.env"
 ARCHIVE="https://github.com/larrybillinger/NCAA_BCS_RANKING_CALCULATOR/archive/refs/heads/main.tar.gz"
 TMP="/tmp/ncaa-rankings-update-$$"
+COMPOSE_PROJECT="ncaa-rankings"
+DB_CONTAINER="ncaa-rankings-db"
+WEB_CONTAINER="ncaa-rankings-web"
+WORKER_CONTAINER="ncaa-rankings-worker"
 trap 'rm -rf "$TMP"' EXIT INT TERM
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -32,9 +36,9 @@ cd /
 
 compose() {
   if docker compose version >/dev/null 2>&1; then
-    docker compose "$@"
+    docker compose -p "$COMPOSE_PROJECT" "$@"
   elif command -v docker-compose >/dev/null 2>&1; then
-    docker-compose "$@"
+    docker-compose -p "$COMPOSE_PROJECT" "$@"
   else
     echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
     return 127
@@ -52,6 +56,33 @@ download() {
     echo "Neither curl nor wget is available on this NAS." >&2
     return 127
   fi
+}
+
+container_exists() {
+  docker inspect "$1" >/dev/null 2>&1
+}
+
+remove_container_if_present() {
+  name="$1"
+  if container_exists "$name"; then
+    docker stop "$name" >/dev/null 2>&1 || true
+    docker rm "$name" >/dev/null 2>&1 || true
+  fi
+}
+
+wait_for_postgres() {
+  attempt=0
+  while ! docker exec "$DB_CONTAINER" sh -c '
+    pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1
+  '; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge 60 ]; then
+      echo "ERROR: PostgreSQL did not become ready in time."
+      docker logs --tail 100 "$DB_CONTAINER" || true
+      return 1
+    fi
+    sleep 2
+  done
 }
 
 set_env_key() {
@@ -100,21 +131,29 @@ if [ -d "$APP" ]; then
   tar -czf "$BACKUPS/app-$STAMP.tar.gz" -C "$ROOT" app
 fi
 
-# v0.10.2 includes a controlled repair of a duplicate provider identity. Take
-# a real database backup before any application files or ranking snapshots are
-# changed. Preserve the production environment beside it for disaster recovery.
+# Back up the existing production database before touching any container. A
+# legacy install may have created ncaa-rankings-db under a different Compose
+# project identity. If the named container already exists, start and back it up
+# directly instead of asking the new Compose project to adopt it.
 if [ -d "$APP" ] && [ -f "$APP/docker-compose.yml" ]; then
-  cd "$APP"
   echo "Ensuring PostgreSQL is running for backup..."
-  compose --env-file "$ENV_FILE" up -d db
+  if container_exists "$DB_CONTAINER"; then
+    docker start "$DB_CONTAINER" >/dev/null 2>&1 || true
+  else
+    cd "$APP"
+    compose --env-file "$ENV_FILE" up -d db
+    cd /
+  fi
+
+  echo "Waiting for PostgreSQL before backup..."
+  wait_for_postgres
+
   echo "Backing up PostgreSQL..."
-  compose --env-file "$ENV_FILE" exec -T db sh -c '
-    until pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; do sleep 1; done
+  docker exec "$DB_CONTAINER" sh -c '
     pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"
   ' | gzip > "$BACKUPS/postgres-$STAMP.sql.gz"
   cp "$ENV_FILE" "$BACKUPS/env-$STAMP"
   chmod 600 "$BACKUPS/env-$STAMP"
-  cd /
 fi
 
 echo "Downloading latest source..."
@@ -141,17 +180,11 @@ if [ -f "$SOURCE_DIR/.env.example" ]; then
     set_env_key PREDICTOR_VERSION "$REQUIRED_PREDICTOR"
   fi
 
-  # Add admin score-desk credentials to older installs once. Preserve them on
-  # every future update just like the API and database secrets.
   ensure_env_key ADMIN_USERNAME admin
   if ! grep -q '^ADMIN_PASSWORD=' "$ENV_FILE"; then
     ensure_env_key ADMIN_PASSWORD "$(generate_secret)"
   fi
 
-  # Add quota-safe worker defaults to older installs without overwriting any
-  # values the administrator has explicitly customized.
-  # v0.10.2 replaced the Saturday/other-day cadence with a game-aware
-  # live/idle cadence. Carry over any value set under the old names.
   OLD_LIVE="$(awk -F= '/^SYNC_SATURDAY_MINUTES=/{print $2}' "$ENV_FILE" | tail -n 1)"
   OLD_IDLE="$(awk -F= '/^SYNC_OTHER_DAYS_MINUTES=/{print $2}' "$ENV_FILE" | tail -n 1)"
   ensure_env_key SYNC_LIVE_MINUTES "${OLD_LIVE:-60}"
@@ -173,27 +206,32 @@ EXPECTED_APP="$(tr -d '\r\n ' < VERSION)"
 EXPECTED_MODEL="$(awk -F= '/^MODEL_VERSION=/{print $2}' "$ENV_FILE" | tail -n 1)"
 EXPECTED_PREDICTOR="$(awk -F= '/^PREDICTOR_VERSION=/{print $2}' "$ENV_FILE" | tail -n 1)"
 
+echo "Validating Compose configuration..."
+compose --env-file "$ENV_FILE" config >/dev/null
+
 echo "Building shared application image once..."
 docker build -t ncaa-rankings-app:latest .
 
-echo "Ensuring PostgreSQL is running..."
-compose --env-file "$ENV_FILE" up -d db
+# The image and Compose config are valid, and backups are complete. Recreate the
+# named containers under one stable Compose project. Removing the DB container
+# does NOT remove PostgreSQL data because production uses the bind mount
+# /volume1/rankings/postgres:/var/lib/postgresql/data.
+echo "Migrating containers to stable Compose project '$COMPOSE_PROJECT'..."
+remove_container_if_present "$WORKER_CONTAINER"
+remove_container_if_present "$WEB_CONTAINER"
+remove_container_if_present "$DB_CONTAINER"
 
-# Keep the old worker from syncing while known duplicate team identities are
-# merged. The repair only changes the active pool going forward; frozen
-# rankings and locked predictions are never touched.
-echo "Stopping application containers for controlled data repair..."
-compose --env-file "$ENV_FILE" stop worker web >/dev/null 2>&1 || true
+echo "Starting PostgreSQL under the stable Compose project..."
+compose --env-file "$ENV_FILE" up -d db
+wait_for_postgres
 
 echo "Checking and repairing known duplicate team identities..."
-# A refused repair changes nothing, so report it and keep deploying rather
-# than leaving the site stopped.
 if ! compose --env-file "$ENV_FILE" run --rm --no-deps web \
   python -m ncaa_rankings.web.repair_team_identity --apply; then
   echo "WARNING: team identity repair was refused or failed; no data was changed."
 fi
 
-echo "Recreating web and worker from the new image..."
+echo "Starting web and worker from the new image..."
 compose --env-file "$ENV_FILE" up -d --no-deps --force-recreate web worker
 compose --env-file "$ENV_FILE" up -d --remove-orphans
 
@@ -216,8 +254,8 @@ while :; do
   ATTEMPT=$((ATTEMPT + 1))
   if [ "$ATTEMPT" -ge 45 ]; then
     echo "ERROR: updated website did not become healthy in time."
-    docker logs --tail 160 ncaa-rankings-web || true
-    docker logs --tail 100 ncaa-rankings-worker || true
+    docker logs --tail 160 "$WEB_CONTAINER" || true
+    docker logs --tail 100 "$WORKER_CONTAINER" || true
     exit 1
   fi
   sleep 4
@@ -240,9 +278,6 @@ echo "$HEALTH" | grep -q "\"predictor_version\":\"$EXPECTED_PREDICTOR\"" || {
   exit 1
 }
 
-# A new ranking-model identifier intentionally starts without relabeling older
-# bundled snapshots. If CFBD is configured, give the worker time to rebuild
-# completed weeks from PostgreSQL before reporting the deployment as settled.
 CFBD_KEY="$(awk -F= '/^CFBD_API_KEY=/{print substr($0, index($0, "=") + 1)}' "$ENV_FILE" | tail -n 1)"
 case "$CFBD_KEY" in
   ""|replace-with-your-collegefootballdata-api-key)
@@ -254,9 +289,9 @@ case "$CFBD_KEY" in
       while echo "$HEALTH" | grep -q '"latest_ranking_week":null'; do
         RANK_ATTEMPT=$((RANK_ATTEMPT + 1))
         if [ "$RANK_ATTEMPT" -ge 60 ]; then
-          echo "WARNING: application is healthy, but the new model has not produced a ranking snapshot yet."
+          echo "WARNING: application is healthy, but the active model has not produced a ranking snapshot yet."
           echo "Recent worker log:"
-          docker logs --tail 100 ncaa-rankings-worker || true
+          docker logs --tail 100 "$WORKER_CONTAINER" || true
           break
         fi
         sleep 5
@@ -279,6 +314,7 @@ fi
 if [ -f "$BACKUPS/env-$STAMP" ]; then
   echo "Environment backup: $BACKUPS/env-$STAMP"
 fi
+
 echo
 echo "Verified active release:"
 echo "$HEALTH"
