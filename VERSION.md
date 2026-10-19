@@ -1,5 +1,16 @@
 # Version history
 
+## 0.11.2 — Full Markdown prediction diagnostics
+
+- Keep production ranking `division_i_weighted_v5` and official predictor `hybrid_core_v1` unchanged.
+- Add a read-only `.md` export from the Accuracy page for method/reproducibility analysis.
+- Export every completed week's coverage, calibration state, weekly metrics, and per-game hybrid calculations.
+- Include the Weeks 3-5 reproduction slice separately so it can be compared directly with the earlier 364-game research sample.
+- Include official locked hybrid rows and archived pre-promotion shadow rows without mixing their metrics.
+- Add richer hybrid `model_detail` fields for rank slope, weighted rank/OD contributions, scoring-profile sample sizes, matchup bases, residual SD, raw scores, and score shift.
+- Do not expose API keys, database credentials, or raw CFBD payloads.
+- Add regression coverage for the export route, attachment filename, Accuracy-page link, and intermediate diagnostic fields.
+
 ## 0.11.1 — Winner-consistent projected scores
 
 - Keep production ranking `division_i_weighted_v5` and official predictor `hybrid_core_v1` unchanged.
@@ -129,7 +140,7 @@
 ## 0.6.1 — Reliable Synology deployment
 
 - Build the D1 Rank application image once for both web and worker.
-- Extend Docker/Compose timeouts for slower Synology systems.
+- Extend Docker/Compose client timeouts for slower Synology systems.
 - Force-recreate application containers after a successful build.
 - Verify the running app, model, and predictor versions from `/health`.
 - Fix temporary environment-file handling in the updater.
