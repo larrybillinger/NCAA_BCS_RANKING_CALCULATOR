@@ -200,10 +200,9 @@ def hybrid_project_game(
         raise ValueError("Hybrid margin weights must sum to a positive value.")
     normalized_rank_weight = rank_weight / weight_total
     normalized_offdef_weight = offdef_weight / weight_total
-    margin = (
-        normalized_rank_weight * rank_margin
-        + normalized_offdef_weight * offdef_margin
-    )
+    rank_contribution = normalized_rank_weight * rank_margin
+    offdef_contribution = normalized_offdef_weight * offdef_margin
+    margin = rank_contribution + offdef_contribution
 
     raw_home = (projected_total + margin) / 2.0
     raw_away = (projected_total - margin) / 2.0
@@ -236,19 +235,35 @@ def hybrid_project_game(
         sample_size=calibration.sample_size,
         detail={
             "method": HYBRID_VERSION,
+            "team_count": team_count,
+            "effective_home_rank": effective_home_rank,
+            "effective_away_rank": effective_away_rank,
             "rank_gap": round(rank_gap, 2),
+            "rank_slope": round(calibration.rank_slope, 4),
             "rank_margin": round(rank_margin, 2),
-            "offdef_margin": round(offdef_margin, 2),
             "rank_weight": round(normalized_rank_weight, 4),
+            "rank_contribution": round(rank_contribution, 2),
             "offdef_weight": round(normalized_offdef_weight, 4),
+            "offdef_contribution": round(offdef_contribution, 2),
             "prior_games": round(prior_games, 2),
+            "calibration_average_total": round(calibration.average_total, 2),
+            "residual_sd": round(calibration.residual_sd, 2),
+            "calibration_sample_size": calibration.sample_size,
             "mean_team_points": round(mean_team_points, 2),
             "scoring_games": scoring_games,
+            "home_profile_games": home_profile.games,
+            "away_profile_games": away_profile.games,
             "home_offense": round(home_profile.offense, 2),
             "home_defense": round(home_profile.defense, 2),
             "away_offense": round(away_profile.offense, 2),
             "away_defense": round(away_profile.defense, 2),
+            "home_base": round(home_base, 2),
+            "away_base": round(away_base, 2),
+            "offdef_margin": round(offdef_margin, 2),
+            "raw_home_points": round(raw_home, 2),
+            "raw_away_points": round(raw_away, 2),
             "score_shift": round(score_shift, 2),
+            "projected_total": round(home_points + away_points, 2),
             "display_home_points": display_home,
             "display_away_points": display_away,
             "display_rule": "winner_consistent_half_up",
