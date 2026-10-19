@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.11.2 — 2026-10-18
+
+### Diagnostic export
+- Added a public read-only Markdown export at `/stats/export.md`, linked from the Accuracy page.
+- The export includes application/model versions, exact active hybrid constants, every completed week's coverage, source-week calibration and scoring-profile state, week-by-week metrics, an explicit Weeks 3–5 reproduction slice, and detailed per-game hybrid calculations.
+- Official locked predictions, leakage-safe retrocasts, and archived pre-promotion shadow rows remain separate in both summary and detail sections.
+
+### Model observability
+- Hybrid prediction detail now records additional audit values: rank slope, rank and offense/defense weighted contributions, scoring-profile sample sizes, matchup bases, residual SD, raw scores, and equal-shift amount.
+- The export reports per-game winner correctness, margin/score/total errors, Brier error, and independent-rounding collision status.
+- No ranking or prediction formula changed.
+
+### Security and validation
+- The export contains derived diagnostics and ordinary game facts only; it does not expose API keys, database/admin credentials, `.env` contents, or raw CFBD payloads.
+- Added regression coverage for the download route, deterministic attachment filename, Accuracy-page link, Weeks 3–5 slice, and intermediate calculation fields.
+- GitHub issue #8 tracks the export. Issue #6 remains the separate hybrid reproducibility investigation.
+
+### Production safety
+- Ranking remains `division_i_weighted_v5`.
+- Official predictor remains `hybrid_core_v1` with the same 40% rank-gap / 60% offense-defense blend and three pseudo-games of shrinkage.
+
 ## v0.11.1 — 2026-10-08
 
 ### Projected-score display
