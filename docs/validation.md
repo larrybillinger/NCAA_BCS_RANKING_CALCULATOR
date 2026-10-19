@@ -26,12 +26,18 @@
 - [x] Roster reconciliation tests prove one stale row can be deactivated while materially incomplete provider coverage fails closed.
 - [x] Team-identity repair tests verify frozen snapshots and locked official predictions survive, the next ranking excludes the legacy duplicate, a second run changes nothing, and the repair refuses when the legacy row has frozen results.
 - [x] Inactive current-season teams are excluded from Team Index and Compare Teams.
+- [x] The Accuracy page links to `/stats/export.md`.
+- [x] The Markdown export downloads with a deterministic season-specific filename.
+- [x] The export includes model/version constants, Week 1 coverage, source-week calibration state, weekly metrics, the Weeks 3-5 reproduction slice, and per-game intermediate hybrid calculations.
+- [x] The export keeps official locked, leakage-safe retrocast, and archived shadow samples separate.
+- [x] The export contains derived diagnostics only and does not expose secrets or raw CFBD payloads.
+- [x] Diagnostic `model_detail` includes rank slope, weighted rank/offense-defense contributions, scoring-profile sample sizes, matchup bases, residual SD, raw scores, and score shift without changing prediction math.
 - [x] `.env` is ignored by Git.
 - [x] VERSION, CHANGELOG, and release notes are maintained per release.
-- [ ] Docker Compose v0.11.0 must be smoke-tested on the target Synology after deployment.
-- [ ] Confirm `/health` reports `predictor_version=hybrid_core_v1`.
+- [ ] Docker Compose v0.11.2 must be smoke-tested on the target Synology after deployment.
+- [ ] Confirm `/health` reports `app_version=0.11.2`, `model_version=division_i_weighted_v5`, and `predictor_version=hybrid_core_v1`.
 - [ ] Confirm current/future Game Book rows and team-page rows are hybrid projections.
-- [ ] Confirm the Accuracy hybrid retrocast reproduces the expected Weeks 3–5 improvement before relying on the live official sample.
+- [ ] Download the production `/stats/export.md` file and compare the Weeks 3-5 slice against the earlier research sample before changing hybrid parameters.
 - [ ] Confirm a new hybrid prediction locks at kickoff during the next live game.
 - [ ] The production `/admin/games` page must be smoke-tested over HTTPS with the generated admin credentials.
 
@@ -46,7 +52,8 @@
 - Context adjustments remain outside the official hybrid predictor until separately approved.
 - Current Division I membership is reconciled only from a sufficiently complete full-season schedule; targeted weekly polls never deactivate teams.
 - Provider team identity prefers durable CFBD IDs; known legacy aliases cannot create a second active current-season school.
-- Public web routes remain read-only.
+- Public web routes remain read-only, including `/stats/export.md`.
+- Diagnostic exports never include secrets or a raw provider-data mirror.
 - Manual score writes require admin credentials and a valid CSRF token.
 - An active manual override prevents CFBD from replacing that game's score/final fields.
 - A manual score cannot be edited or released after the active production ranking model has frozen that week.

@@ -61,6 +61,16 @@ def _prediction_rows(
     return list(session.execute(query).all())
 
 
+def official_prediction_rows(
+    session: Session,
+    season: int,
+    *,
+    team_id: int | None = None,
+) -> list[tuple[PredictionSnapshot, Game]]:
+    """Return active official prediction rows for diagnostics and reporting."""
+    return _prediction_rows(session, season, team_id=team_id)
+
+
 def _corr(xs: list[float], ys: list[float]) -> float | None:
     if len(xs) < 3 or len(xs) != len(ys):
         return None
@@ -123,10 +133,16 @@ def _metrics(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
             rank_gaps.append(rank_gap)
             actual_margins.append(actual_margin)
             better_home = prediction.home_rank < prediction.away_rank
-            actual_better_rank_lost = (better_home and not actual_home_win) or (not better_home and actual_home_win)
+            actual_better_rank_lost = (
+                (better_home and not actual_home_win)
+                or (not better_home and actual_home_win)
+            )
             if actual_better_rank_lost:
                 actual_upsets += 1
-                predicted_underdog = (better_home and prediction.home_win_probability < 0.5) or (not better_home and prediction.home_win_probability >= 0.5)
+                predicted_underdog = (
+                    (better_home and prediction.home_win_probability < 0.5)
+                    or (not better_home and prediction.home_win_probability >= 0.5)
+                )
                 if predicted_underdog:
                     predicted_actual_upsets += 1
 
@@ -143,6 +159,11 @@ def _metrics(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
         upset_hit_rate=(predicted_actual_upsets / actual_upsets) if actual_upsets else None,
         rank_result_correlation=_corr(rank_gaps, actual_margins),
     )
+
+
+def metrics_for_rows(rows: list[tuple[object, Game]]) -> AccuracyMetrics:
+    """Calculate the same Accuracy metrics for an explicit diagnostic sample."""
+    return _metrics(rows)
 
 
 def _retrocast_rows(
@@ -173,6 +194,16 @@ def _retrocast_rows(
     return rows
 
 
+def retrocast_rows(
+    session: Session,
+    season: int,
+    *,
+    team_id: int | None = None,
+) -> list[tuple[object, Game]]:
+    """Return leakage-safe historical projection rows for diagnostics."""
+    return _retrocast_rows(session, season, team_id=team_id)
+
+
 def _research_prediction_rows(
     session: Session,
     season: int,
@@ -192,6 +223,20 @@ def _research_prediction_rows(
                 ResearchPredictionSnapshot.locked_at.is_not(None),
             )
         ).all()
+    )
+
+
+def research_prediction_rows(
+    session: Session,
+    season: int,
+    *,
+    model_version: str = HYBRID_VERSION,
+) -> list[tuple[ResearchPredictionSnapshot, Game]]:
+    """Return locked research rows for diagnostic export."""
+    return _research_prediction_rows(
+        session,
+        season,
+        model_version=model_version,
     )
 
 

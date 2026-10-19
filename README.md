@@ -2,7 +2,7 @@
 
 A transparent, auditable NCAA Division I football ranking and prediction system with a PostgreSQL-backed public website.
 
-**Current version: 0.11.1**
+**Current version: 0.11.2**
 
 The historical repository name is retained from the original BCS-era project. The production system ranks all NCAA Division I football teams in one field and publishes the **D1 Rank Weekbook** website.
 
@@ -16,6 +16,7 @@ The home page is the complete weekly Division I ranking. The site also provides:
 - team pages with complete schedules and hybrid projections;
 - week-by-week ranking history;
 - official hybrid accuracy and leakage-safe historical hybrid retrocasts;
+- a downloadable Markdown prediction-diagnostics export for method/reproducibility analysis;
 - team-specific prediction accuracy;
 - a team-vs-team hybrid matchup calculator;
 - team comparison;
@@ -117,6 +118,18 @@ For earlier completed games that lack an official hybrid lock, the site calculat
 
 Pre-promotion `hybrid_core_v1` shadow rows also remain stored for audit. Once hybrid is official, the worker no longer creates a duplicate base-hybrid shadow row.
 
+### Markdown diagnostic export
+
+Beginning with v0.11.2, the Accuracy page includes a read-only **Export full diagnostics (.md)** link at:
+
+```text
+/stats/export.md
+```
+
+The export is intended for method and reproducibility analysis. It includes application/model versions, active hybrid constants, week coverage, source-week calibration/scoring-profile state, week-by-week metrics, an explicit Weeks 3–5 reproduction slice, per-game retrocast intermediate calculations, official locked rows, and archived pre-promotion shadow rows.
+
+The three samples remain separate in the export so historical reconstruction is never presented as official pregame accuracy. The download contains derived diagnostics and ordinary game facts only; it does not expose secrets or raw CFBD payloads.
+
 ## Automatic data source
 
 The production pipeline uses the CollegeFootballData REST API server-side for schedules, scores, classifications, and game-team statistics.
@@ -190,10 +203,10 @@ sh /tmp/update-rankings.sh
 
 The updater preserves secrets, synchronizes the committed `MODEL_VERSION` and `PREDICTOR_VERSION`, backs up the application/PostgreSQL/protected `.env` as applicable, rebuilds the shared application image, recreates web/worker, and verifies `/health` reports the exact expected application/model/predictor versions.
 
-For v0.11.1 production must report:
+For v0.11.2 production must report:
 
 ```text
-app_version       0.11.1
+app_version       0.11.2
 model_version     division_i_weighted_v5
 predictor_version hybrid_core_v1
 ```
