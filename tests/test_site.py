@@ -122,6 +122,7 @@ def _header_cells(html: str) -> list[str]:
         "/stats",
         "/stats?metric=brier",
         "/stats?metric=not-a-metric",
+        "/stats/export.md",
         "/teams",
         "/teams/alpha",
         "/teams/echo?as_of=1",
@@ -225,6 +226,51 @@ def test_hybrid_retrocast_is_the_active_historical_projection(season_db):
         assert projection.detail["method"] == HYBRID_PREDICTOR_VERSION
         assert projection.detail["rank_weight"] == pytest.approx(0.4)
         assert projection.detail["offdef_weight"] == pytest.approx(0.6)
+        assert "rank_slope" in projection.detail
+        assert "rank_contribution" in projection.detail
+        assert "offdef_contribution" in projection.detail
+        assert "home_profile_games" in projection.detail
+        assert "away_profile_games" in projection.detail
+        assert "home_base" in projection.detail
+        assert "away_base" in projection.detail
+        assert "residual_sd" in projection.detail
+
+
+def test_stats_markdown_export_contains_full_diagnostics(season_db):
+    with season_db() as session:
+        game = session.scalar(select(Game).where(Game.week == 3).order_by(Game.id))
+        game.completed = True
+        game.home_points = 21
+        game.away_points = 20
+        session.commit()
+
+    response = TestClient(app).get("/stats/export.md")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/markdown")
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="d1-rank-2026-prediction-diagnostics.md"'
+    )
+
+    markdown = response.text
+    assert "# D1 Rank 2026 prediction diagnostics" in markdown
+    assert "Ranking model: `division_i_weighted_v5`" in markdown
+    assert "Predictor: `hybrid_core_v1`" in markdown
+    assert "Retrocast Weeks 3-5 reproduction slice" in markdown
+    assert "## Week coverage" in markdown
+    assert "## Calibration and scoring-profile state by source week" in markdown
+    assert "## Per-game leakage-safe retrocast calculations" in markdown
+    assert "Rank x w" in markdown
+    assert "OD x w" in markdown
+    assert "Profile games H/A" in markdown
+    assert "Round collision" in markdown
+    assert "Alpha" in markdown
+    assert "API keys" in markdown
+
+
+def test_stats_page_links_to_markdown_export(season_db):
+    html = TestClient(app).get("/stats").text
+    assert 'href="/stats/export.md"' in html
+    assert "Export full diagnostics (.md)" in html
 
 
 def test_session_memo_is_dropped_on_commit(season_db):
