@@ -7,6 +7,8 @@ FastAPI + Jinja renders the public Weekbook UI. It performs read-heavy database 
 
 The public routes remain read-only. `/admin/games` is a separate operational score desk protected by environment-backed HTTP Basic credentials and CSRF protection. Manual writes are handled by the manual-score service and recorded in an audit table.
 
+The Accuracy page exposes a read-only diagnostic download at `/stats/export.md`. The server builds the Markdown file from normalized PostgreSQL facts, official prediction rows, research rows, and leakage-safe model recomputation. The export contains derived model inputs, intermediate calculations, results, and errors; it does not expose secrets or raw provider payloads and does not mutate any database state.
+
 ### Worker
 A separate Python process:
 
@@ -47,6 +49,8 @@ The active production predictor is `hybrid_core_v1`. For each matchup it compute
 - projected home/away scores and win probability from the blended result.
 
 Offense/defense profiles shrink toward the current-season mean team score using three pseudo-games. This stabilizes small early-season samples. Because the offense/defense component is allowed to outweigh the rank-gap component, the official hybrid predictor may select a lower-ranked team to win. This affects predictions only; it never changes ranking order or ranking points.
+
+v0.11.2 records additional diagnostic values in the prediction detail JSON—such as rank slope, weighted rank/offense-defense contributions, profile sample sizes, matchup bases, residual uncertainty, raw scores, and equal-shift amount—without changing the prediction formula. These fields make live and historical calculations reproducible in the Markdown diagnostic export.
 
 ### Historical and research prediction data
 
