@@ -22,6 +22,8 @@
   <div><div class="eyebrow">ACCURACY LEDGER</div><h1>How well is the hybrid system working?</h1><p>The active official predictor is <strong>hybrid_core_v1</strong>. It combines the ranking signal with shrunk current-season offense/defense scoring profiles. Official accuracy counts only hybrid predictions that actually existed before kickoff; historical hybrid retrocasts are shown separately.</p></div>
 </header>
 
+<div class="asof-line"><a href="/stats/export.md">Export full diagnostics (.md) ↓</a> · all completed weeks, model inputs, intermediate calculations, predictions, results, and errors.</div>
+
 <div class="section-kicker stats-section-label">OFFICIAL · HYBRID_CORE_V1 · LOCKED BEFORE KICKOFF</div>
 <section class="metric-strip">
   <a class="{% if metric == 'winner_accuracy' %}active{% endif %}" href="/stats?metric=winner_accuracy"><strong>{{ metrics.winner_accuracy|pct if metrics.games else '—' }}</strong><span>winner accuracy</span></a>
