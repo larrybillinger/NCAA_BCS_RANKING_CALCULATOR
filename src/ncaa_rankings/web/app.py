@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
@@ -21,6 +21,7 @@ from .bootstrap import bootstrap_bundled_rankings
 from .cfbd import CFBDClient
 from .config import get_settings
 from .db import SessionLocal, get_session, init_db
+from .diagnostic_export_service import build_prediction_diagnostic_markdown
 from .manual_score_service import (
     ManualScoreError,
     admin_game_rows,
@@ -66,7 +67,7 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.web_title, version="0.11.1", lifespan=lifespan)
+app = FastAPI(title=settings.web_title, version="0.11.2", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
@@ -386,6 +387,23 @@ def stats(
         "metric_label": STATS_METRICS[metric],
     })
     return TEMPLATES.TemplateResponse(request=request, name="stats.html", context=context)
+
+
+@app.get("/stats/export.md")
+def stats_export(session: Session = Depends(get_session)) -> Response:
+    markdown = build_prediction_diagnostic_markdown(
+        session,
+        season=settings.season,
+        app_version=app.version,
+        model_version=settings.model_version,
+        predictor_version=settings.predictor_version,
+    )
+    filename = f"d1-rank-{settings.season}-prediction-diagnostics.md"
+    return Response(
+        content=markdown,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/teams", response_class=HTMLResponse)
